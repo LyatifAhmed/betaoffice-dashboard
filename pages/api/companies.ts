@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const response = await fetch(url, {
       headers: {
-        Authorization: `Basic ${btoa(`${API_KEY}:`)}`,
+        Authorization: `Basic ${Buffer.from(`${API_KEY}:`).toString('base64')}`,
       },
     });
 
@@ -37,3 +37,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: "Internal server error" });
   }
 }
+
