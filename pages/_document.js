@@ -4,8 +4,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        {/* Tailwind CDN */}
-        <script src="https://cdn.tailwindcss.com"></script>
+        {/* Custom meta tags or fonts can go here */}
       </Head>
       <body>
         <Main />

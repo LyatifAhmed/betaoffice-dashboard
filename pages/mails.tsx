@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import Image from 'next/image';
 
 export default function MailPage() {
   const [mails, setMails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState('All');
   const [page, setPage] = useState(0);
-  const limit = 5; // number of mails per page
+  const limit = 5;
 
-  // Fetch mails
   useEffect(() => {
     const fetchMails = async () => {
       setLoading(true);
@@ -29,7 +29,6 @@ export default function MailPage() {
     fetchMails();
   }, [page]);
 
-  // Get company list from fetched mails
   const companies = ['All', ...new Set(mails.map(mail => mail.company_name || 'Unknown'))];
   const filteredMails =
     selectedCompany === 'All'
@@ -40,13 +39,12 @@ export default function MailPage() {
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Scanned Mails</h1>
 
-      {/* Dropdown filter */}
       <select
         className="border p-2 mb-6"
         value={selectedCompany}
         onChange={e => {
           setSelectedCompany(e.target.value);
-          setPage(0); // reset pagination when filtering
+          setPage(0);
         }}
       >
         {companies.map(company => (
@@ -69,24 +67,41 @@ export default function MailPage() {
                 <p><strong>Company:</strong> {mail.company_name || 'N/A'}</p>
                 <p><strong>Received:</strong> {new Date(mail.received_at).toLocaleString()}</p>
 
-                <div className="flex gap-4 mt-2">
+                <div className="flex gap-4 mt-2 flex-wrap">
                   {mail.url && (
                     <a href={mail.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                       View PDF
                     </a>
                   )}
+
                   {mail.url_envelope_front && (
-                    <img src={mail.url_envelope_front} alt="Front" className="w-32 h-auto rounded" />
+                    <div className="w-32 h-auto relative">
+                      <Image
+                        src={mail.url_envelope_front}
+                        alt="Envelope Front"
+                        width={128}
+                        height={80}
+                        className="rounded object-contain"
+                      />
+                    </div>
                   )}
+
                   {mail.url_envelope_back && (
-                    <img src={mail.url_envelope_back} alt="Back" className="w-32 h-auto rounded" />
+                    <div className="w-32 h-auto relative">
+                      <Image
+                        src={mail.url_envelope_back}
+                        alt="Envelope Back"
+                        width={128}
+                        height={80}
+                        className="rounded object-contain"
+                      />
+                    </div>
                   )}
                 </div>
               </li>
             ))}
           </ul>
 
-          {/* Pagination controls */}
           <div className="flex justify-between items-center mt-6">
             <button
               className="bg-gray-200 px-4 py-2 rounded disabled:opacity-50"
@@ -108,5 +123,4 @@ export default function MailPage() {
     </div>
   );
 }
-
 
