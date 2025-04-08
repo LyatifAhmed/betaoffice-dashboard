@@ -14,8 +14,7 @@ export default function KYCForm() {
   const [companyOptions, setCompanyOptions] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState(null);
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const countries = countryList().getData();
+  const [selectedCountry, setSelectedCountry] = useState<{ label: string; value: string } | null>(null);
 
   const addOwner = () => setOwners([...owners, { id: Date.now() }]);
   const removeOwner = (id: number) => setOwners(owners.filter(o => o.id !== id));
@@ -82,7 +81,7 @@ export default function KYCForm() {
                 <input
                   type="text"
                   value={postcode}
-                  onChange={e => setPostcode(e.target.value)}
+                  onChange={(e) => setPostcode(e.target.value)}
                   placeholder="Postcode"
                   className="border p-2 rounded w-full"
                 />
@@ -116,10 +115,10 @@ export default function KYCForm() {
                 <input type="text" placeholder="City" className="border p-2 rounded w-full" />
                 <input type="text" placeholder="Postcode" className="border p-2 rounded w-full" />
                 <Select
-                  options={countries}
+                  options={countryList().getData()}
                   placeholder="Select Country"
                   value={selectedCountry}
-                  onChange={setSelectedCountry}
+                  onChange={(selected) => setSelectedCountry(selected)}
                   className="md:col-span-2"
                 />
               </div>
@@ -179,7 +178,7 @@ export default function KYCForm() {
         {/* Business Owners */}
         <section>
           <h2 className="text-xl font-semibold mb-4">Business Owners / UBOs</h2>
-          {owners.map(owner => (
+          {owners.map((owner) => (
             <div key={owner.id} className="mb-6 border p-4 rounded shadow relative">
               {owners.length > 1 && (
                 <button
@@ -248,6 +247,7 @@ export default function KYCForm() {
     </div>
   );
 }
+
 
 
 
