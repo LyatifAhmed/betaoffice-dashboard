@@ -2,8 +2,21 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 
+// ✅ Define the shape of mail objects
+type Mail = {
+  id: string;
+  sender_name?: string;
+  document_title?: string;
+  summary?: string;
+  company_name?: string;
+  received_at: string;
+  url?: string;
+  url_envelope_front?: string;
+  url_envelope_back?: string;
+};
+
 export default function MailPage() {
-  const [mails, setMails] = useState([]);
+  const [mails, setMails] = useState<Mail[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState('All');
   const [page, setPage] = useState(0);
@@ -69,7 +82,12 @@ export default function MailPage() {
 
                 <div className="flex gap-4 mt-2 flex-wrap">
                   {mail.url && (
-                    <a href={mail.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    <a
+                      href={mail.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
                       View PDF
                     </a>
                   )}
@@ -123,4 +141,5 @@ export default function MailPage() {
     </div>
   );
 }
+
 
