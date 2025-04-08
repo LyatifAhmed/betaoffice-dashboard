@@ -24,6 +24,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "22.14.0",
     "@types/react": "19.1.0",
+    "@types/react-select-country-list": "^2.2.3",
     "@types/stripe": "^8.0.416",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",

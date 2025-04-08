@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import axios from "axios";
 import Select from "react-select";
+import countryList from "react-select-country-list";
 
 export default function KYCForm() {
   const [owners, setOwners] = useState([{ id: Date.now() }]);
@@ -13,6 +14,8 @@ export default function KYCForm() {
   const [companyOptions, setCompanyOptions] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const countries = countryList().getData();
 
   const addOwner = () => setOwners([...owners, { id: Date.now() }]);
   const removeOwner = (id: number) => setOwners(owners.filter(o => o.id !== id));
@@ -20,8 +23,7 @@ export default function KYCForm() {
   const fetchAddresses = async () => {
     if (!postcode) return;
     try {
-      const res = await axios.get(`https://hoxton-api-backend.onrender.com/api/address-lookup?postcode=${postcode}`)
-
+      const res = await axios.get(`https://hoxton-api-backend.onrender.com/api/address-lookup?postcode=${postcode}`);
       setAddressOptions(res.data.addresses.map((a: string) => ({ label: a, value: a })));
     } catch (err) {
       console.error("Address lookup failed", err);
@@ -49,26 +51,25 @@ export default function KYCForm() {
             <input type="text" placeholder="Last Name" className="border p-2 rounded w-full" required />
             <input type="email" placeholder="Email Address" className="border p-2 rounded w-full" required />
             <PhoneInput
-  country={"gb"}
-  inputStyle={{
-    width: "100%",
-    height: "42px",
-    paddingLeft: "58px",
-    fontSize: "16px",
-    borderRadius: "0.375rem",
-    border: "1px solid #d1d5db",
-  }}
-  buttonStyle={{
-    height: "42px",
-    width: "56px",
-    borderTopLeftRadius: "0.375rem",
-    borderBottomLeftRadius: "0.375rem",
-    borderRight: "1px solid #d1d5db",
-    backgroundColor: "white",
-  }}
-  containerStyle={{ width: "100%" }}
-/>
-
+              country={"gb"}
+              inputStyle={{
+                width: "100%",
+                height: "42px",
+                paddingLeft: "58px",
+                fontSize: "16px",
+                borderRadius: "0.375rem",
+                border: "1px solid #d1d5db",
+              }}
+              buttonStyle={{
+                height: "42px",
+                width: "56px",
+                borderTopLeftRadius: "0.375rem",
+                borderBottomLeftRadius: "0.375rem",
+                borderRight: "1px solid #d1d5db",
+                backgroundColor: "white",
+              }}
+              containerStyle={{ width: "100%" }}
+            />
           </div>
         </section>
 
@@ -114,6 +115,13 @@ export default function KYCForm() {
                 <input type="text" placeholder="Address Line 2" className="border p-2 rounded w-full" />
                 <input type="text" placeholder="City" className="border p-2 rounded w-full" />
                 <input type="text" placeholder="Postcode" className="border p-2 rounded w-full" />
+                <Select
+                  options={countries}
+                  placeholder="Select Country"
+                  value={selectedCountry}
+                  onChange={setSelectedCountry}
+                  className="md:col-span-2"
+                />
               </div>
               <button
                 type="button"
@@ -188,26 +196,25 @@ export default function KYCForm() {
                 <label className="md:col-span-2 text-sm text-gray-700">Date of Birth</label>
                 <input type="date" className="border p-2 rounded w-full md:col-span-2" />
                 <PhoneInput
-  country={"gb"}
-  inputStyle={{
-    width: "100%",
-    height: "42px",
-    paddingLeft: "58px",
-    fontSize: "16px",
-    borderRadius: "0.375rem",
-    border: "1px solid #d1d5db",
-  }}
-  buttonStyle={{
-    height: "42px",
-    width: "56px",
-    borderTopLeftRadius: "0.375rem",
-    borderBottomLeftRadius: "0.375rem",
-    borderRight: "1px solid #d1d5db",
-    backgroundColor: "white",
-  }}
-  containerStyle={{ width: "100%" }}
-/>
-
+                  country={"gb"}
+                  inputStyle={{
+                    width: "100%",
+                    height: "42px",
+                    paddingLeft: "58px",
+                    fontSize: "16px",
+                    borderRadius: "0.375rem",
+                    border: "1px solid #d1d5db",
+                  }}
+                  buttonStyle={{
+                    height: "42px",
+                    width: "56px",
+                    borderTopLeftRadius: "0.375rem",
+                    borderBottomLeftRadius: "0.375rem",
+                    borderRight: "1px solid #d1d5db",
+                    backgroundColor: "white",
+                  }}
+                  containerStyle={{ width: "100%" }}
+                />
                 <div className="md:col-span-1">
                   <label className="text-sm text-gray-700 mb-1 block">Proof of ID</label>
                   <input type="file" accept=".pdf,.jpg,.png" className="border p-2 rounded w-full" />
