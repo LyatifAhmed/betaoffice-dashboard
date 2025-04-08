@@ -3,8 +3,9 @@ import Stripe from "stripe";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2022-11-15', // ✅ Use a supported version
+  apiVersion: '2025-03-31.basil', // <-- Exact value required by Stripe TypeScript types
 });
+
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
