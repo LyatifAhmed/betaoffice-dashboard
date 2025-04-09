@@ -29,9 +29,10 @@ export default function KYCForm() {
     { id: Date.now(), first_name: '', last_name: '', dob: '', phone: '', proof_id: null, proof_address: null }
   ]);
 
-  const removeOwner = (id) => setOwners(owners.filter(o => o.id !== id));
+  const removeOwner = (id: number) => setOwners(owners.filter(o => o.id !== id));
 
-  const handleOwnerChange = (id, field, value) => {
+
+  const handleOwnerChange = (id: number, field: string, value: any) => {
     setOwners(prev => prev.map(o => o.id === id ? { ...o, [field]: value } : o));
   };
 
