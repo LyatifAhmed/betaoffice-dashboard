@@ -17,7 +17,8 @@ export default function KYCForm() {
   const [addressOptions, setAddressOptions] = useState([]);
   const [companyOptions, setCompanyOptions] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState<{ label: string; value: string } | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState<{ label: string; value: string } | null>(null);
+
   const [selectedCountry, setSelectedCountry] = useState<{ label: string; value: string } | null>(null);
   const [contact, setContact] = useState({ first_name: '', last_name: '', email: '', phone: '' });
   const [manualAddressData, setManualAddressData] = useState({ line1: '', line2: '', city: '', postcode: '' });
