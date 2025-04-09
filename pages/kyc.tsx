@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -28,8 +28,8 @@ export default function KYCForm() {
   const [manualAddressData, setManualAddressData] = useState({ line1: '', line2: '', city: '', postcode: '' });
   const [companyData, setCompanyData] = useState({ name: '', trading_name: '', number: '', type: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [productId, setProductId] = useState<number | null>(null);
-
   // 👇 Map Stripe price ID → Hoxton Mix product_id
   useEffect(() => {
     const stripePriceId = localStorage.getItem("stripePriceId");
@@ -38,8 +38,7 @@ export default function KYCForm() {
     } else if (stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v") {
       setProductId(2737); // Annual
     }
-  }, []);
-
+  }, []); 
   const organizationTypes = [
     "Limited company (LTD, LP, LLP, LLC, Corp)",
     "Association, club or society",
@@ -92,6 +91,8 @@ export default function KYCForm() {
       formData.append("contact[last_name]", contact.last_name);
       formData.append("contact[email]", contact.email);
       formData.append("contact[phone]", contact.phone);
+      formData.append("product_id", selectedPlanId?.toString() || "");
+
 
       if (manualAddress) {
         formData.append("address[line1]", manualAddressData.line1);
@@ -111,10 +112,6 @@ export default function KYCForm() {
       } else {
         formData.append("company[label]", selectedCompany?.label || '');
         formData.append("company[value]", selectedCompany?.value || '');
-      }
-
-      if (productId) {
-        formData.append("product_id", productId.toString());
       }
 
       owners.forEach((owner, index) => {
@@ -140,8 +137,8 @@ export default function KYCForm() {
     <div className="max-w-4xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-8">KYC Form</h1>
       <form className="space-y-10" onSubmit={handleSubmit} encType="multipart/form-data">
-        {/* Form sections stay here */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
   <div>
     <label className="block font-medium mb-1">
       First Name <span className="text-red-500">*</span>
@@ -493,9 +490,12 @@ export default function KYCForm() {
     </button>
   </div>
 </div>
-
-        {/* Submit button */}
-        <div className="text-center">
+{selectedPlanId && (
+  <div className="text-center text-sm text-gray-600 mb-4">
+    Selected Plan: {selectedPlanId === 2736 ? "Monthly Plan" : "Annual Plan"}
+  </div>
+)}
+<div className="text-center">
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded"
@@ -504,6 +504,8 @@ export default function KYCForm() {
             {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>
+        
+        
       </form>
     </div>
   );
