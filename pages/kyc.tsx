@@ -125,18 +125,7 @@ export default function KYCForm() {
     <div className="max-w-4xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-8">KYC Form</h1>
       <form className="space-y-10" onSubmit={handleSubmit} encType="multipart/form-data">
-      <div>
-  <label className="block font-medium mb-1">
-    First Name <span className="text-red-500">*</span>
-  </label>
-  <input
-    type="text"
-    value={contact.first_name}
-    onChange={(e) => setContact({ ...contact, first_name: e.target.value })}
-    required
-    className="w-full border px-4 py-2 rounded"
-  />
-</div>
+    
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
   <div>
     <label className="block font-medium mb-1">
