@@ -47,7 +47,7 @@ export default function KYCForm() {
     }
   };
 
-  const fetchCompanies = async (inputValue) => {
+  const fetchCompanies = async (inputValue: string) => {
     if (!inputValue || inputValue.length < 2) return;
     try {
       const res = await axios.get(`https://hoxton-api-backend.onrender.com/api/company-search?q=${inputValue}`);
