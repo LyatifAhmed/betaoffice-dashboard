@@ -51,7 +51,11 @@ export default function KYCForm() {
     if (!inputValue || inputValue.length < 2) return;
     try {
       const res = await axios.get(`https://hoxton-api-backend.onrender.com/api/company-search?q=${inputValue}`);
-      const options = res.data.companies.map(c => ({ label: c.title, value: c.company_number }));
+      const options = res.data.companies.map((c: { title: string; company_number: string }) => ({
+        label: c.title,
+        value: c.company_number,
+      }));
+      
       setCompanyOptions(options);
     } catch (err) {
       console.error("Company search failed", err);
