@@ -1,19 +1,17 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+// pages/success.tsx
+import { useEffect } from "react";
 
 export default function SuccessPage() {
-  const router = useRouter();
-
   useEffect(() => {
-    localStorage.setItem('paymentCompleted', 'true');
-    router.push('/kyc');
-  }, [router]); // ✅ added router as a dependency
+    const urlParams = new URLSearchParams(window.location.search);
+    const priceId = urlParams.get("price_id");
+    if (priceId) {
+      localStorage.setItem("stripe_price_id", priceId);
+    }
+  }, []);
 
-  return (
-    <div className="p-6 text-center">
-      <h1 className="text-3xl font-bold">Redirecting to KYC Form...</h1>
-    </div>
-  );
+  return <h1>Thank you for your payment!</h1>;
 }
+
 
   

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -28,6 +28,17 @@ export default function KYCForm() {
   const [manualAddressData, setManualAddressData] = useState({ line1: '', line2: '', city: '', postcode: '' });
   const [companyData, setCompanyData] = useState({ name: '', trading_name: '', number: '', type: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [productId, setProductId] = useState<number | null>(null);
+
+  // 👇 Map Stripe price ID → Hoxton Mix product_id
+  useEffect(() => {
+    const stripePriceId = localStorage.getItem("stripePriceId");
+    if (stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt") {
+      setProductId(2736); // Monthly
+    } else if (stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v") {
+      setProductId(2737); // Annual
+    }
+  }, []);
 
   const organizationTypes = [
     "Limited company (LTD, LP, LLP, LLC, Corp)",
@@ -102,6 +113,10 @@ export default function KYCForm() {
         formData.append("company[value]", selectedCompany?.value || '');
       }
 
+      if (productId) {
+        formData.append("product_id", productId.toString());
+      }
+
       owners.forEach((owner, index) => {
         formData.append(`owners[${index}][first_name]`, owner.first_name);
         formData.append(`owners[${index}][last_name]`, owner.last_name);
@@ -125,8 +140,8 @@ export default function KYCForm() {
     <div className="max-w-4xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-8">KYC Form</h1>
       <form className="space-y-10" onSubmit={handleSubmit} encType="multipart/form-data">
-    
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Form sections stay here */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
   <div>
     <label className="block font-medium mb-1">
       First Name <span className="text-red-500">*</span>
@@ -478,7 +493,9 @@ export default function KYCForm() {
     </button>
   </div>
 </div>
-<div className="text-center">
+
+        {/* Submit button */}
+        <div className="text-center">
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded"
@@ -487,8 +504,6 @@ export default function KYCForm() {
             {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>
-        
-        
       </form>
     </div>
   );
