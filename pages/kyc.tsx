@@ -51,7 +51,7 @@ export default function KYCForm() {
   const fetchAddresses = async () => {
     if (!postcode) return;
     try {
-      const res = await axios.get(`/api/address-lookup?postcode=${postcode}`);
+      const res = await axios.get(`https://hoxton-api-backend.onrender.com/api/address-lookup?postcode=${postcode}`);
       setAddressOptions(res.data.addresses.map((a: string) => ({ label: a, value: a })));
     } catch (err) {
       console.error("Address lookup failed", err);
@@ -61,7 +61,7 @@ export default function KYCForm() {
   const fetchCompanies = async (inputValue: string) => {
     if (!inputValue || inputValue.length < 2) return;
     try {
-      const res = await axios.get(`/api/company-search?q=${inputValue}`);
+      const res = await axios.get(`https://hoxton-api-backend.onrender.com/api/company-search?q=${inputValue}`);
       const options = res.data.companies.map((c: { title: string; company_number: string }) => ({
         label: c.title,
         value: c.company_number,
@@ -111,7 +111,7 @@ export default function KYCForm() {
         if (owner.proof_address) formData.append(`owners[${index}][proof_address]`, owner.proof_address);
       });
 
-      await axios.post("/api/submit-kyc", formData);
+      await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", formData);
       router.push("/kyc-submitted");
     } catch (err) {
       console.error("KYC submission failed:", err);
