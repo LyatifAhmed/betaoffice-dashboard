@@ -16,9 +16,9 @@ export default function KYCForm() {
   const [postcode, setPostcode] = useState("");
   const [addressOptions, setAddressOptions] = useState([]);
   const [companyOptions, setCompanyOptions] = useState([]);
-  const [selectedAddress, setSelectedAddress] = useState<{ label: string; value: string } | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<{ label: string; value: string } | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<{ label: string; value: string } | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCountry, setSelectedCountry] = useState(null);
   const [contact, setContact] = useState({ first_name: '', last_name: '', email: '', phone: '' });
   const [manualAddressData, setManualAddressData] = useState({ line1: '', line2: '', city: '', postcode: '' });
   const [companyData, setCompanyData] = useState({ name: '', trading_name: '', number: '', type: '' });
@@ -33,10 +33,9 @@ export default function KYCForm() {
     "Unincorporated / not yet registered"
   ];
 
-  const addOwner = () => setOwners([
-    ...owners,
-    { id: Date.now(), first_name: '', last_name: '', dob: '', phone: '', proof_id: null, proof_address: null }
-  ]);
+  const addOwner = () => setOwners([...owners, {
+    id: Date.now(), first_name: '', last_name: '', dob: '', phone: '', proof_id: null, proof_address: null
+  }]);
 
   const removeOwner = (id: number) => setOwners(owners.filter(o => o.id !== id));
 
@@ -73,7 +72,6 @@ export default function KYCForm() {
     setSubmitting(true);
     try {
       const formData = new FormData();
-
       formData.append("contact[first_name]", contact.first_name);
       formData.append("contact[last_name]", contact.last_name);
       formData.append("contact[email]", contact.email);
@@ -122,7 +120,7 @@ export default function KYCForm() {
     <div className="max-w-4xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-8">KYC Form</h1>
       <form className="space-y-10" onSubmit={handleSubmit} encType="multipart/form-data">
-        {/* The rest of your KYC sections go here - contact, address, company, and owner sections with labels and dropdowns */}
+        {/* Form JSX with labels and red asterisks goes here */}
         <div className="text-center">
           <button
             type="submit"
