@@ -62,7 +62,8 @@ export default function KYCForm() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+
     e.preventDefault();
     setSubmitting(true);
     try {
