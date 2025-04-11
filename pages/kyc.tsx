@@ -109,7 +109,7 @@ const KycForm = () => {
 
     formData.members.forEach((member, i) => {
       ['first_name', 'last_name', 'phone_number', 'date_of_birth'].forEach((key) => {
-        if (!member[key]) {
+        if (!(member as any)[key]) {
           errors[`members.${i}.${key}`] = 'This field is required';
         }
       });
