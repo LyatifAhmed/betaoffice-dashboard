@@ -15,10 +15,12 @@ const CookieSettingsModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
   });
 
   if (!isOpen) return null;
+  type CookieType = "analytics" | "marketing";
 
-  const handleChange = (type: string) => {
+  const handleChange = (type: CookieType) => {
     setPrefs({ ...prefs, [type]: !prefs[type] });
   };
+  
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
