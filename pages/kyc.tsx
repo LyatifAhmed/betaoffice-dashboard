@@ -4,7 +4,13 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import KycForm from '../components/KycForm';
 
-import Link from "next/link";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import axios from 'axios';
+import KycForm from '../components/KycForm'; // make sure this path matches your file!
+import Link from 'next/link';
 
 export default function KYCPage() {
   const router = useRouter();
@@ -18,13 +24,15 @@ export default function KYCPage() {
 
   useEffect(() => {
     const token = router.query.token as string;
+
     if (!token) {
       setError('No token found.');
       setLoading(false);
       return;
     }
 
-    axios.get(`/api/recover-token?token=${token}`)
+    axios
+      .get(`/api/recover-token?token=${token}`)
       .then((res) => {
         const data = res.data;
         setPlanName(data.plan_name);
@@ -52,7 +60,10 @@ export default function KYCPage() {
     }
   };
 
-  if (loading) return <p className="mt-10 text-center">Recovering your subscription…</p>;
+  if (loading) {
+    return <p className="mt-10 text-center">Recovering your subscription…</p>;
+  }
+
   if (error) {
     return (
       <div className="p-6 text-center">
@@ -74,9 +85,11 @@ export default function KYCPage() {
             >
               Resend
             </button>
-            {resendStatus && <p className="mt-2 text-sm text-green-600">{resendStatus}</p>}
+            {resendStatus && (
+              <p className="mt-2 text-sm text-green-600">{resendStatus}</p>
+            )}
             <p className="mt-2 text-sm text-gray-500">
-              Or <Link href="/refund-request/">Refund Request</Link> .
+              Or <Link href="/refund-request/">Refund Request</Link>.
             </p>
           </div>
         )}
@@ -93,5 +106,3 @@ export default function KYCPage() {
     </div>
   );
 }
-
-
