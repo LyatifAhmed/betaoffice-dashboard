@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
         <h1 className="text-3xl font-bold mb-6">Privacy Policy</h1>
 
         <p className="mb-4">
-          This Privacy Policy explains how Generation Beta Digital Limited ("we", "us", or "our") collects, uses, discloses, and protects your personal data when you use our services through BetaOffice (betaoffice.uk).
+          This Privacy Policy explains how Generation Beta Digital Limited (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects, uses, discloses, and protects your personal data when you use our services through BetaOffice (betaoffice.uk).
         </p>
 
         <h2 className="text-xl font-semibold mt-6 mb-2">1. Information We Collect</h2>

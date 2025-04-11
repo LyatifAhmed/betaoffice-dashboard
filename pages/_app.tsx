@@ -2,6 +2,7 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import CookieConsent from "react-cookie-consent";
+import Link from "next/link";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -19,8 +20,9 @@ export default function App({ Component, pageProps }: AppProps) {
         expires={150}
       >
         We use cookies to enhance your experience and analyze usage.{" "}
-        <a href="/cookie-policy" className="underline text-blue-300">Learn more</a>.
+        <Link href="/cookie-policy" className="underline text-blue-300">Learn more</Link>.
       </CookieConsent>
     </>
   );
 }
+

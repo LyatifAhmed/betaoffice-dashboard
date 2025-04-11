@@ -12,7 +12,7 @@ export default function TermsOfService() {
         <h1 className="text-3xl font-bold mb-6">Terms of Service</h1>
 
         <p className="mb-4">
-          These Terms of Service ("Terms") govern your use of the BetaOffice platform provided by Generation Beta Digital Limited, a company registered in England and Wales.
+          These Terms of Service (&quot;Terms&quot;) govern your use of the BetaOffice platform provided by Generation Beta Digital Limited, a company registered in England and Wales.
         </p>
 
         <h2 className="text-xl font-semibold mt-6 mb-2">1. Acceptance of Terms</h2>

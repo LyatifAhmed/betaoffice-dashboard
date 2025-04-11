@@ -11,7 +11,7 @@ const CookiePolicy = () => {
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-4">Cookie Policy</h1>
         <p className="mb-4 text-gray-700">
-          This Cookie Policy explains how <strong>Generation Beta Digital Limited</strong> ("we", "us", or "our")
+          This Cookie Policy explains how <strong>Generation Beta Digital Limited</strong> (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;)
           uses cookies and similar technologies when you visit our website at <strong>betaoffice.uk</strong>.
         </p>
 
