@@ -142,9 +142,10 @@ const KycForm = () => {
   const renderField = (label: string, name: string, type = 'text') => {
     const keys = name.split('.');
     let value = '';
-    if (keys.length === 1) value = formData[keys[0]];
-    else if (keys.length === 2) value = formData[keys[0]][keys[1]];
-    else if (keys.length === 3) value = formData[keys[0]][parseInt(keys[1])][keys[2]];
+    if (keys.length === 1) value = (formData as any)[keys[0]];
+    else if (keys.length === 2) value = (formData as any)[keys[0]][keys[1]];
+    else if (keys.length === 3) value = (formData as any)[keys[0]][parseInt(keys[1])][keys[2]];
+
 
     return (
       <div>
