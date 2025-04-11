@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import KycForm from '@/components/KycForm';
+import KycForm from 'KycForm';
+import Link from "next/link";
 
 export default function KYCPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function KYCPage() {
             </button>
             {resendStatus && <p className="mt-2 text-sm text-green-600">{resendStatus}</p>}
             <p className="mt-2 text-sm text-gray-500">
-              Or <a href="/refund-request" className="underline text-blue-600">request a refund</a>.
+              Or <Link href="/refund-request/">Refund Request</Link> .
             </p>
           </div>
         )}
@@ -93,71 +94,3 @@ export default function KYCPage() {
 }
 
 
-// --- File: /pages/refund-request.tsx ---
-'use client';
-import { useState } from 'react';
-import axios from 'axios';
-
-export default function RefundRequest() {
-  const [email, setEmail] = useState('');
-  const [reason, setReason] = useState('');
-  const [status, setStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus(null);
-    setLoading(true);
-    try {
-      await axios.post('/api/refund-request', { email, reason });
-      setStatus('✅ Your refund request has been submitted. We will review it shortly.');
-      setEmail('');
-      setReason('');
-    } catch (err) {
-      setStatus('❌ There was an error. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="max-w-md mx-auto p-6 mt-10 bg-white rounded shadow">
-      <h1 className="text-2xl font-bold mb-4 text-center">Request a Refund</h1>
-      <p className="mb-4 text-sm text-gray-600 text-center">
-        If you no longer wish to proceed with your KYC, you may request a refund here.
-      </p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-medium">Email Address</label>
-          <input
-            type="email"
-            required
-            className="w-full border rounded px-3 py-2 mt-1"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block font-medium">Reason for Refund</label>
-          <textarea
-            rows={4}
-            required
-            className="w-full border rounded px-3 py-2 mt-1"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          ></textarea>
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          {loading ? 'Submitting...' : 'Submit Refund Request'}
-        </button>
-      </form>
-      {status && (
-        <div className="mt-4 text-center text-sm text-gray-700">{status}</div>
-      )}
-    </div>
-  );
-}
