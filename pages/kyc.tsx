@@ -101,8 +101,9 @@ const KycForm = () => {
     for (const field of requiredFields) {
       const keys = field.split('.');
       const value = keys.length === 1
-        ? formData[keys[0]]
-        : formData[keys[0]][keys[1]];
+        ? (formData as any)[keys[0]]
+        : (formData as any)[keys[0]][keys[1]];
+
       if (!value) errors[field] = 'This field is required';
     }
 
