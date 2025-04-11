@@ -1,4 +1,5 @@
 // pages/privacy-policy.tsx
+import Link from "next/link"; // 👈 Add this at the top if not already there
 
 import Head from "next/head";
 
@@ -60,7 +61,9 @@ export default function PrivacyPolicy() {
 
         <h2 className="text-xl font-semibold mt-6 mb-2">6. Cookies</h2>
         <p className="mb-4">
-          Our website uses cookies for functionality, security, and analytics. Please refer to our <a href="/cookie-policy" className="text-blue-600 underline">Cookie Policy</a> for details.
+          Our website uses cookies for functionality, security, and analytics. Please refer to our <Link href="/cookie-policy" legacyBehavior>
+            <a className="text-blue-600 underline">Cookie Policy</a>
+          </Link>{" "} for details.
         </p>
 
         <h2 className="text-xl font-semibold mt-6 mb-2">7. Data Retention</h2>
