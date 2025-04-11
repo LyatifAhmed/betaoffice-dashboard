@@ -55,9 +55,10 @@ const KycForm = () => {
     const { name, value } = e.target;
     const keys = name.split('.');
     const update = { ...formData };
-    if (keys.length === 1) update[name] = value;
-    else if (keys.length === 2) update[keys[0]][keys[1]] = value;
-    else if (keys.length === 3) update[keys[0]][parseInt(keys[1])][keys[2]] = value;
+    if (keys.length === 1) (update as any)[name] = value;
+    else if (keys.length === 2) (update as any)[keys[0]][keys[1]] = value;
+    else if (keys.length === 3) (update as any)[keys[0]][parseInt(keys[1])][keys[2]] = value;
+
     setFormData(update);
     setFormErrors((prev) => ({ ...prev, [name]: '' }));
   };
