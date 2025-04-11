@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import KycForm from 'KycForm';
+import KycForm from '../components/KycForm';
+
 import Link from "next/link";
 
 export default function KYCPage() {
