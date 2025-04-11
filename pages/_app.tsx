@@ -1,8 +1,8 @@
-import "@/styles/globals.css";
+import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import CookieConsent from "react-cookie-consent";
-
+import Link from "next/link"; // at the top of the file
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
@@ -26,7 +26,7 @@ export default function App({ Component, pageProps }: AppProps) {
         }}
       >
         We use cookies to enhance your experience and analyze usage.{" "}
-        <a href="/cookie-policy" className="underline text-blue-300">Learn more</a>.
+        <Link href="/cookie-policy" className="underline text-blue-300">Learn more</Link>
       </CookieConsent>
     </>
   );
