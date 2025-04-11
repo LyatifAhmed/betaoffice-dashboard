@@ -1,8 +1,16 @@
-// pages/cookie-policy.tsx
 import React from "react";
 import Head from "next/head";
+import CookieConsent from "react-cookie-consent";
+import { useRouter } from "next/router";
 
 const CookiePolicy = () => {
+  const router = useRouter();
+
+  const handleAccept = () => {
+    document.cookie = "betaoffice_cookie_consent=true; path=/; max-age=" + 60 * 60 * 24 * 150;
+    router.push("/");
+  };
+
   return (
     <>
       <Head>
@@ -50,6 +58,22 @@ const CookiePolicy = () => {
           <a href="mailto:info@gebedi.com" className="text-blue-600 underline">info@gebedi.com</a>
         </p>
       </div>
+
+      {/* Banner to re-accept cookies on this page */}
+      <CookieConsent
+        location="bottom"
+        buttonText="Accept"
+        declineButtonText="Decline"
+        enableDeclineButton
+        cookieName="betaoffice_cookie_consent"
+        style={{ background: "#2B373B", fontSize: "14px" }}
+        buttonStyle={{ background: "#4CAF50", color: "#fff", fontSize: "13px", borderRadius: "4px" }}
+        declineButtonStyle={{ background: "#aaa", color: "#000", fontSize: "13px", borderRadius: "4px", marginLeft: "10px" }}
+        expires={150}
+        onAccept={handleAccept}
+      >
+        We use cookies to enhance your experience and analyze usage.
+      </CookieConsent>
     </>
   );
 };
