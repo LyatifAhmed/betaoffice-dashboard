@@ -1,10 +1,4 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import axios from 'axios';
-import KycForm from '../components/KycForm';
-
-'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
