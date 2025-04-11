@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import axios from 'axios';
+import { useRouter } from 'next/router';
+
+
 
 interface Props {
   lockedProductId: number;
@@ -46,6 +49,8 @@ export default function KycForm({ lockedProductId, customerEmail }: Props) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const router = useRouter();
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -85,9 +90,9 @@ export default function KycForm({ lockedProductId, customerEmail }: Props) {
       Object.entries(formData).forEach(([key, value]) => {
         if (value) data.append(key, value as any);
       });
-
+    
       data.append('product_id', lockedProductId.toString());
-
+    
       owners.forEach((owner, i) => {
         data.append(`members[${i}][first_name]`, owner.first_name);
         data.append(`members[${i}][middle_name]`, owner.middle_name || '');
@@ -101,15 +106,16 @@ export default function KycForm({ lockedProductId, customerEmail }: Props) {
           data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
         }
       });
-
-      const response = await axios.post('/api/submit-kyc', data);
-      setMessage('✅ Submitted successfully!');
+    
+      await axios.post('/api/submit-kyc', data);
+      router.push('/kyc-submitted');
     } catch (error) {
       console.error(error);
       setMessage('❌ Submission failed. Please try again.');
     } finally {
       setLoading(false);
     }
+    
   };
 
   return (
