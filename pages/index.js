@@ -30,7 +30,8 @@ export default function HomePage() {
         className="min-h-screen bg-cover bg-center flex items-center justify-center text-white"
         style={{ backgroundImage: "url('/office-bg.png')" }}
       >
-        <div className="bg-black bg-opacity-60 p-10 rounded shadow-lg text-center max-w-xl">
+        <div className="bg-black/70 text-white p-10 rounded-xl shadow-2xl text-center max-w-xl backdrop-blur-md transition-all duration-500">
+
           <h1 className="text-4xl font-bold mb-4">Welcome to BetaOffice</h1>
           <p className="text-lg mb-6">
             Get your professional office address in London. We scan and forward your mail. It&apos;s fast, secure, and smart.
