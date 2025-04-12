@@ -1,27 +1,38 @@
 // pages/success.tsx
 import { useEffect } from "react";
 import { useRouter } from "next/router";
+import axios from "axios";
 
 export default function SuccessPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const priceId = urlParams.get("price_id");
+    const sessionId = new URLSearchParams(window.location.search).get("session_id");
 
-    if (priceId) {
-      // Save the raw Stripe price ID
-      localStorage.setItem("stripe_price_id", priceId);
+    if (sessionId) {
+      axios.post("/api/create-token", { session_id: sessionId })
+        .then((res) => {
+          const { token, price_id } = res.data;
 
-      // Map Stripe price ID to Hoxton Mix product ID
-      if (priceId === "price_1RBKvBACVQjWBIYus7IRSyEt") {
-        localStorage.setItem("hoxton_product_id", "2736"); // Monthly
-      } else if (priceId === "price_1RBKvlACVQjWBIYuVs4Of01v") {
-        localStorage.setItem("hoxton_product_id", "2737"); // Annual
-      }
+          if (price_id) {
+            localStorage.setItem("stripe_price_id", price_id);
 
-      // Redirect to the KYC form
-      router.push("/kyc");
+            // Map Stripe price ID to Hoxton Mix product ID
+            if (price_id === "price_1RBKvBACVQjWBIYus7IRSyEt") {
+              localStorage.setItem("hoxton_product_id", "2736"); // Monthly
+            } else if (price_id === "price_1RBKvlACVQjWBIYuVs4Of01v") {
+              localStorage.setItem("hoxton_product_id", "2737"); // Annual
+            }
+          }
+
+          // Redirect to KYC form
+          if (token) {
+            router.push(`/kyc?token=${token}`);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to create KYC token:", err);
+        });
     }
   }, [router]);
 
