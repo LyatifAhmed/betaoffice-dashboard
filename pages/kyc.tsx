@@ -26,34 +26,35 @@ export default function KYCPage() {
     }
 
     axios
-    axios.get(`https://hoxton-api-backend.onrender.com/api/recover-token?token=${token}`)
+    .get(`https://hoxton-api-backend.onrender.com/api/recover-token?token=${token}`)
+    .then((res) => {
+      const data = res.data;
+      setPlanName(data.plan_name);
+      setProductId(data.product_id);
+      setEmail(data.email);
+    })
+    .catch((err) => {
+      if (err.response?.status === 409) {
+        setError('You’ve already completed your KYC.');
+      } else if (err.response?.status === 410) {
+        setError('This KYC link has expired. You can request a new one.');
+      } else if (err.response?.status === 404) {
+        setError('No token found.');
+      } else {
+        setError('Something went wrong.');
+      }
+    })
+    .finally(() => setLoading(false));
+}, [router.query]);
 
-      .then((res) => {
-        const data = res.data;
-        setPlanName(data.plan_name);
-        setProductId(data.product_id);
-        setEmail(data.email);
-      })
-      .catch((err) => {
-        if (err.response?.status === 409) {
-          setError('You’ve already completed your KYC.');
-        } else if (err.response?.status === 410) {
-          setError('This KYC link has expired. You can request a new one.');
-        } else {
-          setError('Something went wrong.');
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [router.query]);
-
-  const handleResend = async () => {
+  async function handleResend() {
     try {
       await axios.post('/api/resend-kyc-link', { email: resendEmail });
       setResendStatus('✅ Link sent! Check your inbox.');
     } catch (err) {
       setResendStatus('❌ Could not resend. Please try again.');
     }
-  };
+  }
 
   if (loading) {
     return <p className="mt-10 text-center">Recovering your subscription…</p>;
