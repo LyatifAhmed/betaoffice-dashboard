@@ -5,7 +5,7 @@ import { useCallback } from "react";
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,);
 
 export default function HomePage() {
-  const handleCheckout = useCallback(async (priceId: string) => {
+  const handleCheckout = useCallback(async (priceId) => {
     const stripe = await stripePromise;
   
     const response = await fetch("/api/checkout-session", {
