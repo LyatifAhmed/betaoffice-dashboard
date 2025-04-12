@@ -5,23 +5,46 @@ import { useCallback } from "react";
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,);
 
 export default function HomePage() {
-  const handleCheckout = useCallback(async (priceId, string) => {
+  const handleCheckout = useCallback(async (priceId) => {
     const stripe = await stripePromise;
-
+  
+    // Prepare email and plan name based on priceId
+    const email = prompt("Please enter your email to continue:"); // Or collect from form
+    const planName = priceId === process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID
+      ? "Monthly Plan"
+      : "Annual Plan";
+  
+    // Step 1: Generate KYC token from backend
+    const tokenRes = await fetch("https://hoxton-api-backend.onrender.com/api/create-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, product_id: priceId === process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID ? 2736 : 2737, plan_name: planName }),
+    });
+  
+    const tokenData = await tokenRes.json();
+    const token = tokenData.token;
+  
+    // Step 2: Call your local backend to create the Stripe checkout session with KYC token
     const response = await fetch("/api/checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({
+        priceId,
+        email,
+        planName,
+        token,
+      }),
     });
-
+  
     const data = await response.json();
-
+  
     if (data.sessionId && stripe) {
       await stripe.redirectToCheckout({ sessionId: data.sessionId });
     } else {
       alert("Unable to start checkout");
     }
   }, []);
+  
 
   return (
     <div>
