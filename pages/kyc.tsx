@@ -26,7 +26,7 @@ export default function KYCPage() {
     }
   
     axios
-      .get(`https://hoxton-api-backend.onrender.com/api/recover-token?token=${token}`)
+    .get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/recover-token?token=${token}`)
       .then((res) => {
         const data = res.data;
         setPlanName(data.plan_name);
