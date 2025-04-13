@@ -10,22 +10,20 @@ export default function SuccessPage() {
     const sessionId = new URLSearchParams(window.location.search).get("session_id");
 
     if (sessionId) {
-      axios.post("/api/create-token", { session_id: sessionId })
+      axios.post("https://hoxton-api-backend.onrender.com/api/create-token", { session_id: sessionId })
         .then((res) => {
           const { token, price_id } = res.data;
-
+    
           if (price_id) {
             localStorage.setItem("stripe_price_id", price_id);
-
-            // Map Stripe price ID to Hoxton Mix product ID
+    
             if (price_id === "price_1RBKvBACVQjWBIYus7IRSyEt") {
-              localStorage.setItem("hoxton_product_id", "2736"); // Monthly
+              localStorage.setItem("hoxton_product_id", "2736");
             } else if (price_id === "price_1RBKvlACVQjWBIYuVs4Of01v") {
-              localStorage.setItem("hoxton_product_id", "2737"); // Annual
+              localStorage.setItem("hoxton_product_id", "2737");
             }
           }
-
-          // Redirect to KYC form
+    
           if (token) {
             router.push(`/kyc?token=${token}`);
           }
@@ -34,6 +32,7 @@ export default function SuccessPage() {
           console.error("Failed to create KYC token:", err);
         });
     }
+    
   }, [router]);
 
   return (
