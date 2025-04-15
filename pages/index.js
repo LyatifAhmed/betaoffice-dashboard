@@ -10,14 +10,9 @@ export default function HomePage() {
   
     const response = await fetch("/api/checkout-session", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        priceId: selectedPriceId,
-        email: userEmail, // ✅ include the user's email
-      }),
-    });  
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priceId }),
+    });
   
     const data = await response.json();
   
