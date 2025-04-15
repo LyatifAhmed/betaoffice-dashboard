@@ -45,6 +45,26 @@ export default function HomePage() {
           </button>
         </div>
       </div>
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-white text-gray-900">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center mb-12">Why Choose BetaOffice?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-lg transition-all">
+              <h3 className="text-xl font-semibold mb-2">📍 Prime London Address</h3>
+              <p>Use a real business address in Central London to boost your company&apos;s credibility and image.</p>
+            </div>
+            <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-lg transition-all">
+              <h3 className="text-xl font-semibold mb-2">📬 Scanned Mail Access</h3>
+              <p>We scan your incoming letters so you can read them anytime, anywhere — fully automated.</p>
+            </div>
+            <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-lg transition-all">
+              <h3 className="text-xl font-semibold mb-2">🚚 Optional Mail Forwarding</h3>
+              <p>Need physical copies? We forward mail to your chosen address on request.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Pricing Section */}
       <section id="pricing" className="py-20 bg-gray-50 text-gray-900">
