@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import KycForm from '../components/KycForm'; // make sure this path matches your file!
+import KycForm from '../components/KycForm';
 import Link from 'next/link';
 
 export default function KYCPage() {
@@ -17,23 +17,24 @@ export default function KYCPage() {
   const [resendStatus, setResendStatus] = useState<string>('');
 
   useEffect(() => {
+    if (!router.isReady) return;
+
     const token = router.query.token as string;
-  
+
     if (!token) {
       setError('No token found.');
       setLoading(false);
       return;
     }
-  
+
     axios
-    .get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL
-    }/api/recover-token?token=${token}`)
+      .get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/recover-token?token=${token}`)
       .then((res) => {
         const data = res.data;
         setPlanName(data.plan_name);
         setProductId(data.product_id);
         setEmail(data.email);
-        setError(null); // Important!
+        setError(null);
       })
       .catch((err) => {
         if (err.response?.status === 409) {
@@ -45,8 +46,7 @@ export default function KYCPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [router.query]);
-  
+  }, [router.isReady, router.query]);
 
   async function handleResend() {
     try {
@@ -57,7 +57,7 @@ export default function KYCPage() {
     }
   }
 
-  if (loading) {
+  if (!router.isReady || loading) {
     return <p className="mt-10 text-center">Recovering your subscription…</p>;
   }
 
