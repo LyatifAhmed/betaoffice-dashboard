@@ -2,28 +2,26 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { useCallback } from "react";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 export default function HomePage() {
   const handleCheckout = useCallback(async (priceId) => {
     const stripe = await stripePromise;
-  
+
     const response = await fetch("/api/checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({ priceId }), // ✅ No email sent from frontend
     });
-  
+
     const data = await response.json();
-  
+
     if (data.sessionId && stripe) {
       await stripe.redirectToCheckout({ sessionId: data.sessionId });
     } else {
       alert("Unable to start checkout");
     }
   }, []);
-  
-  
 
   return (
     <div>
@@ -33,7 +31,6 @@ export default function HomePage() {
         style={{ backgroundImage: "url('/office-bg.png')" }}
       >
         <div className="bg-black/70 text-white p-10 rounded-xl shadow-2xl text-center max-w-xl backdrop-blur-md transition-all duration-500">
-
           <h1 className="text-4xl font-bold mb-4">Welcome to BetaOffice</h1>
           <p className="text-lg mb-6">
             Get your professional office address in London. We scan and forward your mail. It&apos;s fast, secure, and smart.
@@ -48,27 +45,6 @@ export default function HomePage() {
           </button>
         </div>
       </div>
-
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white text-gray-900">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose BetaOffice?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-lg transition-all">
-              <h3 className="text-xl font-semibold mb-2">📍 Prime London Address</h3>
-              <p>Use a real business address in Central London to boost your company’s credibility and image.</p>
-            </div>
-            <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-lg transition-all">
-              <h3 className="text-xl font-semibold mb-2">📬 Scanned Mail Access</h3>
-              <p>We scan your incoming letters so you can read them anytime, anywhere — fully automated.</p>
-            </div>
-            <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-lg transition-all">
-              <h3 className="text-xl font-semibold mb-2">🚚 Optional Mail Forwarding</h3>
-              <p>Need physical copies? We forward mail to your chosen address on request.</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Pricing Section */}
       <section id="pricing" className="py-20 bg-gray-50 text-gray-900">
@@ -88,7 +64,7 @@ export default function HomePage() {
                 <li>✓ Cancel anytime</li>
               </ul>
               <button
-                onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID,)}
+                onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID)}
                 className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded w-full"
               >
                 Choose Monthly
@@ -110,7 +86,7 @@ export default function HomePage() {
                 <li>✓ Mail forwarding available (pay per item)</li>
               </ul>
               <button
-                onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID,)}
+                onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID)}
                 className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded w-full"
               >
                 Choose Annual

@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-03-31.basil",
+  apiVersion: "2025-03-31.basil", // You may update this based on your compatibility
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -10,10 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { priceId, email } = req.body;
+  const { priceId } = req.body;
 
-  if (!priceId || !email) {
-    return res.status(400).json({ error: "Missing priceId or email" });
+  if (!priceId) {
+    return res.status(400).json({ error: "Missing priceId" });
   }
 
   try {
@@ -28,9 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
-      customer_email: email, // ✅ Now passed to webhook
       metadata: {
-        price_id: priceId,   // ✅ Needed for webhook lookup
+        price_id: priceId, // ✅ Still pass for use in your webhook
       },
     });
 
@@ -40,4 +39,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Stripe checkout session creation failed" });
   }
 }
-
