@@ -16,8 +16,8 @@ interface Owner {
   last_name: string;
   date_of_birth: string;
   phone_number?: string;
-  proof_of_id?: File;
-  proof_of_address?: File;
+  proof_of_id: File;
+  proof_of_address: File;
 }
 
 export default function KycForm({ lockedProductId, customerEmail, token }: Props) {
@@ -33,8 +33,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     postcode: '',
     country: '',
     phone_number: '',
-    proof_of_address: null as File | null,
-    proof_of_id: null as File | null,
   });
 
   const [owners, setOwners] = useState<Owner[]>([
@@ -43,6 +41,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       middle_name: '',
       last_name: '',
       date_of_birth: '',
+      proof_of_id: {} as File,
+      proof_of_address: {} as File,
     },
   ]);
 
@@ -55,13 +55,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    if (files && files.length > 0) {
-      setFormData((prev) => ({ ...prev, [name]: files[0] }));
-    }
-  };
-
   const updateOwner = (index: number, field: string, value: string | File) => {
     const updated = [...owners];
     (updated[index] as any)[field] = value;
@@ -69,7 +62,13 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   };
 
   const addOwner = () => {
-    setOwners((prev) => [...prev, { first_name: '', last_name: '', date_of_birth: '' }]);
+    setOwners((prev) => [...prev, {
+      first_name: '',
+      last_name: '',
+      date_of_birth: '',
+      proof_of_id: {} as File,
+      proof_of_address: {} as File,
+    }]);
   };
 
   const removeOwner = (index: number) => {
@@ -97,8 +96,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         data.append(`members[${i}][last_name]`, owner.last_name);
         data.append(`members[${i}][date_of_birth]`, owner.date_of_birth);
         data.append(`members[${i}][phone_number]`, owner.phone_number || '');
-        if (owner.proof_of_id) data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
-        if (owner.proof_of_address) data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
+        data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
+        data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
       });
 
       await axios.post('/api/submit-kyc', data);
@@ -121,8 +120,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
           <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">
-          Trading Name <span className="text-red-500">*</span>
-          <input required name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
+          Trading Name
+          <input name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">
           Organisation Type <span className="text-red-500">*</span>
@@ -166,14 +165,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
           Country <span className="text-red-500">*</span>
           <input required name="country" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Proof of Address (PDF or Image) <span className="text-red-500">*</span>
-          <input required type="file" name="proof_of_address" onChange={handleFileChange} className="p-2" />
-        </label>
-        <label className="block">
-          Proof of ID (PDF or Image) <span className="text-red-500">*</span>
-          <input required type="file" name="proof_of_id" onChange={handleFileChange} className="p-2" />
-        </label>
       </div>
 
       <h3 className="font-medium mt-6">Business Owners</h3>
@@ -201,12 +192,12 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
               <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} className="border p-2 rounded w-full" />
             </label>
             <label className="block">
-              Proof of ID (Optional)
-              <input type="file" onChange={(e) => updateOwner(i, 'proof_of_id', e.target.files?.[0] || '')} className="p-2" />
+              Proof of ID <span className="text-red-500">*</span>
+              <input required type="file" onChange={(e) => updateOwner(i, 'proof_of_id', e.target.files?.[0] || '')} className="p-2" />
             </label>
             <label className="block">
-              Proof of Address (Optional)
-              <input type="file" onChange={(e) => updateOwner(i, 'proof_of_address', e.target.files?.[0] || '')} className="p-2" />
+              Proof of Address <span className="text-red-500">*</span>
+              <input required type="file" onChange={(e) => updateOwner(i, 'proof_of_address', e.target.files?.[0] || '')} className="p-2" />
             </label>
           </div>
           {owners.length > 1 && (
@@ -231,5 +222,3 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     </form>
   );
 }
-
-
