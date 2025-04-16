@@ -9,7 +9,9 @@ import { useRouter } from 'next/router';
 interface Props {
   lockedProductId: number;
   customerEmail: string;
+  token: string; // ✅ Add this line
 }
+
 
 interface Owner {
   first_name: string;
@@ -21,7 +23,7 @@ interface Owner {
   proof_of_address?: File;
 }
 
-export default function KycForm({ lockedProductId, customerEmail }: Props) {
+export default function KycForm({ lockedProductId, customerEmail, token }: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
@@ -92,6 +94,7 @@ export default function KycForm({ lockedProductId, customerEmail }: Props) {
       });
     
       data.append('product_id', lockedProductId.toString());
+      data.append('token', token);
     
       owners.forEach((owner, i) => {
         data.append(`members[${i}][first_name]`, owner.first_name);
