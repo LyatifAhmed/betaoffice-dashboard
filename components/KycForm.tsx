@@ -232,3 +232,4 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   );
 }
 
+
