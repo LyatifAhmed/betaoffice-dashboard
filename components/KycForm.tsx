@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
+import Select from 'react-select';
+import countryList from 'react-select-country-list';
 
 interface Props {
   lockedProductId: number;
@@ -19,6 +21,15 @@ interface Owner {
   proof_of_id: File;
   proof_of_address: File;
 }
+
+const businessTypes = [
+  { value: '1', label: 'Limited company (LTD, LP, LLP, LLC, Corp)' },
+  { value: '13', label: 'Association, club or society' },
+  { value: '10', label: 'Charity / non-profit' },
+  { value: '3', label: 'Individual / sole trader' },
+  { value: '12', label: 'Trust, foundation or fund' },
+  { value: '9', label: 'Unincorporated / not yet registered' },
+];
 
 export default function KycForm({ lockedProductId, customerEmail, token }: Props) {
   const [formData, setFormData] = useState({
@@ -50,9 +61,15 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   const [message, setMessage] = useState('');
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const countries = countryList().getData();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateOwner = (index: number, field: string, value: string | File) => {
@@ -125,13 +142,11 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </label>
         <label className="block">
           Organisation Type <span className="text-red-500">*</span>
-          <select required name="organisation_type" onChange={handleChange} className="border p-2 rounded w-full">
-            <option value="">Select</option>
-            <option value="1">Limited Company</option>
-            <option value="3">Sole Trader</option>
-            <option value="9">Unregistered</option>
-            <option value="10">Charity</option>
-          </select>
+          <Select
+            options={businessTypes}
+            onChange={(option) => handleSelectChange('organisation_type', option?.value || '')}
+            className="w-full"
+          />
         </label>
         <label className="block">
           Company Number
@@ -163,7 +178,11 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </label>
         <label className="block">
           Country <span className="text-red-500">*</span>
-          <input required name="country" onChange={handleChange} className="border p-2 rounded w-full" />
+          <Select
+            options={countries}
+            onChange={(option) => handleSelectChange('country', option?.label || '')}
+            className="w-full"
+          />
         </label>
       </div>
 
@@ -222,3 +241,4 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     </form>
   );
 }
+
