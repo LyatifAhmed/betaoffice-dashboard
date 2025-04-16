@@ -4,14 +4,11 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 
-
-
 interface Props {
   lockedProductId: number;
   customerEmail: string;
-  token: string; // ✅ Add this line
+  token: string;
 }
-
 
 interface Owner {
   first_name: string;
@@ -53,7 +50,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   const [message, setMessage] = useState('');
   const router = useRouter();
 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -92,24 +88,19 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       Object.entries(formData).forEach(([key, value]) => {
         if (value) data.append(key, value as any);
       });
-    
       data.append('product_id', lockedProductId.toString());
       data.append('token', token);
-    
+
       owners.forEach((owner, i) => {
         data.append(`members[${i}][first_name]`, owner.first_name);
         data.append(`members[${i}][middle_name]`, owner.middle_name || '');
         data.append(`members[${i}][last_name]`, owner.last_name);
         data.append(`members[${i}][date_of_birth]`, owner.date_of_birth);
         data.append(`members[${i}][phone_number]`, owner.phone_number || '');
-        if (owner.proof_of_id) {
-          data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
-        }
-        if (owner.proof_of_address) {
-          data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
-        }
+        if (owner.proof_of_id) data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
+        if (owner.proof_of_address) data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
       });
-    
+
       await axios.post('/api/submit-kyc', data);
       router.push('/kyc-submitted');
     } catch (error) {
@@ -118,7 +109,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     } finally {
       setLoading(false);
     }
-    
   };
 
   return (
@@ -126,41 +116,98 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input required name="company_name" onChange={handleChange} placeholder="Company Name" className="border p-2 rounded" />
-        <input required name="trading_name" onChange={handleChange} placeholder="Trading Name" className="border p-2 rounded" />
-        <select required name="organisation_type" onChange={handleChange} className="border p-2 rounded">
-          <option value="">Select Organisation Type</option>
-          <option value="1">Limited Company</option>
-          <option value="3">Sole Trader</option>
-          <option value="9">Unregistered</option>
-          <option value="10">Charity</option>
-        </select>
-        <input name="limited_company_number" onChange={handleChange} placeholder="Company Number (optional)" className="border p-2 rounded" />
-        <input name="phone_number" onChange={handleChange} placeholder="Business Phone Number" className="border p-2 rounded" />
+        <label className="block">
+          Company Name <span className="text-red-500">*</span>
+          <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Trading Name <span className="text-red-500">*</span>
+          <input required name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Organisation Type <span className="text-red-500">*</span>
+          <select required name="organisation_type" onChange={handleChange} className="border p-2 rounded w-full">
+            <option value="">Select</option>
+            <option value="1">Limited Company</option>
+            <option value="3">Sole Trader</option>
+            <option value="9">Unregistered</option>
+            <option value="10">Charity</option>
+          </select>
+        </label>
+        <label className="block">
+          Company Number
+          <input name="limited_company_number" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Phone Number
+          <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
       </div>
 
       <h3 className="font-medium mt-6">Address</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input required name="address_line_1" onChange={handleChange} placeholder="Address Line 1" className="border p-2 rounded" />
-        <input name="address_line_2" onChange={handleChange} placeholder="Address Line 2" className="border p-2 rounded" />
-        <input required name="city" onChange={handleChange} placeholder="City" className="border p-2 rounded" />
-        <input required name="postcode" onChange={handleChange} placeholder="Postcode" className="border p-2 rounded" />
-        <input required name="country" onChange={handleChange} placeholder="Country" className="border p-2 rounded" />
-        <input required type="file" name="proof_of_address" onChange={handleFileChange} className="p-2" />
-        <input required type="file" name="proof_of_id" onChange={handleFileChange} className="p-2" />
+        <label className="block">
+          Address Line 1 <span className="text-red-500">*</span>
+          <input required name="address_line_1" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Address Line 2
+          <input name="address_line_2" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          City <span className="text-red-500">*</span>
+          <input required name="city" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Postcode <span className="text-red-500">*</span>
+          <input required name="postcode" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Country <span className="text-red-500">*</span>
+          <input required name="country" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Proof of Address (PDF or Image) <span className="text-red-500">*</span>
+          <input required type="file" name="proof_of_address" onChange={handleFileChange} className="p-2" />
+        </label>
+        <label className="block">
+          Proof of ID (PDF or Image) <span className="text-red-500">*</span>
+          <input required type="file" name="proof_of_id" onChange={handleFileChange} className="p-2" />
+        </label>
       </div>
 
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
         <div key={i} className="border p-4 rounded mb-4 space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} placeholder="First Name" className="border p-2 rounded" />
-            <input value={owner.middle_name} onChange={(e) => updateOwner(i, 'middle_name', e.target.value)} placeholder="Middle Name" className="border p-2 rounded" />
-            <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} placeholder="Last Name" className="border p-2 rounded" />
-            <input required type="date" value={owner.date_of_birth} onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)} className="border p-2 rounded" />
-            <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} placeholder="Phone Number" className="border p-2 rounded" />
-            <input type="file" onChange={(e) => updateOwner(i, 'proof_of_id', e.target.files?.[0] || '')} className="p-2" />
-            <input type="file" onChange={(e) => updateOwner(i, 'proof_of_address', e.target.files?.[0] || '')} className="p-2" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              First Name <span className="text-red-500">*</span>
+              <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block">
+              Middle Name
+              <input value={owner.middle_name} onChange={(e) => updateOwner(i, 'middle_name', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block">
+              Last Name <span className="text-red-500">*</span>
+              <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block">
+              Date of Birth <span className="text-red-500">*</span>
+              <input required type="date" value={owner.date_of_birth} onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block">
+              Phone Number
+              <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block">
+              Proof of ID (Optional)
+              <input type="file" onChange={(e) => updateOwner(i, 'proof_of_id', e.target.files?.[0] || '')} className="p-2" />
+            </label>
+            <label className="block">
+              Proof of Address (Optional)
+              <input type="file" onChange={(e) => updateOwner(i, 'proof_of_address', e.target.files?.[0] || '')} className="p-2" />
+            </label>
           </div>
           {owners.length > 1 && (
             <button type="button" onClick={() => removeOwner(i)} className="text-red-500 text-sm">
@@ -184,3 +231,4 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     </form>
   );
 }
+
