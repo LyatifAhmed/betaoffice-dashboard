@@ -107,11 +107,15 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       data.append('product_id', lockedProductId.toString());
       data.append('token', token);
 
+      const now = new Date().toISOString();
+      data.append('start_date', now);
+
       owners.forEach((owner, i) => {
+        const isoDob = new Date(owner.date_of_birth).toISOString();
         data.append(`members[${i}][first_name]`, owner.first_name);
         data.append(`members[${i}][middle_name]`, owner.middle_name || '');
         data.append(`members[${i}][last_name]`, owner.last_name);
-        data.append(`members[${i}][date_of_birth]`, owner.date_of_birth);
+        data.append(`members[${i}][date_of_birth]`, isoDob);
         data.append(`members[${i}][phone_number]`, owner.phone_number || '');
         data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
         data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
@@ -142,11 +146,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </label>
         <label className="block">
           Organisation Type <span className="text-red-500">*</span>
-          <Select
-            options={businessTypes}
-            onChange={(option) => handleSelectChange('organisation_type', option?.value || '')}
-            className="w-full"
-          />
+          <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option?.value || '')} className="w-full" />
         </label>
         <label className="block">
           Company Number
@@ -185,7 +185,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
             className="w-full"
           />
         </label>
-
       </div>
 
       <h3 className="font-medium mt-6">Business Owners</h3>
@@ -243,4 +242,3 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     </form>
   );
 }
-
