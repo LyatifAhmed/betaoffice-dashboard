@@ -117,7 +117,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
       });
 
-      await axios.post('/api/submit-kyc', data);
+      await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", data);
       router.push('/kyc-submitted');
     } catch (error) {
       console.error(error);
@@ -126,7 +126,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       setLoading(false);
     }
   };
-
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
