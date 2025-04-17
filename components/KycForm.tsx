@@ -180,10 +180,12 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
           Country <span className="text-red-500">*</span>
           <Select
             options={countries}
-            onChange={(option) => handleSelectChange('country', option?.label || '')}
+            getOptionLabel={(e) => `${e.label} (${e.value})`}
+            onChange={(option) => handleSelectChange('country', option?.value || '')}
             className="w-full"
           />
         </label>
+
       </div>
 
       <h3 className="font-medium mt-6">Business Owners</h3>
