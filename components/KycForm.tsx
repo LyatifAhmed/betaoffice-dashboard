@@ -126,6 +126,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       setLoading(false);
     }
   };
+
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
