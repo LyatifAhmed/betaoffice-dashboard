@@ -44,6 +44,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     postcode: '',
     country: '',
     phone_number: '',
+    customer_first_name: '',
+    customer_last_name: '',
   });
 
   const [owners, setOwners] = useState<Owner[]>([
@@ -107,15 +109,11 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       data.append('product_id', lockedProductId.toString());
       data.append('token', token);
 
-      const now = new Date().toISOString();
-      data.append('start_date', now);
-
       owners.forEach((owner, i) => {
-        const isoDob = new Date(owner.date_of_birth).toISOString();
         data.append(`members[${i}][first_name]`, owner.first_name);
         data.append(`members[${i}][middle_name]`, owner.middle_name || '');
         data.append(`members[${i}][last_name]`, owner.last_name);
-        data.append(`members[${i}][date_of_birth]`, isoDob);
+        data.append(`members[${i}][date_of_birth]`, owner.date_of_birth);
         data.append(`members[${i}][phone_number]`, owner.phone_number || '');
         data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
         data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
@@ -137,6 +135,14 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">
+          First Name <span className="text-red-500">*</span>
+          <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Last Name <span className="text-red-500">*</span>
+          <input required name="customer_last_name" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
           Company Name <span className="text-red-500">*</span>
           <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
@@ -146,7 +152,11 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </label>
         <label className="block">
           Organisation Type <span className="text-red-500">*</span>
-          <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option?.value || '')} className="w-full" />
+          <Select
+            options={businessTypes}
+            onChange={(option) => handleSelectChange('organisation_type', option?.value || '')}
+            className="w-full"
+          />
         </label>
         <label className="block">
           Company Number
@@ -155,6 +165,17 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         <label className="block">
           Phone Number
           <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">
+          Email Address <span className="text-red-500">*</span>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            readOnly
+            className="border p-2 rounded w-full bg-gray-100 text-gray-700 cursor-not-allowed"
+          />
+          <p className="text-sm text-gray-500 mt-1">This email was used during payment and cannot be changed.</p>
         </label>
       </div>
 
