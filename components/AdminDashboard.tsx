@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import Link from 'next/link';
 
 interface Submission {
   external_id: string;
@@ -57,16 +58,12 @@ export default function AdminDashboard() {
               <td className="px-4 py-2">{sub.customer_email}</td>
               <td className="px-4 py-2">{sub.company_name}</td>
               <td className="px-4 py-2">{new Date(sub.start_date).toLocaleString()}</td>
-              <td className="px-4 py-2">
-                <button className="text-blue-600 hover:underline mr-4">
-                  View
-                </button>
-                <button className="text-green-600 hover:underline mr-2">
-                  Approve
-                </button>
-                <button className="text-red-600 hover:underline">
-                  Reject
-                </button>
+              <td className="px-4 py-2 space-x-2">
+                <Link href={`/admin/${sub.external_id}`}>
+                  <button className="text-blue-600 hover:underline">View</button>
+                </Link>
+                <button className="text-green-600 hover:underline">Approve</button>
+                <button className="text-red-600 hover:underline">Reject</button>
               </td>
             </tr>
           ))}
