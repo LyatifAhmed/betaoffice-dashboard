@@ -18,8 +18,8 @@ export default function SubmissionDetail() {
     axios
       .get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/admin/submission/${external_id}`, {
         auth: {
-          username: process.env.NEXT_PUBLIC_ADMIN_USER || 'admin',
-          password: process.env.NEXT_PUBLIC_ADMIN_PASS || 'adminpass',
+          username: process.env.NEXT_PUBLIC_ADMIN_USER!,
+          password: process.env.NEXT_PUBLIC_ADMIN_PASS!,
         },
       })
       .then((res) => {
@@ -54,12 +54,31 @@ export default function SubmissionDetail() {
         <div key={index} className="border p-4 rounded mb-4 bg-white shadow-sm">
           <p><strong>First Name:</strong> {member.first_name}</p>
           <p><strong>Last Name:</strong> {member.last_name}</p>
-          <p><strong>Phone:</strong> {member.phone_number}</p>
+          <p><strong>Phone:</strong> {member.phone_number || '—'}</p>
           <p><strong>Date of Birth:</strong> {new Date(member.date_of_birth).toLocaleDateString()}</p>
-          <p><strong>Proof of ID:</strong> {member.proof_of_id}</p>
-          <p><strong>Proof of Address:</strong> {member.proof_of_address}</p>
+          <p>
+            <strong>Proof of ID:</strong>{' '}
+            {member.proof_of_id ? (
+              <a href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/${member.proof_of_id}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                View File
+              </a>
+            ) : (
+              'Not uploaded'
+            )}
+          </p>
+          <p>
+            <strong>Proof of Address:</strong>{' '}
+            {member.proof_of_address ? (
+              <a href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/${member.proof_of_address}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                View File
+              </a>
+            ) : (
+              'Not uploaded'
+            )}
+          </p>
         </div>
       ))}
     </div>
   );
 }
+
