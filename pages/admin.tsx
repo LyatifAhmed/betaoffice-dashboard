@@ -14,7 +14,6 @@ interface Submission {
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [error, setError] = useState('');
-  const [actionStatus, setActionStatus] = useState<string | null>(null);
 
   const fetchSubmissions = async () => {
     try {
@@ -22,8 +21,8 @@ export default function AdminDashboard() {
         `${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/admin/submissions`,
         {
           auth: {
-            username: process.env.NEXT_PUBLIC_ADMIN_USER || 'admin',
-            password: process.env.NEXT_PUBLIC_ADMIN_PASS || 'adminpass',
+            username: process.env.NEXT_PUBLIC_ADMIN_USER!,
+            password: process.env.NEXT_PUBLIC_ADMIN_PASS!,
           },
         }
       );
@@ -34,23 +33,26 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAction = async (external_id: string, action: 'APPROVED' | 'REJECTED') => {
+  const reviewSubmission = async (external_id: string, status: 'APPROVED' | 'REJECTED') => {
     try {
       await axios.post(
         `${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/admin/review-submission`,
-        { external_id, action },
+        {
+          external_id,
+          review_status: status,
+        },
         {
           auth: {
-            username: process.env.NEXT_PUBLIC_ADMIN_USER || 'admin',
-            password: process.env.NEXT_PUBLIC_ADMIN_PASS || 'adminpass',
+            username: process.env.NEXT_PUBLIC_ADMIN_USER!,
+            password: process.env.NEXT_PUBLIC_ADMIN_PASS!,
           },
         }
       );
-      setActionStatus(`✅ Submission ${external_id} marked as ${action}`);
-      fetchSubmissions(); // Refresh list
+      alert(`✅ Submission ${status.toLowerCase()}!`);
+      fetchSubmissions(); // 🔄 Refresh list
     } catch (err) {
-      console.error('Failed to update submission status', err);
-      setActionStatus('❌ Failed to update submission status');
+      console.error(`Failed to ${status.toLowerCase()} submission`, err);
+      alert(`❌ Failed to ${status.toLowerCase()} submission`);
     }
   };
 
@@ -61,9 +63,7 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4">
       <h1 className="text-2xl font-semibold mb-4">🧾 KYC Submissions</h1>
-
       {error && <p className="text-red-600 mb-4">{error}</p>}
-      {actionStatus && <p className="text-blue-700 mb-4">{actionStatus}</p>}
 
       <table className="w-full table-auto border border-gray-200 shadow-sm rounded">
         <thead className="bg-gray-100">
@@ -84,14 +84,14 @@ export default function AdminDashboard() {
               <td className="px-4 py-2 font-semibold">{sub.review_status}</td>
               <td className="px-4 py-2 space-x-2">
                 <button
-                  onClick={() => handleAction(sub.external_id, 'APPROVED')}
-                  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                  onClick={() => reviewSubmission(sub.external_id, 'APPROVED')}
+                  className="text-green-600 hover:underline"
                 >
                   Approve
                 </button>
                 <button
-                  onClick={() => handleAction(sub.external_id, 'REJECTED')}
-                  className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  onClick={() => reviewSubmission(sub.external_id, 'REJECTED')}
+                  className="text-red-600 hover:underline"
                 >
                   Reject
                 </button>
@@ -103,3 +103,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
