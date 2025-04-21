@@ -18,8 +18,8 @@ interface Owner {
   last_name: string;
   date_of_birth: string;
   phone_number?: string;
-  proof_of_id: File;
-  proof_of_address: File;
+  proof_of_id: File | null;
+  proof_of_address: File | null;
 }
 
 const businessTypes = [
@@ -54,15 +54,15 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       middle_name: '',
       last_name: '',
       date_of_birth: '',
-      proof_of_id: {} as File,
-      proof_of_address: {} as File,
+      phone_number: '',
+      proof_of_id: null,
+      proof_of_address: null,
     },
   ]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
-
   const countries = countryList().getData();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,13 +81,18 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   };
 
   const addOwner = () => {
-    setOwners((prev) => [...prev, {
-      first_name: '',
-      last_name: '',
-      date_of_birth: '',
-      proof_of_id: {} as File,
-      proof_of_address: {} as File,
-    }]);
+    setOwners((prev) => [
+      ...prev,
+      {
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        date_of_birth: '',
+        phone_number: '',
+        proof_of_id: null,
+        proof_of_address: null,
+      },
+    ]);
   };
 
   const removeOwner = (index: number) => {
@@ -100,6 +105,26 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     e.preventDefault();
     setLoading(true);
     setMessage('');
+
+    // ✅ Basic validation
+    for (const [i, owner] of owners.entries()) {
+      if (owner.proof_of_id && owner.proof_of_id.size > 2 * 1024 * 1024) {
+        setMessage(`❌ ID file for owner ${i + 1} must be under 2MB`);
+        setLoading(false);
+        return;
+      }
+      if (owner.proof_of_address && owner.proof_of_address.size > 2 * 1024 * 1024) {
+        setMessage(`❌ Address file for owner ${i + 1} must be under 2MB`);
+        setLoading(false);
+        return;
+      }
+
+      if (new Date(owner.date_of_birth) > new Date()) {
+        setMessage(`❌ Owner ${i + 1} cannot have a future date of birth`);
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const data = new FormData();
@@ -115,8 +140,12 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         data.append(`members[${i}][last_name]`, owner.last_name);
         data.append(`members[${i}][date_of_birth]`, owner.date_of_birth);
         data.append(`members[${i}][phone_number]`, owner.phone_number || '');
-        data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
-        data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
+        if (owner.proof_of_id) {
+          data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
+        }
+        if (owner.proof_of_address) {
+          data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
+        }
       });
 
       await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", data);
@@ -214,40 +243,91 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
               First Name <span className="text-red-500">*</span>
-              <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
+              <input
+                required
+                value={owner.first_name}
+                onChange={(e) => updateOwner(i, 'first_name', e.target.value)}
+                className="border p-2 rounded w-full"
+              />
             </label>
             <label className="block">
               Middle Name
-              <input value={owner.middle_name} onChange={(e) => updateOwner(i, 'middle_name', e.target.value)} className="border p-2 rounded w-full" />
+              <input
+                value={owner.middle_name}
+                onChange={(e) => updateOwner(i, 'middle_name', e.target.value)}
+                className="border p-2 rounded w-full"
+              />
             </label>
             <label className="block">
               Last Name <span className="text-red-500">*</span>
-              <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
+              <input
+                required
+                value={owner.last_name}
+                onChange={(e) => updateOwner(i, 'last_name', e.target.value)}
+                className="border p-2 rounded w-full"
+              />
             </label>
             <label className="block">
               Date of Birth <span className="text-red-500">*</span>
-              <input required type="date" value={owner.date_of_birth} onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)} className="border p-2 rounded w-full" />
+              <input
+                required
+                type="date"
+                value={owner.date_of_birth}
+                onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)}
+                className="border p-2 rounded w-full"
+              />
             </label>
             <label className="block">
               Phone Number
-              <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} className="border p-2 rounded w-full" />
+              <input
+                value={owner.phone_number}
+                onChange={(e) => updateOwner(i, 'phone_number', e.target.value)}
+                className="border p-2 rounded w-full"
+              />
             </label>
             <label className="block">
               Proof of ID <span className="text-red-500">*</span>
-              <input required type="file" onChange={(e) => updateOwner(i, 'proof_of_id', e.target.files?.[0] || '')} className="p-2" />
+              <input
+                required
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) updateOwner(i, 'proof_of_id', file);
+                }}
+                className="p-2"
+              />
+              {owner.proof_of_id && (
+                <p className="text-sm text-gray-500 mt-1">{owner.proof_of_id.name}</p>
+              )}
             </label>
             <label className="block">
               Proof of Address <span className="text-red-500">*</span>
-              <input required type="file" onChange={(e) => updateOwner(i, 'proof_of_address', e.target.files?.[0] || '')} className="p-2" />
+              <input
+                required
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) updateOwner(i, 'proof_of_address', file);
+                }}
+                className="p-2"
+              />
+              {owner.proof_of_address && (
+                <p className="text-sm text-gray-500 mt-1">{owner.proof_of_address.name}</p>
+              )}
             </label>
           </div>
           {owners.length > 1 && (
-            <button type="button" onClick={() => removeOwner(i)} className="text-red-500 text-sm">
+            <button
+              type="button"
+              onClick={() => removeOwner(i)}
+              className="text-red-500 text-sm"
+            >
               Remove Owner
             </button>
           )}
         </div>
       ))}
+
 
       <button type="button" onClick={addOwner} className="text-blue-600 underline">
         + Add Another Owner
@@ -259,7 +339,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </button>
       </div>
 
-      {message && <p className="text-center mt-4 text-sm">{message}</p>}
+      {message && <p className="text-center mt-4 text-sm text-red-600">{message}</p>}
     </form>
   );
 }
+
