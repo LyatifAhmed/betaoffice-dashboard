@@ -64,7 +64,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   const [message, setMessage] = useState('');
   const router = useRouter();
   const countries = countryList().getData();
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -106,9 +105,26 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     e.preventDefault();
     setLoading(true);
     setMessage('');
-    setFileErrors([]);
 
-    
+    // ✅ Basic validation
+    for (const [i, owner] of owners.entries()) {
+      if (owner.proof_of_id && owner.proof_of_id.size > 2 * 1024 * 1024) {
+        setMessage(`❌ ID file for owner ${i + 1} must be under 2MB`);
+        setLoading(false);
+        return;
+      }
+      if (owner.proof_of_address && owner.proof_of_address.size > 2 * 1024 * 1024) {
+        setMessage(`❌ Address file for owner ${i + 1} must be under 2MB`);
+        setLoading(false);
+        return;
+      }
+
+      if (new Date(owner.date_of_birth) > new Date()) {
+        setMessage(`❌ Owner ${i + 1} cannot have a future date of birth`);
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const data = new FormData();
