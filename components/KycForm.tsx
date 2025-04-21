@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import Select from 'react-select';
 import countryList from 'react-select-country-list';
+import Image from 'next/image';
 
 interface Props {
   lockedProductId: number;
@@ -20,6 +21,8 @@ interface Owner {
   phone_number?: string;
   proof_of_id: File | null;
   proof_of_address: File | null;
+  preview_id?: string;
+  preview_address?: string;
 }
 
 const businessTypes = [
@@ -62,8 +65,10 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const router = useRouter();
   const countries = countryList().getData();
+  const router = useRouter();
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -74,9 +79,13 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateOwner = (index: number, field: string, value: string | File) => {
+  const updateOwner = (index: number, field: string, value: string | File | null, previewUrl?: string) => {
     const updated = [...owners];
     (updated[index] as any)[field] = value;
+    if (previewUrl) {
+      if (field === 'proof_of_id') updated[index].preview_id = previewUrl;
+      if (field === 'proof_of_address') updated[index].preview_address = previewUrl;
+    }
     setOwners(updated);
   };
 
@@ -106,21 +115,26 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setLoading(true);
     setMessage('');
 
-    // ✅ Basic validation
     for (const [i, owner] of owners.entries()) {
-      if (owner.proof_of_id && owner.proof_of_id.size > 2 * 1024 * 1024) {
-        setMessage(`❌ ID file for owner ${i + 1} must be under 2MB`);
+      if (!owner.proof_of_id || !owner.proof_of_address) {
+        setMessage(`❌ All documents are required for owner ${i + 1}`);
         setLoading(false);
         return;
       }
-      if (owner.proof_of_address && owner.proof_of_address.size > 2 * 1024 * 1024) {
-        setMessage(`❌ Address file for owner ${i + 1} must be under 2MB`);
+      if (!ALLOWED_TYPES.includes(owner.proof_of_id.type) || !ALLOWED_TYPES.includes(owner.proof_of_address.type)) {
+        setMessage(`❌ Only .pdf, .png, or .jpg files are allowed for owner ${i + 1}`);
+        setLoading(false);
+        return;
+      }
+      if (owner.proof_of_id.size > MAX_FILE_SIZE || owner.proof_of_address.size > MAX_FILE_SIZE) {
+        setMessage(`❌ Each file for owner ${i + 1} must be under 5MB`);
         setLoading(false);
         return;
       }
 
-      if (new Date(owner.date_of_birth) > new Date()) {
-        setMessage(`❌ Owner ${i + 1} cannot have a future date of birth`);
+      const age = Math.floor((Date.now() - new Date(owner.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      if (age < 18) {
+        setMessage(`❌ Owner ${i + 1} must be at least 18 years old`);
         setLoading(false);
         return;
       }
@@ -129,7 +143,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     try {
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        if (value) data.append(key, value as any);
+        if (value) data.append(key, value);
       });
       data.append('product_id', lockedProductId.toString());
       data.append('token', token);
@@ -140,18 +154,14 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         data.append(`members[${i}][last_name]`, owner.last_name);
         data.append(`members[${i}][date_of_birth]`, owner.date_of_birth);
         data.append(`members[${i}][phone_number]`, owner.phone_number || '');
-        if (owner.proof_of_id) {
-          data.append(`members[${i}][proof_of_id]`, owner.proof_of_id);
-        }
-        if (owner.proof_of_address) {
-          data.append(`members[${i}][proof_of_address]`, owner.proof_of_address);
-        }
+        data.append(`members[${i}][proof_of_id]`, owner.proof_of_id!);
+        data.append(`members[${i}][proof_of_address]`, owner.proof_of_address!);
       });
 
-      await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", data);
+      await axios.post('https://hoxton-api-backend.onrender.com/api/submit-kyc', data);
       router.push('/kyc-submitted');
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       setMessage('❌ Submission failed. Please try again.');
     } finally {
       setLoading(false);
@@ -161,7 +171,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
-
+      {/* ...contact and company info fields remain unchanged... */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">
           First Name <span className="text-red-500">*</span>
@@ -236,111 +246,79 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
           />
         </label>
       </div>
-
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
         <div key={i} className="border p-4 rounded mb-4 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">
-              First Name <span className="text-red-500">*</span>
-              <input
-                required
-                value={owner.first_name}
-                onChange={(e) => updateOwner(i, 'first_name', e.target.value)}
-                className="border p-2 rounded w-full"
-              />
+            {/* Name and DOB */}
+            <label className="block">First Name <span className="text-red-500">*</span>
+              <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">
-              Middle Name
-              <input
-                value={owner.middle_name}
-                onChange={(e) => updateOwner(i, 'middle_name', e.target.value)}
-                className="border p-2 rounded w-full"
-              />
+            <label className="block">Middle Name
+              <input value={owner.middle_name} onChange={(e) => updateOwner(i, 'middle_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">
-              Last Name <span className="text-red-500">*</span>
-              <input
-                required
-                value={owner.last_name}
-                onChange={(e) => updateOwner(i, 'last_name', e.target.value)}
-                className="border p-2 rounded w-full"
-              />
+            <label className="block">Last Name <span className="text-red-500">*</span>
+              <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">
-              Date of Birth <span className="text-red-500">*</span>
-              <input
-                required
-                type="date"
-                value={owner.date_of_birth}
-                onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)}
-                className="border p-2 rounded w-full"
-              />
+            <label className="block">Date of Birth <span className="text-red-500">*</span>
+              <input required type="date" value={owner.date_of_birth} onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">
-              Phone Number
-              <input
-                value={owner.phone_number}
-                onChange={(e) => updateOwner(i, 'phone_number', e.target.value)}
-                className="border p-2 rounded w-full"
-              />
+            <label className="block">Phone Number
+              <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">
-              Proof of ID <span className="text-red-500">*</span>
-              <input
-                required
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) updateOwner(i, 'proof_of_id', file);
-                }}
-                className="p-2"
-              />
-              {owner.proof_of_id && (
-                <p className="text-sm text-gray-500 mt-1">{owner.proof_of_id.name}</p>
+
+            {/* File Uploads */}
+            <label className="block">Proof of ID <span className="text-red-500">*</span>
+              <input required type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) updateOwner(i, 'proof_of_id', file, file.type.startsWith("image") ? URL.createObjectURL(file) : '');
+              }} className="p-2" />
+              {owner.preview_id && (
+                <Image
+                  src={owner.preview_id}
+                  alt="ID Preview"
+                  width={96}
+                  height={96}
+                  className="mt-1 h-24 object-contain"
+                />
               )}
+
+              {owner.proof_of_id && !owner.preview_id && <p className="text-sm text-gray-500 mt-1">{owner.proof_of_id.name}</p>}
             </label>
-            <label className="block">
-              Proof of Address <span className="text-red-500">*</span>
-              <input
-                required
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) updateOwner(i, 'proof_of_address', file);
-                }}
-                className="p-2"
-              />
-              {owner.proof_of_address && (
-                <p className="text-sm text-gray-500 mt-1">{owner.proof_of_address.name}</p>
+
+            <label className="block">Proof of Address <span className="text-red-500">*</span>
+              <input required type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) updateOwner(i, 'proof_of_address', file, file.type.startsWith("image") ? URL.createObjectURL(file) : '');
+              }} className="p-2" />
+              {owner.preview_address && (
+                <Image
+                  src={owner.preview_address}
+                  alt="Address Preview"
+                  width={96}
+                  height={96}
+                  className="mt-1 h-24 object-contain"
+                />
               )}
+
+              {owner.proof_of_address && !owner.preview_address && <p className="text-sm text-gray-500 mt-1">{owner.proof_of_address.name}</p>}
             </label>
           </div>
+
           {owners.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeOwner(i)}
-              className="text-red-500 text-sm"
-            >
-              Remove Owner
-            </button>
+            <button type="button" onClick={() => removeOwner(i)} className="text-red-500 text-sm">Remove Owner</button>
           )}
         </div>
       ))}
-
-
-      <button type="button" onClick={addOwner} className="text-blue-600 underline">
-        + Add Another Owner
-      </button>
-
+      <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
       <div>
         <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded mt-4">
           {loading ? 'Submitting…' : 'Submit KYC'}
         </button>
       </div>
-
       {message && <p className="text-center mt-4 text-sm text-red-600">{message}</p>}
     </form>
   );
 }
+
 
