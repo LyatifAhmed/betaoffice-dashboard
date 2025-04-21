@@ -15,20 +15,20 @@ export default function KYCPage() {
 
   useEffect(() => {
     if (!router.isReady) return;
-
+  
     const tokenFromQuery = router.query.token as string;
     if (!tokenFromQuery) {
       setError('No token found.');
       setLoading(false);
       return;
     }
-
+  
     axios
       .get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/recover-token?token=${tokenFromQuery}`)
       .then((res) => {
         const data = res.data;
         if (data.kyc_submitted === 1) {
-          router.push('/kyc-submitted'); // ✅ redirect if already submitted
+          router.push('/kyc-submitted');
           return;
         } else {
           setTokenData({ ...data, token: tokenFromQuery });
@@ -44,7 +44,8 @@ export default function KYCPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [router.isReady, router.query]);
+  }, [router]); // ✅ include the whole router object
+  
 
   const handleResend = async () => {
     try {
