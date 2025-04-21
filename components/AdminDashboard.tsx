@@ -156,8 +156,21 @@ export default function AdminDashboard() {
                 <p>📞 {m.phone_number}</p>
                 <p>🎂 {new Date(m.date_of_birth).toLocaleDateString()}</p>
                 <div className="flex gap-4 mt-2">
-                  <a href={m.proof_of_id} target="_blank" className="text-blue-600 underline">View ID</a>
-                  <a href={m.proof_of_address} target="_blank" className="text-blue-600 underline">View Address</a>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/uploaded_files/${m.proof_of_id}`}
+                  target="_blank"
+                  className="text-blue-600 underline"
+                >
+                  View ID
+                </a>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/uploaded_files/${m.proof_of_address}`}
+                  target="_blank"
+                  className="text-blue-600 underline"
+                >
+                  View Address
+                </a>
+
                 </div>
               </div>
             ))}
