@@ -166,7 +166,7 @@ export default function AdminDashboard() {
                   <div className="flex gap-4 mt-2">
                     {m.proof_of_id ? (
                       <a
-                        href={`${backendBase}/${m.proof_of_id}`}
+                        href={`${backendBase}/uploaded_files/${m.proof_of_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 underline"
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
                     )}
                     {m.proof_of_address ? (
                       <a
-                        href={`${backendBase}/${m.proof_of_address}`}
+                        href={`${backendBase}/uploaded_files/${m.proof_of_address}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 underline"

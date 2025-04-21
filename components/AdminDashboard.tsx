@@ -158,6 +158,7 @@ export default function AdminDashboard() {
                 <div className="flex gap-4 mt-2">
                 <a
                   href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/uploaded_files/${m.proof_of_id}`}
+                  rel="noopener noreferrer"
                   target="_blank"
                   className="text-blue-600 underline"
                 >
@@ -165,6 +166,7 @@ export default function AdminDashboard() {
                 </a>
                 <a
                   href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/uploaded_files/${m.proof_of_address}`}
+                  rel="noopener noreferrer"
                   target="_blank"
                   className="text-blue-600 underline"
                 >

@@ -59,7 +59,12 @@ export default function SubmissionDetail() {
           <p>
             <strong>Proof of ID:</strong>{' '}
             {member.proof_of_id ? (
-              <a href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/${member.proof_of_id}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+              <a
+                href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/uploaded_files/${member.proof_of_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
                 View File
               </a>
             ) : (
@@ -69,13 +74,19 @@ export default function SubmissionDetail() {
           <p>
             <strong>Proof of Address:</strong>{' '}
             {member.proof_of_address ? (
-              <a href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/${member.proof_of_address}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+              <a
+                href={`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/uploaded_files/${member.proof_of_address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
                 View File
               </a>
             ) : (
               'Not uploaded'
             )}
           </p>
+
         </div>
       ))}
     </div>
