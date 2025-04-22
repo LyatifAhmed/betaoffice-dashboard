@@ -112,48 +112,64 @@ export default function AdminDashboard() {
       {loading ? (
         <p>🔄 Loading submissions...</p>
       ) : (
-        <table className="w-full table-auto border border-gray-200 shadow-sm rounded">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 border-b text-left">Email</th>
-              <th className="px-4 py-2 border-b text-left">Company</th>
-              <th className="px-4 py-2 border-b text-left">Submitted</th>
-              <th className="px-4 py-2 border-b text-left">Status</th>
-              <th className="px-4 py-2 border-b text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {submissions.map((sub) => (
-              <tr key={sub.external_id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-2">{sub.customer_email}</td>
-                <td className="px-4 py-2">{sub.company_name}</td>
-                <td className="px-4 py-2">{new Date(sub.start_date).toLocaleString()}</td>
-                <td className="px-4 py-2 font-semibold">{sub.review_status}</td>
-                <td className="px-4 py-2 space-x-2">
-                  <button
-                    className="text-blue-600 hover:underline"
-                    onClick={() => openSubmission(sub.external_id)}
-                    disabled={loadingView}
+        <div className="space-y-4">
+          {submissions.map((sub) => (
+            <div
+              key={sub.external_id}
+              className="border border-gray-200 rounded-lg shadow-sm p-4 bg-white flex flex-col md:flex-row md:justify-between md:items-center"
+            >
+              <div className="mb-2 md:mb-0">
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Email:</span> {sub.customer_email}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Company:</span> {sub.company_name}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Submitted:</span>{' '}
+                  {new Date(sub.start_date).toLocaleString()}
+                </p>
+                <p className="text-sm mt-1">
+                  <span className="font-semibold">Status:</span>{' '}
+                  <span
+                    className={`inline-block px-2 py-1 text-xs rounded ${
+                      sub.review_status === 'APPROVED'
+                        ? 'bg-green-100 text-green-700'
+                        : sub.review_status === 'REJECTED'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}
                   >
-                    {loadingView ? 'Loading...' : 'View'}
-                  </button>
-                  <button
-                    className="text-green-600 hover:underline"
-                    onClick={() => reviewSubmission(sub.external_id, 'APPROVED')}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    className="text-red-600 hover:underline"
-                    onClick={() => reviewSubmission(sub.external_id, 'REJECTED')}
-                  >
-                    Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    {sub.review_status}
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex gap-3 flex-wrap mt-2 md:mt-0">
+                <button
+                  className="text-blue-600 text-sm underline"
+                  onClick={() => openSubmission(sub.external_id)}
+                  disabled={loadingView}
+                >
+                  {loadingView ? 'Loading...' : 'View'}
+                </button>
+                <button
+                  className="text-green-600 text-sm underline"
+                  onClick={() => reviewSubmission(sub.external_id, 'APPROVED')}
+                >
+                  Approve
+                </button>
+                <button
+                  className="text-red-600 text-sm underline"
+                  onClick={() => reviewSubmission(sub.external_id, 'REJECTED')}
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
       )}
 
       {selected && (
@@ -213,3 +229,13 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+<button
+  onClick={() => {
+    localStorage.removeItem('admin_auth');
+    window.location.href = '/admin-login';
+  }}
+  className="mt-6 text-sm text-red-600 hover:underline"
+>
+  Logout
+</button>
