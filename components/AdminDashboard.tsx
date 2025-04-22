@@ -36,8 +36,11 @@ export default function AdminDashboard() {
 
   const resolveFileUrl = (filePath: string | null): string => {
     if (!filePath) return '';
-    return filePath.startsWith('http') ? filePath : `${backendBase}/${filePath}`;
+    return filePath.startsWith('http')
+      ? filePath
+      : `${backendBase}/${filePath.replace(/^\/+/, '')}`;
   };
+  
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -168,30 +171,31 @@ export default function AdminDashboard() {
                   <p>📞 {m.phone_number}</p>
                   <p>🎂 {new Date(m.date_of_birth).toLocaleDateString()}</p>
                   <div className="flex gap-4 mt-2">
-                    {m.proof_of_id ? (
-                      <a
-                        href={resolveFileUrl(m.proof_of_id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        View ID
-                      </a>
-                    ) : (
-                      <span className="text-gray-500">No ID uploaded</span>
-                    )}
-                    {m.proof_of_address ? (
-                      <a
-                        href={resolveFileUrl(m.proof_of_address)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        View Address
-                      </a>
-                    ) : (
-                      <span className="text-gray-500">No Address uploaded</span>
-                    )}
+                  {m.proof_of_id ? (
+                    <a
+                      href={resolveFileUrl(m.proof_of_id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      View ID
+                    </a>
+                  ) : (
+                    <span className="text-gray-500">No ID uploaded</span>
+                  )}
+                  {m.proof_of_address ? (
+                    <a
+                      href={resolveFileUrl(m.proof_of_address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      View Address
+                    </a>
+                  ) : (
+                    <span className="text-gray-500">No Address uploaded</span>
+                  )}
+
                   </div>
                 </div>
               ))
