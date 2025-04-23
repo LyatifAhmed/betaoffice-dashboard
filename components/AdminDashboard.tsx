@@ -187,9 +187,11 @@ export default function AdminDashboard() {
                     : new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
                 }
                 if (sortBy === 'status') {
+                  const statusA = a.review_status || '';
+                  const statusB = b.review_status || '';
                   return sortOrder === 'asc'
-                    ? a.review_status.localeCompare(b.review_status)
-                    : b.review_status.localeCompare(a.review_status);
+                    ? statusA.localeCompare(statusB)
+                    : statusB.localeCompare(statusA);
                 }
                 if (sortBy === 'company') {
                   return sortOrder === 'asc'
@@ -198,6 +200,7 @@ export default function AdminDashboard() {
                 }
                 return 0;
               })
+              
               .slice(indexOfFirstSubmission, indexOfLastSubmission) // ⬅️ Only show current page
               .map((sub) => (
                 <tr key={sub.external_id} className="border-b hover:bg-gray-50">
