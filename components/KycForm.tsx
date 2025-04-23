@@ -103,29 +103,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setLoading(true);
     setMessage('');
 
-    // Validate organisation type
-    if (!formData.organisation_type) {
-      setMessage('❌ Organisation type is required');
-      setLoading(false);
-      return;
-    }
-
-    // Validate at least one owner
-    if (owners.length === 0) {
-      setMessage('❌ At least one business owner is required');
-      setLoading(false);
-      return;
-    }
-
-    // Owner validation
-    const emails = owners.map((o) => o.email.trim().toLowerCase());
-    const duplicates = emails.filter((e, i) => emails.indexOf(e) !== i);
-    if (duplicates.length > 0) {
-      setMessage('❌ Each owner must have a unique email address');
-      setLoading(false);
-      return;
-    }
-
     for (const [i, owner] of owners.entries()) {
       if (!owner.first_name || !owner.last_name || !owner.date_of_birth || !owner.email) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
@@ -149,10 +126,12 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         members: owners,
       };
 
+      console.log("Submitting KYC Payload:", data);
+
       await axios.post('https://hoxton-api-backend.onrender.com/api/submit-kyc', data);
       router.push('/kyc-submitted');
     } catch (err) {
-      console.error(err);
+      console.error('❌ KYC Submission Error:', err);
       setMessage('❌ Submission failed. Please try again.');
     } finally {
       setLoading(false);
@@ -267,5 +246,4 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     </form>
   );
 }
-
 
