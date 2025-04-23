@@ -18,7 +18,7 @@ interface Owner {
   last_name: string;
   date_of_birth: string;
   phone_number?: string;
-  owner_email: string;
+  email: string;
 }
 
 const businessTypes = [
@@ -54,7 +54,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       last_name: '',
       date_of_birth: '',
       phone_number: '',
-      owner_email: '',
+      email: '',
     },
   ]);
 
@@ -87,7 +87,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         last_name: '',
         date_of_birth: '',
         phone_number: '',
-        owner_email: '',
+        email: '',
       },
     ]);
   };
@@ -103,15 +103,53 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setLoading(true);
     setMessage('');
 
+    // Validate organisation type
+    if (!formData.organisation_type) {
+      setMessage('❌ Organisation type is required');
+      setLoading(false);
+      return;
+    }
+
+    // Validate at least one owner
+    if (owners.length === 0) {
+      setMessage('❌ At least one business owner is required');
+      setLoading(false);
+      return;
+    }
+
+    // Owner validation
+    const emails = owners.map((o) => o.email.trim().toLowerCase());
+    const duplicates = emails.filter((e, i) => emails.indexOf(e) !== i);
+    if (duplicates.length > 0) {
+      setMessage('❌ Each owner must have a unique email address');
+      setLoading(false);
+      return;
+    }
+
+    for (const [i, owner] of owners.entries()) {
+      if (!owner.first_name || !owner.last_name || !owner.date_of_birth || !owner.email) {
+        setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
+        setLoading(false);
+        return;
+      }
+
+      const age = Math.floor((Date.now() - new Date(owner.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      if (age < 18) {
+        setMessage(`❌ Owner ${i + 1} must be at least 18 years old`);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
-      const payload = {
+      const data = {
         ...formData,
-        token,
         product_id: lockedProductId,
+        token,
         members: owners,
       };
 
-      await axios.post('https://hoxton-api-backend.onrender.com/api/submit-kyc', payload);
+      await axios.post('https://hoxton-api-backend.onrender.com/api/submit-kyc', data);
       router.push('/kyc-submitted');
     } catch (err) {
       console.error(err);
@@ -125,42 +163,34 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
+      {/* Contact and Company Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Contact & Company Info */}
-        <label className="block">
-          First Name <span className="text-red-500">*</span>
+        <label className="block">First Name <span className="text-red-500">*</span>
           <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Last Name <span className="text-red-500">*</span>
+        <label className="block">Last Name <span className="text-red-500">*</span>
           <input required name="customer_last_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Company Name <span className="text-red-500">*</span>
+        <label className="block">Company Name <span className="text-red-500">*</span>
           <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Trading Name
+        <label className="block">Trading Name
           <input name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Organisation Type <span className="text-red-500">*</span>
+        <label className="block">Organisation Type <span className="text-red-500">*</span>
           <Select
             options={businessTypes}
             onChange={(option) => handleSelectChange('organisation_type', option?.value || '')}
             className="w-full"
           />
         </label>
-        <label className="block">
-          Company Number
+        <label className="block">Company Number
           <input name="limited_company_number" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Phone Number
+        <label className="block">Phone Number
           <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Email Address <span className="text-red-500">*</span>
+        <label className="block">Email Address <span className="text-red-500">*</span>
           <input
             type="email"
             name="email"
@@ -168,29 +198,26 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
             readOnly
             className="border p-2 rounded w-full bg-gray-100 text-gray-700 cursor-not-allowed"
           />
+          <p className="text-sm text-gray-500 mt-1">This email was used during payment and cannot be changed.</p>
         </label>
       </div>
 
+      {/* Address */}
       <h3 className="font-medium mt-6">Address</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">
-          Address Line 1 <span className="text-red-500">*</span>
+        <label className="block">Address Line 1 <span className="text-red-500">*</span>
           <input required name="address_line_1" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Address Line 2
+        <label className="block">Address Line 2
           <input name="address_line_2" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          City <span className="text-red-500">*</span>
+        <label className="block">City <span className="text-red-500">*</span>
           <input required name="city" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Postcode <span className="text-red-500">*</span>
+        <label className="block">Postcode <span className="text-red-500">*</span>
           <input required name="postcode" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">
-          Country <span className="text-red-500">*</span>
+        <label className="block">Country <span className="text-red-500">*</span>
           <Select
             options={countries}
             getOptionLabel={(e) => `${e.label} (${e.value})`}
@@ -200,6 +227,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </label>
       </div>
 
+      {/* Owners */}
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
         <div key={i} className="border p-4 rounded mb-4 space-y-2">
@@ -219,18 +247,17 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
             <label className="block">Phone Number
               <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">Owner Email Address <span className="text-red-500">*</span>
-              <input required type="email" value={owner.owner_email} onChange={(e) => updateOwner(i, 'owner_email', e.target.value)} className="border p-2 rounded w-full" />
-              <p className="text-sm text-gray-500 mt-1">A secure KYC link will be sent to this email.</p>
+            <label className="block">Email Address <span className="text-red-500">*</span>
+              <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
             </label>
           </div>
+
           {owners.length > 1 && (
             <button type="button" onClick={() => removeOwner(i)} className="text-red-500 text-sm">Remove Owner</button>
           )}
         </div>
       ))}
       <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
-
       <div>
         <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded mt-4">
           {loading ? 'Submitting…' : 'Submit KYC'}
@@ -240,6 +267,5 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     </form>
   );
 }
-
 
 
