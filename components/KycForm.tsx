@@ -104,7 +104,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setMessage('');
 
     for (const [i, owner] of owners.entries()) {
-      if (!owner.first_name || !owner.last_name || !owner.date_of_birth || !owner.email) {
+      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim() || !owner.date_of_birth) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
         setLoading(false);
         return;
@@ -126,12 +126,10 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         members: owners,
       };
 
-      console.log("Submitting KYC Payload:", data);
-
       await axios.post('https://hoxton-api-backend.onrender.com/api/submit-kyc', data);
       router.push('/kyc-submitted');
     } catch (err) {
-      console.error('❌ KYC Submission Error:', err);
+      console.error(err);
       setMessage('❌ Submission failed. Please try again.');
     } finally {
       setLoading(false);
@@ -141,8 +139,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
-
-      {/* Contact and Company Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">First Name <span className="text-red-500">*</span>
           <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
@@ -177,11 +173,9 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
             readOnly
             className="border p-2 rounded w-full bg-gray-100 text-gray-700 cursor-not-allowed"
           />
-          <p className="text-sm text-gray-500 mt-1">This email was used during payment and cannot be changed.</p>
         </label>
       </div>
 
-      {/* Address */}
       <h3 className="font-medium mt-6">Address</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">Address Line 1 <span className="text-red-500">*</span>
@@ -206,7 +200,6 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
         </label>
       </div>
 
-      {/* Owners */}
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
         <div key={i} className="border p-4 rounded mb-4 space-y-2">
