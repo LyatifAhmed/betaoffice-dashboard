@@ -33,7 +33,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [rejectionReason, setRejectionReason] = useState('');
   const router = useRouter();
-
+  const [sortBy, setSortBy] = useState<'date' | 'status' | 'company'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const backendBase = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
 
   const resolveFileUrl = (filePath: string | null): string => {
@@ -133,6 +134,33 @@ export default function AdminDashboard() {
         <p>🔄 Loading submissions...</p>
       ) : (
         <div className="overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <label className="text-sm">
+              Sort by:{' '}
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+              >
+                <option value="date">Submission Date</option>
+                <option value="status">Review Status</option>
+                <option value="company">Company Name</option>
+              </select>
+            </label>
+
+            <label className="text-sm">
+              Order:{' '}
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </label>
+          </div>
+
           <table className="w-full table-auto border border-gray-200 shadow-sm rounded text-sm sm:text-base">
             <thead className="bg-gray-100">
               <tr>
@@ -144,7 +172,27 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {submissions.map((sub) => (
+            {submissions
+              .slice()
+              .sort((a, b) => {
+                if (sortBy === 'date') {
+                  return sortOrder === 'asc'
+                    ? new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+                    : new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+                }
+                if (sortBy === 'status') {
+                  return sortOrder === 'asc'
+                    ? a.review_status.localeCompare(b.review_status)
+                    : b.review_status.localeCompare(a.review_status);
+                }
+                if (sortBy === 'company') {
+                  return sortOrder === 'asc'
+                    ? a.company_name.localeCompare(b.company_name)
+                    : b.company_name.localeCompare(a.company_name);
+                }
+                return 0;
+              })
+              .map((sub) => (
                 <tr key={sub.external_id} className="border-b hover:bg-gray-50">
                   <td className="px-3 py-2">{sub.customer_email}</td>
                   <td className="px-3 py-2">{sub.company_name}</td>
@@ -160,7 +208,8 @@ export default function AdminDashboard() {
                     </button>
                   </td>
                 </tr>
-              ))}
+            ))}
+
             </tbody>
           </table>
         </div>
