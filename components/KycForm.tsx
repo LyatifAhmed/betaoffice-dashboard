@@ -14,10 +14,7 @@ interface Props {
 
 interface Owner {
   first_name: string;
-  middle_name?: string;
   last_name: string;
-  date_of_birth: string;
-  phone_number?: string;
   email: string;
 }
 
@@ -50,10 +47,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   const [owners, setOwners] = useState<Owner[]>([
     {
       first_name: '',
-      middle_name: '',
       last_name: '',
-      date_of_birth: '',
-      phone_number: '',
       email: '',
     },
   ]);
@@ -83,10 +77,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       ...prev,
       {
         first_name: '',
-        middle_name: '',
         last_name: '',
-        date_of_birth: '',
-        phone_number: '',
         email: '',
       },
     ]);
@@ -104,15 +95,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     setMessage('');
 
     for (const [i, owner] of owners.entries()) {
-      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim() || !owner.date_of_birth) {
+      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
-        setLoading(false);
-        return;
-      }
-
-      const age = Math.floor((Date.now() - new Date(owner.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
-      if (age < 18) {
-        setMessage(`❌ Owner ${i + 1} must be at least 18 years old`);
         setLoading(false);
         return;
       }
@@ -207,19 +191,10 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
             <label className="block">First Name <span className="text-red-500">*</span>
               <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">Middle Name
-              <input value={owner.middle_name} onChange={(e) => updateOwner(i, 'middle_name', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
             <label className="block">Last Name <span className="text-red-500">*</span>
               <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">Date of Birth <span className="text-red-500">*</span>
-              <input required type="date" value={owner.date_of_birth} onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-            <label className="block">Phone Number
-              <input value={owner.phone_number} onChange={(e) => updateOwner(i, 'phone_number', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-            <label className="block">Email Address <span className="text-red-500">*</span>
+            <label className="block md:col-span-2">Email Address <span className="text-red-500">*</span>
               <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
             </label>
           </div>
@@ -229,12 +204,18 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
           )}
         </div>
       ))}
+
       <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
+      <p className="text-sm text-gray-600 mt-4">
+        <strong>Note:</strong> Each business owner will receive an email to complete their identity verification.
+      </p>
+
       <div>
         <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded mt-4">
           {loading ? 'Submitting…' : 'Submit KYC'}
         </button>
       </div>
+
       {message && <p className="text-center mt-4 text-sm text-red-600">{message}</p>}
     </form>
   );
