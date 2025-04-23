@@ -36,6 +36,12 @@ export default function AdminDashboard() {
   const [sortBy, setSortBy] = useState<'date' | 'status' | 'company'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const backendBase = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
+  const [currentPage, setCurrentPage] = useState(1);
+  const submissionsPerPage = 10;
+
+  const indexOfLastSubmission = currentPage * submissionsPerPage;
+  const indexOfFirstSubmission = indexOfLastSubmission - submissionsPerPage;
+
 
   const resolveFileUrl = (filePath: string | null): string => {
     if (!filePath) return '';
@@ -192,6 +198,7 @@ export default function AdminDashboard() {
                 }
                 return 0;
               })
+              .slice(indexOfFirstSubmission, indexOfLastSubmission) // ⬅️ Only show current page
               .map((sub) => (
                 <tr key={sub.external_id} className="border-b hover:bg-gray-50">
                   <td className="px-3 py-2">{sub.customer_email}</td>
@@ -210,8 +217,35 @@ export default function AdminDashboard() {
                 </tr>
             ))}
 
+
             </tbody>
           </table>
+          <div className="mt-4 flex justify-center items-center gap-4">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            <span className="text-sm">
+              Page {currentPage} of {Math.ceil(submissions.length / submissionsPerPage)}
+            </span>
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  prev < Math.ceil(submissions.length / submissionsPerPage) ? prev + 1 : prev
+                )
+              }
+              disabled={currentPage === Math.ceil(submissions.length / submissionsPerPage)}
+              className="px-3 py-1 rounded border bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+
         </div>
       )}
 
