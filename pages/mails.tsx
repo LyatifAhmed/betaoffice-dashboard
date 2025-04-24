@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import Select from 'react-select';
+import { useRouter } from 'next/router';
 
 type Mail = {
   id: string;
@@ -18,6 +19,8 @@ type Mail = {
 type Tab = 'All' | 'Unread' | 'Read';
 
 export default function MailPage() {
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [mails, setMails] = useState<Mail[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<any>({ label: 'All', value: 'All' });
@@ -30,6 +33,16 @@ export default function MailPage() {
   const limit = 5;
 
   useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      router.push('/login');
+    } else {
+      setCheckingAuth(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (checkingAuth) return;
     const fetchMails = async () => {
       setLoading(true);
       try {
@@ -37,6 +50,9 @@ export default function MailPage() {
           params: {
             skip: page * limit,
             limit,
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
           },
         });
         setMails(res.data);
@@ -47,7 +63,28 @@ export default function MailPage() {
       }
     };
     fetchMails();
-  }, [page]);
+  }, [page, checkingAuth]);
+  // Load from localStorage on page load
+  useEffect(() => {
+    const stored = localStorage.getItem('readMailIds');
+    if (stored) {
+      setReadMails(new Set(JSON.parse(stored)));
+    }
+  }, []);
+
+  // Save to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('readMailIds', JSON.stringify([...readMails]));
+  }, [readMails]);
+
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        Checking authentication...
+      </div>
+    );
+  }
 
   const toggleRead = (id: string) => {
     setReadMails(prev => {
@@ -204,6 +241,9 @@ export default function MailPage() {
               </li>
             ))}
           </ul>
+          {filteredMails.length === 0 && (
+          <p className="text-center text-gray-500 mt-6">No mail found for this filter/search.</p>
+        )}
 
           <div className="flex justify-between items-center mt-6">
             <button

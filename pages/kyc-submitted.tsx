@@ -14,10 +14,13 @@ export default function KycSubmittedPage() {
           <strong> Hoxton Mix</strong> to complete identity verification.
         </p>
         <p className="mt-2 text-center text-sm text-gray-500">
-          Please ensure they check their inbox (and spam folder).
+          Most users receive the verification email within a few minutes. Be sure to check spam folders too.
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-500">
+          Didn&apos;t receive the email? Contact us at <a href="mailto:support@betaoffice.uk" className="text-blue-600 underline">support@betaoffice.uk</a>
         </p>
         <Link href="/">
-          <button className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+          <button className="mt-6 bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
             Back to Home
           </button>
         </Link>
