@@ -1,10 +1,10 @@
 import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
-import CookieConsent from "react-cookie-consent";
 import Head from "next/head";
+import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
-import Footer from "../components/Footer"; // ✅ Add this line
+import Footer from "../components/Footer"; // 👈 Make sure path is correct
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -14,12 +14,16 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         <title>BetaOffice – Virtual Office KYC</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="description" content="BetaOffice KYC submission portal for virtual office customers." />
+        <meta
+          name="description"
+          content="BetaOffice KYC submission portal for virtual office customers."
+        />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <Component {...pageProps} />
-      <Footer /> {/* ✅ Show the global footer on all pages */}
+
+      <Footer /> {/* 👈 Your new dark footer */}
 
       <CookieConsent
         location="bottom"
@@ -27,9 +31,22 @@ export default function App({ Component, pageProps }: AppProps) {
         declineButtonText="Decline"
         enableDeclineButton
         cookieName="betaoffice_cookie_consent"
-        style={{ background: "#2B373B", fontSize: "14px", padding: "10px 20px" }}
-        buttonStyle={{ background: "#4CAF50", color: "#fff", fontSize: "13px", borderRadius: "4px", padding: "6px 12px" }}
-        declineButtonStyle={{ background: "#aaa", color: "#000", fontSize: "13px", borderRadius: "4px", padding: "6px 12px", marginLeft: "10px" }}
+        style={{ background: "#1a202c", fontSize: "14px", padding: "10px 20px" }}
+        buttonStyle={{
+          background: "#4CAF50",
+          color: "#fff",
+          fontSize: "13px",
+          borderRadius: "4px",
+          padding: "6px 12px",
+        }}
+        declineButtonStyle={{
+          background: "#aaa",
+          color: "#000",
+          fontSize: "13px",
+          borderRadius: "4px",
+          padding: "6px 12px",
+          marginLeft: "10px",
+        }}
         expires={150}
         onAccept={() => {
           if (router.pathname === "/cookie-policy") {
@@ -45,6 +62,9 @@ export default function App({ Component, pageProps }: AppProps) {
     </>
   );
 }
+
+
+
 
 
 
