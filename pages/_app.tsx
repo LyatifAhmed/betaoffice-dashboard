@@ -14,12 +14,25 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         <title>BetaOffice – Virtual Office KYC</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta
-          name="description"
-          content="BetaOffice KYC submission portal for virtual office customers."
-        />
+        <meta name="description" content="Easily complete your virtual office KYC with BetaOffice. Powered by Generation Beta Digital Ltd." />
+
+        {/* Open Graph (Facebook, LinkedIn, etc.) */}
+        <meta property="og:title" content="BetaOffice – Virtual Office KYC" />
+        <meta property="og:description" content="Secure your UK virtual office service and complete KYC in minutes." />
+        <meta property="og:image" content="/images/og-banner.png" />
+        <meta property="og:url" content="https://betaoffice.uk" />
+        <meta property="og:type" content="website" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="BetaOffice – Virtual Office KYC" />
+        <meta name="twitter:description" content="Secure your UK virtual office service and complete KYC in minutes." />
+        <meta name="twitter:image" content="https://betaoffice.uk/preview.png" />
+
+        {/* Favicon */}
         <link rel="icon" href="/favicon.ico" />
       </Head>
+
 
       <Component {...pageProps} />
 
