@@ -60,14 +60,13 @@ export default function PrivacyPolicy() {
 
         <h2 className="text-xl font-semibold mt-6 mb-2">6. Cookies</h2>
         <p className="mb-4">
-          Our website uses cookies for functionality, security, and analytics. Please refer to our <Link href="/cookie-policy" legacyBehavior>
-            <a className="text-blue-600 underline">Cookie Policy</a>
-          </Link>{" "} for details.
+          Our website uses cookies for functionality, security, and analytics. Please refer to our <Link href="/cookie-policy" className="text-blue-600 underline">Cookie Policy</Link> for details.
         </p>
 
         <h2 className="text-xl font-semibold mt-6 mb-2">7. Data Retention</h2>
         <p className="mb-4">
-          We retain your personal data for as long as necessary to provide our services and meet legal obligations.
+          We retain your personal data for as long as necessary to provide our services and meet legal obligations. 
+          Scanned mail is securely stored for a period of <strong>12 months</strong> from the date of receipt, after which it is automatically deleted unless otherwise required by law.
         </p>
 
         <h2 className="text-xl font-semibold mt-6 mb-2">8. Changes to This Policy</h2>
@@ -85,5 +84,6 @@ export default function PrivacyPolicy() {
     </>
   );
 }
+
 
 
