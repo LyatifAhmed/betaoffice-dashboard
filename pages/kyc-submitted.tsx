@@ -22,64 +22,17 @@ export default function KycSubmitted() {
               support@betaoffice.uk
             </a>
           </p>
+
+          <Link
+            href="/"
+            className="inline-block mt-8 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            Go Home
+          </Link>
         </div>
       </main>
-
-      <footer className="bg-gray-900 text-gray-300 text-sm mt-24">
-        <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="font-semibold text-white mb-2">BetaOffice</h3>
-            <p>3rd Floor, 86–90 Paul Street</p>
-            <p>London EC2A 4NE, UK</p>
-            <p>Company No: 16274319</p>
-            <p>ICO No: ZB883806</p>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-white mb-2">Trust & Security</h3>
-            <ul className="space-y-1">
-              <li>🔒 SSL Secured</li>
-              <li>✅ GDPR Compliant</li>
-              <li>🛡️ ICO Registered</li>
-              <li>⭐ Trusted by Businesses</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-white mb-2">Legal</h3>
-            <ul className="space-y-1">
-            <li>
-              <Link href="/privacy-policy" className="hover:underline">
-                Privacy Policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms-of-service" className="hover:underline">
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link href="/cookie-policy" className="hover:underline">
-                Cookie Policy
-              </Link>
-            </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-white mb-2">Contact</h3>
-            <ul className="space-y-1">
-              <li><a href="mailto:info@betaoffice.uk" className="hover:underline">info@betaoffice.uk</a></li>
-              <li><a href="mailto:privacy@betaoffice.uk" className="hover:underline">privacy@betaoffice.uk</a></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="text-center border-t border-gray-800 py-4 text-gray-500">
-          © 2025 Generation Beta Digital Ltd. All rights reserved.
-        </div>
-      </footer>
     </>
   );
 }
+
 
