@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Image from "next/image";
+import Link from "next/link";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -109,11 +110,23 @@ export default function HomePage() {
             />
           </div>
           <div className="mt-6 text-sm text-gray-700">
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" onChange={(e) => setAgree(e.target.checked)} className="form-checkbox" />
-              I agree to the <a href="/terms-of-service" className="underline text-blue-600">Terms of Service</a> and{" "}
-              <a href="/privacy-policy" className="underline text-blue-600">Privacy Policy</a>.
-            </label>
+          
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              onChange={(e) => setAgree(e.target.checked)}
+              className="form-checkbox"
+            />
+            I agree to the{" "}
+            <Link href="/terms-of-service" className="underline text-blue-600">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy-policy" className="underline text-blue-600">
+              Privacy Policy
+            </Link>.
+          </label>
+
           </div>
         </div>
       </section>

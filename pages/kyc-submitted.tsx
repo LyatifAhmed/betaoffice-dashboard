@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 
 export default function KycSubmitted() {
   return (
@@ -12,7 +13,7 @@ export default function KycSubmitted() {
           <div className="text-5xl text-green-600 mb-4">✔</div>
           <h1 className="text-3xl font-bold mb-2 text-green-700">KYC Submitted!</h1>
           <p className="text-gray-700">
-            Thank you! We've received your information. <br />
+            Thank you! We&apos;ve received your information. <br />
             You will soon receive a separate email to verify your identity.
           </p>
           <p className="mt-6 text-sm text-gray-500">
@@ -47,9 +48,21 @@ export default function KycSubmitted() {
           <div>
             <h3 className="font-semibold text-white mb-2">Legal</h3>
             <ul className="space-y-1">
-              <li><a href="/privacy-policy" className="hover:underline">Privacy Policy</a></li>
-              <li><a href="/terms-of-service" className="hover:underline">Terms of Service</a></li>
-              <li><a href="/cookie-policy" className="hover:underline">Cookie Policy</a></li>
+            <li>
+              <Link href="/privacy-policy" className="hover:underline">
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link href="/terms-of-service" className="hover:underline">
+                Terms of Service
+              </Link>
+            </li>
+            <li>
+              <Link href="/cookie-policy" className="hover:underline">
+                Cookie Policy
+              </Link>
+            </li>
             </ul>
           </div>
 
