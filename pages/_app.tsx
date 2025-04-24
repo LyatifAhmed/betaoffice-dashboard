@@ -5,12 +5,14 @@ import Head from "next/head";
 import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
 import Footer from "../components/Footer"; // 👈 Make sure path is correct
-
+import TopBanner from "../components/TopBanner";
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   return (
     <>
+      <TopBanner />
+      <main></main>
       <Head>
         <title>BetaOffice – Virtual Office KYC</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
