@@ -1,6 +1,5 @@
 // pages/privacy-policy.tsx
-import Link from "next/link"; // 👈 Add this at the top if not already there
-
+import Link from "next/link";
 import Head from "next/head";
 
 export default function PrivacyPolicy() {
@@ -56,7 +55,7 @@ export default function PrivacyPolicy() {
           <li>Object to or restrict processing</li>
         </ul>
         <p className="mb-4">
-          To exercise your rights, contact us at <a href="mailto:info@gebedi.com" className="text-blue-600 underline">info@gebedi.com</a>.
+          To exercise your rights, contact us at <a href="mailto:privacy@betaoffice.uk" className="text-blue-600 underline">privacy@betaoffice.uk</a>.
         </p>
 
         <h2 className="text-xl font-semibold mt-6 mb-2">6. Cookies</h2>
@@ -80,10 +79,11 @@ export default function PrivacyPolicy() {
         <p className="mb-4">
           If you have any questions or concerns, please contact: <br />
           <strong>Generation Beta Digital Limited</strong><br />
-          Email: <a href="mailto:info@gebedi.com" className="text-blue-600 underline">info@gebedi.com</a>
+          Email: <a href="mailto:privacy@betaoffice.uk" className="text-blue-600 underline">privacy@betaoffice.uk</a>
         </p>
       </main>
     </>
   );
 }
+
 

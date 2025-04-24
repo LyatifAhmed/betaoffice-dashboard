@@ -55,11 +55,10 @@ const CookiePolicy = () => {
         <p className="mb-4 text-gray-700">
           If you have questions about our Cookie Policy, contact us at:
           <br />
-          <a href="mailto:info@gebedi.com" className="text-blue-600 underline">info@gebedi.com</a>
+          <a href="mailto:privacy@betaoffice.uk" className="text-blue-600 underline">privacy@betaoffice.uk</a>
         </p>
       </div>
 
-      {/* Banner to re-accept cookies on this page */}
       <CookieConsent
         location="bottom"
         buttonText="Accept"

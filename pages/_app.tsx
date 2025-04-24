@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import CookieConsent from "react-cookie-consent";
 import Head from "next/head";
 import Link from "next/link";
+import Footer from "../components/Footer"; // ✅ Add this line
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </Head>
 
       <Component {...pageProps} />
+      <Footer /> {/* ✅ Show the global footer on all pages */}
 
       <CookieConsent
         location="bottom"
@@ -43,6 +45,7 @@ export default function App({ Component, pageProps }: AppProps) {
     </>
   );
 }
+
 
 
 

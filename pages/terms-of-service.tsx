@@ -54,9 +54,10 @@ export default function TermsOfService() {
 
         <h2 className="text-xl font-semibold mt-6 mb-2">8. Contact</h2>
         <p className="mb-4">
-          If you have any questions about these Terms, please contact us at <a href="mailto:info@gebedi.com" className="text-blue-600 underline">info@gebedi.com</a>.
+          If you have any questions about these Terms, please contact us at <a href="mailto:legal@betaoffice.uk" className="text-blue-600 underline">legal@betaoffice.uk</a>.
         </p>
       </main>
     </>
   );
 }
+
