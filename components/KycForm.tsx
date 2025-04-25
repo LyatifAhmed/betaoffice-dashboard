@@ -1,13 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/router';
-import Select from 'react-select';
-import countryList from 'react-select-country-list';
+import { useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/router";
+import Select from "react-select";
+import countryList from "react-select-country-list";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 interface Props {
-  lockedProductId: number;
+  lockedProductId: string;
 }
 
 interface Owner {
@@ -42,7 +45,10 @@ export default function KycForm({ lockedProductId }: Props) {
     customer_last_name: '',
   });
 
-  const [owners, setOwners] = useState<Owner[]>([{ first_name: '', last_name: '', email: '' }]);
+  const [owners, setOwners] = useState<Owner[]>([
+    { first_name: '', last_name: '', email: '' },
+  ]);
+
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -74,17 +80,17 @@ export default function KycForm({ lockedProductId }: Props) {
     }
   };
 
-  const handleContinueToPayment = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-
+  
     if (!agree) {
       setMessage('❌ You must agree to the Terms and Privacy Policy.');
       setLoading(false);
       return;
     }
-
+  
     for (const [i, owner] of owners.entries()) {
       if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
@@ -92,107 +98,114 @@ export default function KycForm({ lockedProductId }: Props) {
         return;
       }
     }
-
+  
     try {
-      const payload = {
+      const selectedPlanId = localStorage.getItem("selected_plan");
+      if (!selectedPlanId) {
+        setMessage('❌ No plan selected.');
+        setLoading(false);
+        return;
+      }
+  
+      const formDataToSend = {
         ...formData,
-        product_id: lockedProductId,
+        product_id: selectedPlanId,
         members: owners,
       };
-
-      const response = await axios.post('/api/checkout-session', payload);
-      const { sessionId } = response.data;
-
-      if (sessionId) {
-        const stripe = await (await import('@stripe/stripe-js')).loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-        await stripe?.redirectToCheckout({ sessionId });
+  
+      // ✅ Step 1: Save KYC temporarily
+      const saveResponse = await axios.post("/api/save-kyc-temp", formDataToSend);
+  
+      if (saveResponse.status === 200) {
+        console.log("✅ KYC temporarily saved.");
+  
+        // ✅ Step 2: Redirect to Stripe Checkout
+        const stripe = await stripePromise;
+        if (!stripe) throw new Error('Stripe not loaded.');
+  
+        const stripeSession = await axios.post("/api/checkout-session", {
+          priceId: selectedPlanId,
+        });
+  
+        const { sessionId } = stripeSession.data;
+        await stripe.redirectToCheckout({ sessionId });
       } else {
-        throw new Error("No sessionId returned.");
+        setMessage("❌ Failed to save KYC. Please try again.");
       }
     } catch (err) {
       console.error(err);
-      setMessage('❌ Something went wrong. Please try again.');
+      setMessage('❌ An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
-    <form onSubmit={handleContinueToPayment} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">First Name <span className="text-red-500">*</span>
+        {/* Company & Customer Details */}
+        <label className="block">First Name<span className="text-red-500">*</span>
           <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">Last Name <span className="text-red-500">*</span>
+        <label className="block">Last Name<span className="text-red-500">*</span>
           <input required name="customer_last_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">Company Name <span className="text-red-500">*</span>
+        <label className="block">Email Address<span className="text-red-500">*</span>
+          <input required type="email" name="email" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Phone Number
+          <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+
+        <label className="block">Company Name<span className="text-red-500">*</span>
           <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Trading Name
           <input name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">Organisation Type <span className="text-red-500">*</span>
-          <Select
-            options={businessTypes}
-            onChange={(option) => handleSelectChange('organisation_type', option?.value || '')}
-            className="w-full"
-          />
+
+        <label className="block">Organisation Type<span className="text-red-500">*</span>
+          <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option?.value || '')} className="w-full" />
         </label>
         <label className="block">Company Number
           <input name="limited_company_number" onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Phone Number
-          <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Email Address <span className="text-red-500">*</span>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="border p-2 rounded w-full"
-            required
-          />
         </label>
       </div>
 
       <h3 className="font-medium mt-6">Address</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">Address Line 1 <span className="text-red-500">*</span>
+        <label className="block">Address Line 1<span className="text-red-500">*</span>
           <input required name="address_line_1" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Address Line 2
           <input name="address_line_2" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">City <span className="text-red-500">*</span>
+        <label className="block">City<span className="text-red-500">*</span>
           <input required name="city" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">Postcode <span className="text-red-500">*</span>
+        <label className="block">Postcode<span className="text-red-500">*</span>
           <input required name="postcode" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-        <label className="block">Country <span className="text-red-500">*</span>
-          <Select
-            options={countries}
-            getOptionLabel={(e) => `${e.label} (${e.value})`}
-            onChange={(option) => handleSelectChange('country', option?.value || '')}
-            className="w-full"
-          />
+        <label className="block">Country<span className="text-red-500">*</span>
+          <Select options={countries} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option?.value || '')} className="w-full" />
         </label>
       </div>
 
+      {/* Business Owners */}
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
         <div key={i} className="border p-4 rounded mb-4 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">First Name <span className="text-red-500">*</span>
+            <label className="block">First Name<span className="text-red-500">*</span>
               <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block">Last Name <span className="text-red-500">*</span>
+            <label className="block">Last Name<span className="text-red-500">*</span>
               <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
             </label>
-            <label className="block md:col-span-2">Email Address <span className="text-red-500">*</span>
+            <label className="block md:col-span-2">Email Address<span className="text-red-500">*</span>
               <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
             </label>
           </div>
@@ -205,45 +218,29 @@ export default function KycForm({ lockedProductId }: Props) {
 
       <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
 
-      <p className="text-sm text-gray-600 mt-4">
-        <strong>Note:</strong> Each business owner will receive an email to complete their identity verification.
-      </p>
-
+      {/* Terms & Continue */}
       <div className="mt-6 text-sm text-gray-700">
         <label className="inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={agree}
-            onChange={(e) => setAgree(e.target.checked)}
-            className="form-checkbox"
-          />
+          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="form-checkbox" />
           I agree to the{" "}
-          <a href="/terms-of-service" target="_blank" className="underline text-blue-600">
-            Terms of Service
-          </a>{" "}
+          <a href="/terms-of-service" target="_blank" className="underline text-blue-600">Terms of Service</a>{" "}
           and{" "}
-          <a href="/privacy-policy" target="_blank" className="underline text-blue-600">
-            Privacy Policy
-          </a>.
+          <a href="/privacy-policy" target="_blank" className="underline text-blue-600">Privacy Policy</a>.
         </label>
       </div>
 
       <div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2"
-        >
+        <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2">
           {loading ? (
             <>
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
-              Preparing Payment…
+              Processing…
             </>
           ) : (
-            'Continue to Payment'
+            <span className="font-semibold">Continue to Payment</span>
           )}
         </button>
       </div>
