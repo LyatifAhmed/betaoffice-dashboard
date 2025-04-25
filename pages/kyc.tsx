@@ -1,39 +1,30 @@
+// pages/kyc.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import StickyCart from "../components/StickyCart";
 import KycForm from "../components/KycForm";
-import Link from 'next/link';
+import { useState } from "react";
 
-export default function KYCPage() {
-  const [lockedProductId, setLockedProductId] = useState<string | null>(null);
+export default function KycPage() {
+  const [productId, setProductId] = useState<number | null>(null);
+  const [stripePriceId, setStripePriceId] = useState<string>("");
 
-  useEffect(() => {
-    const stored = localStorage.getItem("selected_plan");
-    if (stored) {
-      setLockedProductId(stored);
-    }
-  }, []);
-
-  if (!lockedProductId) {
-    return (
-      <div className="text-center mt-10">
-        ❌ No plan selected. Please go back to{" "}
-        <Link href="/" className="text-blue-600 underline">
-          homepage
-        </Link>{" "}
-        and choose a plan.
-      </div>
-    );
-  }
+  const handleCartChange = (
+    plan: "monthly" | "annual",
+    hoxtonProductId: number,
+    stripePriceId: string
+  ) => {
+    setProductId(hoxtonProductId);
+    setStripePriceId(stripePriceId);
+    // Also store price ID in localStorage for webhook tracking (optional)
+    localStorage.setItem("selected_plan", stripePriceId);
+  };
 
   return (
-    <div>
-      <StickyCart />
-      <div className="mt-4">
-        <KycForm lockedProductId={lockedProductId} />
-      </div>
-    </div>
+    <>
+      <StickyCart onChange={handleCartChange} />
+      {productId && <KycForm lockedProductId={productId} />}
+    </>
   );
 }
 
