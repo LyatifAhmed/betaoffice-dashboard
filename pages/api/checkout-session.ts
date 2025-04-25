@@ -10,21 +10,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { priceId } = req.body;
+  const { price_id, email, external_id } = req.body;
 
-  if (!priceId) {
-    return res.status(400).json({ error: "Missing priceId" });
+  if (!price_id || !email || !external_id) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      customer_email: email,
+      line_items: [{ price: price_id, quantity: 1 }],
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/kyc-submitted?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
       metadata: {
-        price_id: priceId, // still needed
+        external_id,  // ✅ So we can look this up in your webhook
+        price_id,
       },
     });
 
