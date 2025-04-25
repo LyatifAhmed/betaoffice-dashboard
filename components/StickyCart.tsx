@@ -3,31 +3,48 @@
 import { useEffect, useState } from "react";
 
 type Props = {
-  onChange?: (plan: "monthly" | "annual", hoxtonProductId: number, stripePriceId: string) => void;
+  onChange?: (
+    plan: "monthly" | "annual",
+    hoxtonProductId: number,
+    stripePriceId: string
+  ) => void;
 };
 
-const planMap = {
-    monthly: { hoxtonProductId: 2736, stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt" },
-    annual: { hoxtonProductId: 2737, stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v" },
+export default function StickyCart({ onChange }: Props) {
+  const planMap: Record<string, { label: string; hoxtonProductId: number }> = {
+    "price_1RBKvBACVQjWBIYus7IRSyEt": {
+      label: "Monthly (£20 + VAT)",
+      hoxtonProductId: 2736,
+    },
+    "price_1RBKvlACVQjWBIYuVs4Of01v": {
+      label: "Annual (£200 + VAT)",
+      hoxtonProductId: 2737,
+    },
   };
 
-export default function StickyCart({ onChange }: Props) {
-  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
+  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt"); // default to monthly
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
-    if (stored === "monthly" || stored === "annual") {
-      setSelectedPlan(stored);
-      const { hoxtonProductId, stripePriceId } = planMap[stored];
-      onChange?.(stored, hoxtonProductId, stripePriceId);
+    if (stored && planMap[stored]) {
+      setStripePriceId(stored);
+      onChange?.(
+        stored === "price_1RBKvBACVQjWBIYus7IRSyEt" ? "monthly" : "annual",
+        planMap[stored].hoxtonProductId,
+        stored
+      );
     }
   }, [onChange]);
 
   const handleChange = (plan: "monthly" | "annual") => {
-    localStorage.setItem("selected_plan", plan);
-    setSelectedPlan(plan);
-    const { hoxtonProductId, stripePriceId } = planMap[plan];
-    onChange?.(plan, hoxtonProductId, stripePriceId);
+    const newStripeId =
+      plan === "monthly"
+        ? "price_1RBKvBACVQjWBIYus7IRSyEt"
+        : "price_1RBKvlACVQjWBIYuVs4Of01v";
+
+    localStorage.setItem("selected_plan", newStripeId);
+    setStripePriceId(newStripeId);
+    onChange?.(plan, planMap[newStripeId].hoxtonProductId, newStripeId);
   };
 
   return (
@@ -35,14 +52,14 @@ export default function StickyCart({ onChange }: Props) {
       <div className="mb-2 sm:mb-0">
         <strong>Selected Plan: </strong>{" "}
         <span className="text-blue-600 font-medium">
-          {selectedPlan === "monthly" ? "Monthly (£20 + VAT)" : "Annual (£200 + VAT)"}
+          {planMap[stripePriceId]?.label || "Loading..."}
         </span>
       </div>
       <div className="space-x-2">
         <button
           onClick={() => handleChange("monthly")}
           className={`px-3 py-1 rounded border ${
-            selectedPlan === "monthly"
+            stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt"
               ? "bg-blue-600 text-white"
               : "bg-white text-blue-600 border-blue-600"
           } hover:opacity-90 transition`}
@@ -52,7 +69,7 @@ export default function StickyCart({ onChange }: Props) {
         <button
           onClick={() => handleChange("annual")}
           className={`px-3 py-1 rounded border ${
-            selectedPlan === "annual"
+            stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v"
               ? "bg-green-600 text-white"
               : "bg-white text-green-600 border-green-600"
           } hover:opacity-90 transition`}
@@ -63,5 +80,4 @@ export default function StickyCart({ onChange }: Props) {
     </div>
   );
 }
-
 

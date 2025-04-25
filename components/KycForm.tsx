@@ -5,15 +5,11 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import Select from "react-select";
 import countryList from "react-select-country-list";
-import { loadStripe } from "@stripe/stripe-js";
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
 interface Props {
   lockedProductId: number;
-  stripePriceId: string;
+  selectedPlanLabel: string;
 }
-
 
 interface Owner {
   first_name: string;
@@ -30,7 +26,7 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({ lockedProductId }: Props) {
+export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
@@ -86,13 +82,13 @@ export default function KycForm({ lockedProductId }: Props) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-  
+
     if (!agree) {
       setMessage("❌ You must agree to the Terms and Privacy Policy.");
       setLoading(false);
       return;
     }
-  
+
     for (const [i, owner] of owners.entries()) {
       if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
@@ -100,49 +96,14 @@ export default function KycForm({ lockedProductId }: Props) {
         return;
       }
     }
-  
-    // ✅ Map Stripe price ID to Hoxton product_id
-    const productIdMap: Record<string, number> = {
-      "price_1RBKvBACVQjWBIYus7IRSyEt": 2736, // Monthly
-      "price_1RBKvlACVQjWBIYuVs4Of01v": 2737  // Annual
-    };
-  
-    const selectedPlan = localStorage.getItem("selected_plan");
 
-    const planMap: Record<string, { stripePriceId: string; hoxtonProductId: number }> = {
-      monthly: {
-        stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt",
-        hoxtonProductId: 2736,
-      },
-      annual: {
-        stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v",
-        hoxtonProductId: 2737,
-      },
-    };
-
-    const plan = planMap[selectedPlan || ""] || null;
-    if (!plan) {
-      setMessage("❌ No valid subscription plan selected.");
-      setLoading(false);
-      return;
-    }
-
-const product_id = plan.hoxtonProductId;
-
-  
-    if (!product_id) {
-      setMessage("❌ No valid subscription plan selected.");
-      setLoading(false);
-      return;
-    }
-  
     try {
       const data = {
         ...formData,
-        product_id,
+        product_id: lockedProductId,
         members: owners,
       };
-  
+
       await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", data);
       router.push("/kyc-submitted");
     } catch (err) {
@@ -152,15 +113,17 @@ const product_id = plan.hoxtonProductId;
       setLoading(false);
     }
   };
-  
-  
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
+      <div className="mb-4 text-sm text-gray-700 bg-blue-50 border border-blue-200 px-4 py-3 rounded">
+        <strong>Selected Plan:</strong> {selectedPlanLabel}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Company & Customer Details */}
+        {/* Basic Info */}
         <label className="block">First Name<span className="text-red-500">*</span>
           <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
@@ -173,14 +136,12 @@ const product_id = plan.hoxtonProductId;
         <label className="block">Phone Number
           <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-
         <label className="block">Company Name<span className="text-red-500">*</span>
           <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Trading Name
           <input name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
-
         <label className="block">Organisation Type<span className="text-red-500">*</span>
           <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option?.value || '')} className="w-full" />
         </label>
@@ -223,7 +184,6 @@ const product_id = plan.hoxtonProductId;
               <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
             </label>
           </div>
-
           {owners.length > 1 && (
             <button type="button" onClick={() => removeOwner(i)} className="text-red-500 text-sm">Remove Owner</button>
           )}
@@ -231,18 +191,8 @@ const product_id = plan.hoxtonProductId;
       ))}
 
       <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
-      {/* Selected Plan Summary */}
-      <div className="mt-6 text-sm text-gray-800 bg-gray-100 border border-gray-300 px-4 py-2 rounded">
-        <strong>Selected Plan:</strong>{" "}
-        {lockedProductId === 2736
-          ? "Monthly Plan – £20 + VAT"
-          : lockedProductId === 2737
-          ? "Annual Plan – £200 + VAT"
-          : "Unknown Plan"}
-      </div>
 
-
-      {/* Terms & Continue */}
+      {/* Terms + Submit */}
       <div className="mt-6 text-sm text-gray-700">
         <label className="inline-flex items-center gap-2">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="form-checkbox" />
