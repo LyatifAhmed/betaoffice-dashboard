@@ -1,31 +1,52 @@
-// pages/kyc.tsx
 "use client";
 
-import StickyCart from "../components/StickyCart";
-import KycForm from "../components/KycForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import StickyCart from "@/components/StickyCart";
+import KycForm from "@/components/KycForm";
 
 export default function KycPage() {
-  const [productId, setProductId] = useState<number | null>(null);
-  const [stripePriceId, setStripePriceId] = useState<string>("");
+  const [hoxtonProductId, setHoxtonProductId] = useState<number | null>(null);
+  const [stripePriceId, setStripePriceId] = useState<string | null>(null);
+  const [planLoaded, setPlanLoaded] = useState(false);
 
-  const handleCartChange = (
+  const handlePlanChange = (
     plan: "monthly" | "annual",
-    hoxtonProductId: number,
-    stripePriceId: string
+    hoxtonId: number,
+    stripeId: string
   ) => {
-    setProductId(hoxtonProductId);
-    setStripePriceId(stripePriceId);
-    // Also store price ID in localStorage for webhook tracking (optional)
-    localStorage.setItem("selected_plan", stripePriceId);
+    setHoxtonProductId(hoxtonId);
+    setStripePriceId(stripeId);
+    setPlanLoaded(true);
   };
 
+  useEffect(() => {
+    const stored = localStorage.getItem("selected_plan");
+    if (stored === "monthly" || stored === "annual") {
+      const hoxtonId = stored === "monthly" ? 2736 : 2737;
+      const stripeId =
+        stored === "monthly"
+          ? "price_1RBKvBACVQjWBIYus7IRSyEt"
+          : "price_1RBKvlACVQjWBIYuVs4Of01v";
+      handlePlanChange(stored, hoxtonId, stripeId);
+    }
+  }, []);
+
   return (
-    <>
-      <StickyCart onChange={handleCartChange} />
-      {productId && <KycForm lockedProductId={productId} />}
-    </>
+    <div className="min-h-screen bg-gray-50">
+      <StickyCart onChange={handlePlanChange} />
+
+      <main className="py-10 px-4">
+        {planLoaded && hoxtonProductId ? (
+          <KycForm lockedProductId={hoxtonProductId.toString()} />
+        ) : (
+          <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
+            Loading selected plan...
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
+
 
 
