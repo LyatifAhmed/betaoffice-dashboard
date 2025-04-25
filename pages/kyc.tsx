@@ -37,7 +37,7 @@ export default function KycPage() {
 
       <main className="py-10 px-4">
         {planLoaded && hoxtonProductId ? (
-          <KycForm lockedProductId={hoxtonProductId.toString()} />
+          <KycForm lockedProductId={hoxtonProductId} />
         ) : (
           <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
             Loading selected plan...

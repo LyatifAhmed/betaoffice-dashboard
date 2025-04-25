@@ -13,6 +13,7 @@ interface Props {
   lockedProductId: number;
 }
 
+
 interface Owner {
   first_name: string;
   last_name: string;
