@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import StickyCart from "@/components/StickyCart";
-import KycForm from "@/components/KycForm";
+import StickyCart from "../components/StickyCart";
+import KycForm from "../components/KycForm";
 
 export default function KycPage() {
   const [hoxtonProductId, setHoxtonProductId] = useState<number | null>(null);
