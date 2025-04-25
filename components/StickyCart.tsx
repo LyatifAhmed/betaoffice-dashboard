@@ -6,16 +6,10 @@ type Props = {
   onChange?: (plan: "monthly" | "annual", hoxtonProductId: number, stripePriceId: string) => void;
 };
 
-const planMap: Record<"monthly" | "annual", { hoxtonProductId: number; stripePriceId: string }> = {
-  monthly: {
-    hoxtonProductId: 2736,
-    stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt",
-  },
-  annual: {
-    hoxtonProductId: 2737,
-    stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v",
-  },
-};
+const planMap = {
+    monthly: { hoxtonProductId: 2736, stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt" },
+    annual: { hoxtonProductId: 2737, stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v" },
+  };
 
 export default function StickyCart({ onChange }: Props) {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
