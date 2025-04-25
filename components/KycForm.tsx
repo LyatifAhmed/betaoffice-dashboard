@@ -1,5 +1,5 @@
 "use client";
-
+import { loadStripe } from "@stripe/stripe-js";
 import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
@@ -52,7 +52,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
   const [message, setMessage] = useState('');
   const countries = countryList().getData();
   const router = useRouter();
-
+  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -82,13 +82,13 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-
+  
     if (!agree) {
       setMessage("❌ You must agree to the Terms and Privacy Policy.");
       setLoading(false);
       return;
     }
-
+  
     for (const [i, owner] of owners.entries()) {
       if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
@@ -96,16 +96,42 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
         return;
       }
     }
-
+  
+    const productIdMap: Record<string, number> = {
+      "price_1RBKvBACVQjWBIYus7IRSyEt": 2736,
+      "price_1RBKvlACVQjWBIYuVs4Of01v": 2737,
+    };
+  
+    const stripePriceId = localStorage.getItem("selected_plan");
+    const product_id = productIdMap[stripePriceId || ""] || 0;
+  
+    if (!product_id) {
+      setMessage("❌ No valid subscription plan selected.");
+      setLoading(false);
+      return;
+    }
+  
     try {
       const data = {
         ...formData,
-        product_id: lockedProductId,
+        product_id,
         members: owners,
       };
-
-      await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", data);
-      router.push("/kyc-submitted");
+  
+      // ✅ Step 1: Save KYC Temp to backend
+      const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
+      const external_id = res.data.external_id;
+  
+      // ✅ Step 2: Redirect to Stripe Checkout
+      const stripe = await stripePromise;
+      const checkoutRes = await axios.post("/api/checkout-session", {
+        email: formData.email,
+        price_id: stripePriceId,
+        external_id,
+      });
+  
+      await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
+  
     } catch (err) {
       console.error(err);
       setMessage("❌ An error occurred. Please try again.");
@@ -113,6 +139,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
       setLoading(false);
     }
   };
+  
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
