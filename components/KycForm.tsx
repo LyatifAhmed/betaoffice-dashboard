@@ -230,6 +230,16 @@ const product_id = plan.hoxtonProductId;
       ))}
 
       <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
+      {/* Selected Plan Summary */}
+      <div className="mt-6 text-sm text-gray-800 bg-gray-100 border border-gray-300 px-4 py-2 rounded">
+        <strong>Selected Plan:</strong>{" "}
+        {lockedProductId === 2736
+          ? "Monthly Plan – £20 + VAT"
+          : lockedProductId === 2737
+          ? "Annual Plan – £200 + VAT"
+          : "Unknown Plan"}
+      </div>
+
 
       {/* Terms & Continue */}
       <div className="mt-6 text-sm text-gray-700">
