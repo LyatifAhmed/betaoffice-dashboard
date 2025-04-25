@@ -12,11 +12,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { price_id, email, external_id } = req.body;
 
+  // ✅ Check required fields
   if (!price_id || !email || !external_id) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
+    // ✅ Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
@@ -25,8 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/kyc-submitted?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
       metadata: {
-        external_id,  // ✅ So we can look this up in your webhook
-        price_id,
+        external_id, // 💡 Used to match saved KYC form later
+        price_id,    // Optional for record
       },
     });
 
