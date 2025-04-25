@@ -13,21 +13,11 @@ export default function HomePage() {
   const router = useRouter();
   const [agree, setAgree] = useState(false);
 
-  const handleCheckout = useCallback(async (priceId: string) => {
-    if (!agree) return alert("You must agree to the terms to continue.");
-    const stripe = await stripePromise;
-    const response = await fetch("/api/checkout-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId }),
-    });
-    const data = await response.json();
-    if (data.sessionId && stripe) {
-      await stripe.redirectToCheckout({ sessionId: data.sessionId });
-    } else {
-      alert("Unable to start checkout");
-    }
-  }, [agree]);
+  const handlePlanSelect = (productId: string) => {
+    localStorage.setItem("selected_plan", productId);
+    router.push("/kyc");
+  };
+  
 
   return (
     <>
@@ -90,7 +80,7 @@ export default function HomePage() {
                 "Cancel anytime",
               ]}
               color="blue"
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!)}
+              onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!)}
             />
 
             <PlanCard
@@ -106,28 +96,10 @@ export default function HomePage() {
               ]}
               badge="Best Value"
               color="green"
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID!)}
+              onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID!)}
             />
           </div>
-          <div className="mt-6 text-sm text-gray-700">
           
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              onChange={(e) => setAgree(e.target.checked)}
-              className="form-checkbox"
-            />
-            I agree to the{" "}
-            <Link href="/terms-of-service" className="underline text-blue-600">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy-policy" className="underline text-blue-600">
-              Privacy Policy
-            </Link>.
-          </label>
-
-          </div>
         </div>
       </section>
     </>

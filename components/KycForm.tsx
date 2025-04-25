@@ -8,8 +8,6 @@ import countryList from 'react-select-country-list';
 
 interface Props {
   lockedProductId: number;
-  customerEmail: string;
-  token: string;
 }
 
 interface Owner {
@@ -27,13 +25,13 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({ lockedProductId, customerEmail, token }: Props) {
+export default function KycForm({ lockedProductId }: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
     organisation_type: '',
     limited_company_number: '',
-    email: customerEmail,
+    email: '',
     address_line_1: '',
     address_line_2: '',
     city: '',
@@ -44,14 +42,8 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     customer_last_name: '',
   });
 
-  const [owners, setOwners] = useState<Owner[]>([
-    {
-      first_name: '',
-      last_name: '',
-      email: '',
-    },
-  ]);
-
+  const [owners, setOwners] = useState<Owner[]>([{ first_name: '', last_name: '', email: '' }]);
+  const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const countries = countryList().getData();
@@ -73,14 +65,7 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
   };
 
   const addOwner = () => {
-    setOwners((prev) => [
-      ...prev,
-      {
-        first_name: '',
-        last_name: '',
-        email: '',
-      },
-    ]);
+    setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
   };
 
   const removeOwner = (index: number) => {
@@ -89,10 +74,16 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleContinueToPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
+
+    if (!agree) {
+      setMessage('❌ You must agree to the Terms and Privacy Policy.');
+      setLoading(false);
+      return;
+    }
 
     for (const [i, owner] of owners.entries()) {
       if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
@@ -103,25 +94,31 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
     }
 
     try {
-      const data = {
+      const payload = {
         ...formData,
         product_id: lockedProductId,
-        token,
         members: owners,
       };
 
-      await axios.post('https://hoxton-api-backend.onrender.com/api/submit-kyc', data);
-      router.push('/kyc-submitted');
+      const response = await axios.post('/api/checkout-session', payload);
+      const { sessionId } = response.data;
+
+      if (sessionId) {
+        const stripe = await (await import('@stripe/stripe-js')).loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+        await stripe?.redirectToCheckout({ sessionId });
+      } else {
+        throw new Error("No sessionId returned.");
+      }
     } catch (err) {
       console.error(err);
-      setMessage('❌ Submission failed. Please try again.');
+      setMessage('❌ Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
+    <form onSubmit={handleContinueToPayment} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">First Name <span className="text-red-500">*</span>
@@ -154,8 +151,9 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
             type="email"
             name="email"
             value={formData.email}
-            readOnly
-            className="border p-2 rounded w-full bg-gray-100 text-gray-700 cursor-not-allowed"
+            onChange={handleChange}
+            className="border p-2 rounded w-full"
+            required
           />
         </label>
       </div>
@@ -206,28 +204,51 @@ export default function KycForm({ lockedProductId, customerEmail, token }: Props
       ))}
 
       <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
+
       <p className="text-sm text-gray-600 mt-4">
         <strong>Note:</strong> Each business owner will receive an email to complete their identity verification.
       </p>
 
+      <div className="mt-6 text-sm text-gray-700">
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={agree}
+            onChange={(e) => setAgree(e.target.checked)}
+            className="form-checkbox"
+          />
+          I agree to the{" "}
+          <a href="/terms-of-service" target="_blank" className="underline text-blue-600">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy-policy" target="_blank" className="underline text-blue-600">
+            Privacy Policy
+          </a>.
+        </label>
+      </div>
+
       <div>
-      <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2">
-        {loading ? (
-          <>
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-            Submitting…
-          </>
-        ) : (
-          'Submit KYC'
-        )}
-      </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              Preparing Payment…
+            </>
+          ) : (
+            'Continue to Payment'
+          )}
+        </button>
       </div>
 
       {message && <p className="text-center mt-4 text-sm text-red-600">{message}</p>}
     </form>
   );
 }
-
