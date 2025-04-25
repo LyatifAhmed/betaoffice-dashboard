@@ -134,7 +134,12 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
   
     } catch (err) {
       console.error(err);
-      setMessage("❌ An error occurred. Please try again.");
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setMessage("❌ This email is already linked to another business. Please use a different email.");
+      } else {
+        setMessage("❌ An error occurred. Please try again.");
+      }
+      
     } finally {
       setLoading(false);
     }
