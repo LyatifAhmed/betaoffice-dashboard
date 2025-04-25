@@ -83,10 +83,10 @@ export default function KycForm({ lockedProductId }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    setMessage("");
   
     if (!agree) {
-      setMessage('❌ You must agree to the Terms and Privacy Policy.');
+      setMessage("❌ You must agree to the Terms and Privacy Policy.");
       setLoading(false);
       return;
     }
@@ -99,46 +99,58 @@ export default function KycForm({ lockedProductId }: Props) {
       }
     }
   
-    try {
-      const selectedPlanId = localStorage.getItem("selected_plan");
-      if (!selectedPlanId) {
-        setMessage('❌ No plan selected.');
-        setLoading(false);
-        return;
-      }
+    // ✅ Map Stripe price ID to Hoxton product_id
+    const productIdMap: Record<string, number> = {
+      "price_1RBKvBACVQjWBIYus7IRSyEt": 2736, // Monthly
+      "price_1RBKvlACVQjWBIYuVs4Of01v": 2737  // Annual
+    };
   
-      const formDataToSend = {
+    const selectedPlan = localStorage.getItem("selected_plan");
+
+    const planMap: Record<string, { stripePriceId: string; hoxtonProductId: number }> = {
+      monthly: {
+        stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt",
+        hoxtonProductId: 2736,
+      },
+      annual: {
+        stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v",
+        hoxtonProductId: 2737,
+      },
+    };
+
+    const plan = planMap[selectedPlan || ""] || null;
+    if (!plan) {
+      setMessage("❌ No valid subscription plan selected.");
+      setLoading(false);
+      return;
+    }
+
+const product_id = plan.hoxtonProductId;
+
+  
+    if (!product_id) {
+      setMessage("❌ No valid subscription plan selected.");
+      setLoading(false);
+      return;
+    }
+  
+    try {
+      const data = {
         ...formData,
-        product_id: selectedPlanId,
+        product_id,
         members: owners,
       };
   
-      // ✅ Step 1: Save KYC temporarily
-      const saveResponse = await axios.post("/api/save-kyc-temp", formDataToSend);
-  
-      if (saveResponse.status === 200) {
-        console.log("✅ KYC temporarily saved.");
-  
-        // ✅ Step 2: Redirect to Stripe Checkout
-        const stripe = await stripePromise;
-        if (!stripe) throw new Error('Stripe not loaded.');
-  
-        const stripeSession = await axios.post("/api/checkout-session", {
-          priceId: selectedPlanId,
-        });
-  
-        const { sessionId } = stripeSession.data;
-        await stripe.redirectToCheckout({ sessionId });
-      } else {
-        setMessage("❌ Failed to save KYC. Please try again.");
-      }
+      await axios.post("https://hoxton-api-backend.onrender.com/api/submit-kyc", data);
+      router.push("/kyc-submitted");
     } catch (err) {
       console.error(err);
-      setMessage('❌ An error occurred. Please try again.');
+      setMessage("❌ An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+  
   
 
   return (

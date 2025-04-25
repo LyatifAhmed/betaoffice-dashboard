@@ -2,8 +2,20 @@
 
 import { useEffect, useState } from "react";
 
+// ✅ Mapping: plan => hoxtonProductId + stripePriceId
+const planMap: Record<"monthly" | "annual", { hoxtonProductId: number; stripePriceId: string }> = {
+  monthly: {
+    hoxtonProductId: 2736,
+    stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt",
+  },
+  annual: {
+    hoxtonProductId: 2737,
+    stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v",
+  },
+};
+
 type Props = {
-  onChange?: (plan: "monthly" | "annual") => void;
+  onChange?: (plan: "monthly" | "annual", hoxtonProductId: number, stripePriceId: string) => void;
 };
 
 export default function StickyCart({ onChange }: Props) {
@@ -11,22 +23,24 @@ export default function StickyCart({ onChange }: Props) {
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
-    if (stored === "annual" || stored === "monthly") {
+    if (stored === "monthly" || stored === "annual") {
       setSelectedPlan(stored);
-      onChange?.(stored);
+      const { hoxtonProductId, stripePriceId } = planMap[stored];
+      onChange?.(stored, hoxtonProductId, stripePriceId);
     }
   }, [onChange]);
 
   const handleChange = (plan: "monthly" | "annual") => {
     localStorage.setItem("selected_plan", plan);
     setSelectedPlan(plan);
-    onChange?.(plan);
+    const { hoxtonProductId, stripePriceId } = planMap[plan];
+    onChange?.(plan, hoxtonProductId, stripePriceId);
   };
 
   return (
     <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-3 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base">
       <div className="mb-2 sm:mb-0">
-        <strong>Selected Plan: </strong>{" "}
+        <strong>Selected Plan: </strong>
         <span className="text-blue-600 font-medium">
           {selectedPlan === "monthly" ? "Monthly (£20 + VAT)" : "Annual (£200 + VAT)"}
         </span>
@@ -56,3 +70,4 @@ export default function StickyCart({ onChange }: Props) {
     </div>
   );
 }
+
