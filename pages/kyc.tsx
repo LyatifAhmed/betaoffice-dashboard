@@ -19,6 +19,8 @@ export default function KycPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
   const [hoxtonProductId, setHoxtonProductId] = useState<number>(planMap.monthly.hoxtonProductId);
   const [planLoaded, setPlanLoaded] = useState(false);
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [discountedPrice, setDiscountedPrice] = useState<number>(0);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan") as "monthly" | "annual" | null;
@@ -41,7 +43,13 @@ export default function KycPage() {
       <StickyCart onChange={handleCartChange} />
       <main className="py-10 px-4">
         {planLoaded && hoxtonProductId ? (
-          <KycForm lockedProductId={hoxtonProductId} selectedPlanLabel={selectedPlanLabel} />
+          <KycForm
+          lockedProductId={hoxtonProductId}
+          selectedPlanLabel={selectedPlanLabel}
+          couponCode={couponCode}            // ✅ added
+          discountedPrice={discountedPrice}  // ✅ added
+        />
+        
         ) : (
           <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
             Loading selected plan...
