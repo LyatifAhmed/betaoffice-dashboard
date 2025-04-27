@@ -154,9 +154,22 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
-      <div className="mb-4 text-sm text-gray-700 bg-blue-50 border border-blue-200 px-4 py-3 rounded">
-        <strong>Selected Plan:</strong> {selectedPlanLabel}
+      <div className="mb-4 text-sm text-gray-700 bg-blue-50 border border-blue-200 px-4 py-3 rounded space-y-1">
+        <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
+
+        {discountedPrice > 0 && (
+          <div className="text-green-600 font-semibold">
+            ✅ Discounted Price: £{discountedPrice.toFixed(2)}
+          </div>
+        )}
+
+        {couponCode && (
+          <div className="text-green-500 text-sm">
+            Coupon <strong>{couponCode.toUpperCase()}</strong> applied!
+          </div>
+        )}
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Basic Info */}
