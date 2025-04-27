@@ -11,18 +11,23 @@ type Props = {
 };
 
 export default function StickyCart({ onChange }: Props) {
-  const planMap: Record<string, { label: string; hoxtonProductId: number }> = {
+  const planMap: Record<string, { label: string; hoxtonProductId: number; price: number }> = {
     "price_1RBKvBACVQjWBIYus7IRSyEt": {
       label: "Monthly (£20 + VAT)",
       hoxtonProductId: 2736,
+      price: 20,
     },
     "price_1RBKvlACVQjWBIYuVs4Of01v": {
       label: "Annual (£200 + VAT)",
       hoxtonProductId: 2737,
+      price: 200,
     },
   };
 
   const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt"); // default to monthly
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [couponApplied, setCouponApplied] = useState<boolean>(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
@@ -47,15 +52,34 @@ export default function StickyCart({ onChange }: Props) {
     onChange?.(plan, planMap[newStripeId].hoxtonProductId, newStripeId);
   };
 
+  const handleApplyCoupon = () => {
+    if (couponCode.trim().toUpperCase() === "BETA10") {
+      setDiscountAmount(10); // Example: £10 discount
+      setCouponApplied(true);
+    } else {
+      alert("Invalid coupon code.");
+      setDiscountAmount(0);
+      setCouponApplied(false);
+    }
+  };
+
+  const currentPlan = planMap[stripePriceId];
+
   return (
-    <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-3 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base">
-      <div className="mb-2 sm:mb-0">
-        <strong>Selected Plan: </strong>{" "}
-        <span className="text-blue-600 font-medium">
-          {planMap[stripePriceId]?.label || "Loading..."}
-        </span>
+    <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base space-y-2 sm:space-y-0">
+      <div className="flex flex-col">
+        <strong>Selected Plan:</strong>{" "}
+        <span className="text-blue-600 font-medium">{currentPlan?.label || "Loading..."}</span>
+
+        {/* Show discounted price */}
+        {couponApplied && (
+          <span className="text-green-600 text-sm mt-1">
+            Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
+          </span>
+        )}
       </div>
-      <div className="space-x-2">
+
+      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
         <button
           onClick={() => handleChange("monthly")}
           className={`px-3 py-1 rounded border ${
@@ -77,7 +101,25 @@ export default function StickyCart({ onChange }: Props) {
           Annual
         </button>
       </div>
+
+      {/* Coupon Input */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mt-2 sm:mt-0">
+        <input
+          type="text"
+          placeholder="Coupon code"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value)}
+          className="border p-1 rounded w-32 sm:w-40"
+        />
+        <button
+          onClick={handleApplyCoupon}
+          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mt-2 sm:mt-0"
+        >
+          Apply
+        </button>
+      </div>
     </div>
   );
 }
+
 
