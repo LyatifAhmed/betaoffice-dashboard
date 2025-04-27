@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 type Props = {
   onChange?: (
     plan: "monthly" | "annual",
     hoxtonProductId: number,
-    stripePriceId: string
+    stripePriceId: string,
+    selectedPlanLabel: string,
+    couponCode: string,
+    discountedPrice: number
   ) => void;
 };
 
@@ -33,13 +37,17 @@ export default function StickyCart({ onChange }: Props) {
     const stored = localStorage.getItem("selected_plan");
     if (stored && planMap[stored]) {
       setStripePriceId(stored);
+      const currentPlan = planMap[stored];
       onChange?.(
         stored === "price_1RBKvBACVQjWBIYus7IRSyEt" ? "monthly" : "annual",
-        planMap[stored].hoxtonProductId,
-        stored
+        currentPlan.hoxtonProductId,
+        stored,
+        currentPlan.label,
+        couponCode,
+        currentPlan.price - discountAmount
       );
     }
-  }, [onChange]);
+  }, [onChange, couponCode, discountAmount]);
 
   const handleChange = (plan: "monthly" | "annual") => {
     const newStripeId =
@@ -49,32 +57,58 @@ export default function StickyCart({ onChange }: Props) {
 
     localStorage.setItem("selected_plan", newStripeId);
     setStripePriceId(newStripeId);
-    onChange?.(plan, planMap[newStripeId].hoxtonProductId, newStripeId);
+
+    const currentPlan = planMap[newStripeId];
+    onChange?.(
+      plan,
+      currentPlan.hoxtonProductId,
+      newStripeId,
+      currentPlan.label,
+      couponCode,
+      currentPlan.price - discountAmount
+    );
   };
 
-  const handleApplyCoupon = () => {
-    if (couponCode.trim().toUpperCase() === "BETA10") {
-      setDiscountAmount(10); // Example: £10 discount
-      setCouponApplied(true);
-    } else {
-      alert("Invalid coupon code.");
+  const handleApplyCoupon = async () => {
+    const trimmedCode = couponCode.trim().toUpperCase();
+    if (!trimmedCode) return;
+  
+    try {
+      const res = await axios.post("/api/validate-coupon", { couponCode: trimmedCode });
+      
+      if (res.data.valid) {
+        setDiscountAmount(res.data.discountAmount || 10); // fallback default £10
+        setCouponApplied(true);
+        toast.success(`🎉 Coupon "${trimmedCode}" applied successfully! £${res.data.discountAmount || 10} off!`);
+      } else {
+        setDiscountAmount(0);
+        setCouponApplied(false);
+        toast.error("❌ Invalid coupon code. Please try another.");
+      }
+    } catch (error) {
+      console.error(error);
       setDiscountAmount(0);
       setCouponApplied(false);
+      toast.error("❌ Error validating coupon. Please try again.");
     }
   };
-
+  
+  
   const currentPlan = planMap[stripePriceId];
+  const finalPrice = (currentPlan.price - discountAmount).toFixed(2);
 
   return (
     <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base space-y-2 sm:space-y-0">
       <div className="flex flex-col">
         <strong>Selected Plan:</strong>{" "}
-        <span className="text-blue-600 font-medium">{currentPlan?.label || "Loading..."}</span>
+        <span className="text-blue-600 font-medium">
+          {currentPlan?.label || "Loading..."}
+        </span>
 
         {/* Show discounted price */}
         {couponApplied && (
           <span className="text-green-600 text-sm mt-1">
-            Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
+            Discounted Price: £{finalPrice}
           </span>
         )}
       </div>
@@ -112,6 +146,7 @@ export default function StickyCart({ onChange }: Props) {
           className="border p-1 rounded w-32 sm:w-40"
         />
         <button
+          type="button"
           onClick={handleApplyCoupon}
           className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mt-2 sm:mt-0"
         >

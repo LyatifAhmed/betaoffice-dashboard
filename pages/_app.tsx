@@ -4,15 +4,17 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
-import Footer from "../components/Footer"; // 👈 Make sure path is correct
+import Footer from "../components/Footer";
 import TopBanner from "../components/TopBanner";
+import { Toaster } from "react-hot-toast";
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   return (
     <>
       <TopBanner />
-      <main></main>
+
       <Head>
         <title>BetaOffice – Virtual Office KYC</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -35,10 +37,11 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
+      <main>
+        <Component {...pageProps} />
+      </main>
 
-      <Component {...pageProps} />
-
-      <Footer /> {/* 👈 Your new dark footer */}
+      <Footer />
 
       <CookieConsent
         location="bottom"
@@ -74,11 +77,12 @@ export default function App({ Component, pageProps }: AppProps) {
           <a className="underline text-blue-300">Learn more</a>
         </Link>
       </CookieConsent>
+
+      {/* ✅ Inserted Global Toast Notifications */}
+      <Toaster position="top-center" />
     </>
   );
 }
-
-
 
 
 

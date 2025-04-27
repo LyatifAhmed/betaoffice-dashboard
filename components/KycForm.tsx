@@ -1,4 +1,5 @@
 "use client";
+
 import { loadStripe } from "@stripe/stripe-js";
 import { useState } from "react";
 import axios from "axios";
@@ -9,6 +10,8 @@ import countryList from "react-select-country-list";
 interface Props {
   lockedProductId: number;
   selectedPlanLabel: string;
+  couponCode: string;
+  discountedPrice: number; // ✅ added here
 }
 
 interface Owner {
@@ -26,7 +29,7 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
+export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice }: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
@@ -53,6 +56,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
   const countries = countryList().getData();
   const router = useRouter();
   const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -97,28 +101,27 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
       }
     }
   
-    const productIdMap: Record<string, number> = {
-      "price_1RBKvBACVQjWBIYus7IRSyEt": 2736,
-      "price_1RBKvlACVQjWBIYuVs4Of01v": 2737,
-    };
-  
-    const stripePriceId = localStorage.getItem("selected_plan");
-    const product_id = productIdMap[stripePriceId || ""] || 0;
-  
-    if (!product_id) {
-      setMessage("❌ No valid subscription plan selected.");
-      setLoading(false);
-      return;
-    }
-  
     try {
+      const stripePriceId = localStorage.getItem("selected_plan");
+      const productIdMap: Record<string, number> = {
+        "price_1RBKvBACVQjWBIYus7IRSyEt": 2736,
+        "price_1RBKvlACVQjWBIYuVs4Of01v": 2737,
+      };
+      const product_id = productIdMap[stripePriceId || ""] || 0;
+  
+      if (!product_id) {
+        setMessage("❌ No valid subscription plan selected.");
+        setLoading(false);
+        return;
+      }
+  
       const data = {
         ...formData,
         product_id,
         members: owners,
       };
   
-      // ✅ Step 1: Save KYC Temp to backend
+      // ✅ Step 1: Save KYC temp to backend
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
   
@@ -128,6 +131,8 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
         email: formData.email,
         price_id: stripePriceId,
         external_id,
+        coupon_code: couponCode, // ✅ Pass coupon to backend
+        discounted_price: discountedPrice, // ✅ Pass discounted price
       });
   
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
@@ -139,7 +144,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel }: Props) {
       } else {
         setMessage("❌ An error occurred. Please try again.");
       }
-      
     } finally {
       setLoading(false);
     }
