@@ -1,17 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import axios from "axios"; // ✅ Added axios
 import { toast } from "react-hot-toast";
-import axios from "axios";
 
 type Props = {
   onChange?: (
     plan: "monthly" | "annual",
     hoxtonProductId: number,
-    stripePriceId: string,
-    selectedPlanLabel: string,
-    couponCode: string,
-    discountedPrice: number
+    stripePriceId: string
   ) => void;
 };
 
@@ -29,7 +26,7 @@ export default function StickyCart({ onChange }: Props) {
     },
   };
 
-  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt"); // default to monthly
+  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt"); // default monthly
   const [couponCode, setCouponCode] = useState<string>("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [couponApplied, setCouponApplied] = useState<boolean>(false);
@@ -38,17 +35,14 @@ export default function StickyCart({ onChange }: Props) {
     const stored = localStorage.getItem("selected_plan");
     if (stored && planMap[stored]) {
       setStripePriceId(stored);
-      const currentPlan = planMap[stored];
       onChange?.(
         stored === "price_1RBKvBACVQjWBIYus7IRSyEt" ? "monthly" : "annual",
-        currentPlan.hoxtonProductId,
-        stored,
-        currentPlan.label,
-        couponCode,
-        currentPlan.price - discountAmount
+        planMap[stored].hoxtonProductId,
+        stored
       );
     }
-  }, [onChange, couponCode, discountAmount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onChange]);
 
   const handleChange = (plan: "monthly" | "annual") => {
     const newStripeId =
@@ -58,33 +52,24 @@ export default function StickyCart({ onChange }: Props) {
 
     localStorage.setItem("selected_plan", newStripeId);
     setStripePriceId(newStripeId);
-
-    const currentPlan = planMap[newStripeId];
-    onChange?.(
-      plan,
-      currentPlan.hoxtonProductId,
-      newStripeId,
-      currentPlan.label,
-      couponCode,
-      currentPlan.price - discountAmount
-    );
+    onChange?.(plan, planMap[newStripeId].hoxtonProductId, newStripeId);
   };
 
   const handleApplyCoupon = async () => {
     const trimmedCode = couponCode.trim().toUpperCase();
     if (!trimmedCode) return;
-  
+
     try {
       const res = await axios.post("/api/validate-coupon", { couponCode: trimmedCode });
-      
+
       if (res.data.valid) {
-        setDiscountAmount(res.data.discountAmount || 10); // fallback default £10
+        setDiscountAmount(res.data.discountAmount || 10); // fallback £10
         setCouponApplied(true);
-        toast.success(`🎉 Coupon "${trimmedCode}" applied successfully! £${res.data.discountAmount || 10} off!`);
+        toast.success(`🎉 Coupon ${trimmedCode} applied successfully!`);
       } else {
         setDiscountAmount(0);
         setCouponApplied(false);
-        toast.error("❌ Invalid coupon code. Please try another.");
+        toast.error("Invalid coupon code. Please try another.");
       }
     } catch (error) {
       console.error(error);
@@ -93,23 +78,19 @@ export default function StickyCart({ onChange }: Props) {
       toast.error("❌ Error validating coupon. Please try again.");
     }
   };
-  
-  
+
   const currentPlan = planMap[stripePriceId];
-  const finalPrice = (currentPlan.price - discountAmount).toFixed(2);
 
   return (
     <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base space-y-2 sm:space-y-0">
       <div className="flex flex-col">
         <strong>Selected Plan:</strong>{" "}
-        <span className="text-blue-600 font-medium">
-          {currentPlan?.label || "Loading..."}
-        </span>
+        <span className="text-blue-600 font-medium">{currentPlan?.label || "Loading..."}</span>
 
         {/* Show discounted price */}
         {couponApplied && (
           <span className="text-green-600 text-sm mt-1">
-            Discounted Price: £{finalPrice}
+            Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
           </span>
         )}
       </div>
@@ -147,7 +128,6 @@ export default function StickyCart({ onChange }: Props) {
           className="border p-1 rounded w-32 sm:w-40"
         />
         <button
-          type="button"
           onClick={handleApplyCoupon}
           className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mt-2 sm:mt-0"
         >
@@ -157,5 +137,3 @@ export default function StickyCart({ onChange }: Props) {
     </div>
   );
 }
-
-
