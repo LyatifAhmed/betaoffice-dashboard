@@ -1,5 +1,5 @@
 "use client";
-//force uopdate 
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -13,9 +13,10 @@ type Props = {
     hoxtonProductId: number,
     stripePriceId: string
   ) => void;
+  email?: string; // optional prop for checkout
 };
 
-export default function StickyCart({ onChange }: Props) {
+export default function StickyCart({ onChange, email }: Props) {
   const planMap: Record<
     string,
     { label: string; hoxtonProductId: number; price: number }
@@ -61,87 +62,71 @@ export default function StickyCart({ onChange }: Props) {
     onChange?.(plan, planMap[newStripeId].hoxtonProductId, newStripeId);
   };
 
-  const handleApplyCoupon = async () => {
-  const trimmedCode = couponCode.trim().toUpperCase();
-  if (!trimmedCode) return;
-
-  try {
-    const res = await axios.post("/api/validate-coupon", {
-      couponCode: trimmedCode,
-    });
-
-    if (res.data.valid) {
-      setDiscountAmount(res.data.discountAmount || 0);
-      setCouponId(res.data.couponId || null); // ✅ capture couponId
-      setCouponApplied(true);
-      toast.success(`🎉 Coupon "${trimmedCode}" applied successfully!`);
-    } else {
-      resetCouponState();
-      toast.error("Invalid or expired coupon code.");
-    }
-  } catch (error) {
-    console.error("Coupon validation error:", error);
-    resetCouponState();
-    toast.error("❌ Error validating coupon. Try again later.");
-  }
-};
-
-const resetCouponState = () => {
-  setDiscountAmount(0);
-  setCouponId(null);
-  setCouponApplied(false);
-};
-
-
-
   const resetCouponState = () => {
     setDiscountAmount(0);
     setCouponApplied(false);
     setCouponId(null);
   };
 
-  const handleCheckout = async () => {
-  const stripe = await stripePromise;
-  if (!stripe) {
-    toast.error("Stripe failed to load.");
-    return;
-  }
+  const handleApplyCoupon = async () => {
+    const trimmedCode = couponCode.trim().toUpperCase();
+    if (!trimmedCode) return;
 
-  // ✅ Fallback: generate external ID if not passed from upstream
-  const externalId = `${(email || "user").split("@")[0]}-${new Date()
-    .toISOString()
-    .replace(/[-:.TZ]/g, "")
-    .slice(0, 14)}`;
+    try {
+      const res = await axios.post("/api/validate-coupon", {
+        couponCode: trimmedCode,
+      });
 
-  try {
-    console.log("🛒 Creating checkout session with:", {
-      stripePriceId,
-      couponId,
-      externalId,
-    });
-
-    const res = await axios.post("/api/checkout-session", {
-      price_id: stripePriceId,
-      email,         // Only if you are still using this in the backend route
-      external_id: externalId,
-      couponCode: couponId, // 👈 Make sure this maps to `promotion_code` or Stripe coupon in your backend
-    });
-
-    const sessionId = res.data?.sessionId;
-
-    if (sessionId) {
-      await stripe.redirectToCheckout({ sessionId });
-    } else {
-      console.warn("❌ No session ID returned:", res.data);
-      toast.error("Unable to start checkout.");
+      if (res.data.valid) {
+        setDiscountAmount(res.data.discountAmount || 0);
+        setCouponId(res.data.couponId || null);
+        setCouponApplied(true);
+        toast.success(`🎉 Coupon "${trimmedCode}" applied successfully!`);
+      } else {
+        resetCouponState();
+        toast.error("Invalid or expired coupon code.");
+      }
+    } catch (error) {
+      console.error("Coupon validation error:", error);
+      resetCouponState();
+      toast.error("❌ Error validating coupon. Try again later.");
     }
-  } catch (error: any) {
-    console.error("❌ Stripe checkout error:", error);
-    toast.error("Checkout failed. Please try again.");
-  }
-};
+  };
 
+  const handleCheckout = async () => {
+    const stripe = await stripePromise;
+    if (!stripe) {
+      toast.error("Stripe failed to load.");
+      return;
+    }
 
+    const safeEmail = email || "test@example.com";
+    const externalId = `${safeEmail.split("@")[0]}-${new Date()
+      .toISOString()
+      .replace(/[-:.TZ]/g, "")
+      .slice(0, 14)}`;
+
+    try {
+      const res = await axios.post("/api/checkout-session", {
+        price_id: stripePriceId,
+        email: safeEmail,
+        external_id: externalId,
+        couponCode: couponId,
+      });
+
+      const sessionId = res.data?.sessionId;
+
+      if (sessionId) {
+        await stripe.redirectToCheckout({ sessionId });
+      } else {
+        console.warn("❌ No session ID returned:", res.data);
+        toast.error("Unable to start checkout.");
+      }
+    } catch (error: any) {
+      console.error("❌ Stripe checkout error:", error);
+      toast.error("Checkout failed. Please try again.");
+    }
+  };
 
   const currentPlan = planMap[stripePriceId];
 
