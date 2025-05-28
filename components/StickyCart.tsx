@@ -137,3 +137,4 @@ export default function StickyCart({ onChange }: Props) {
     </div>
   );
 }
+// 🔄 Trigger redeploy: sticky cart update
