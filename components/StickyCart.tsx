@@ -108,11 +108,11 @@ export default function StickyCart({ onChange, email }: Props) {
 
     try {
       const res = await axios.post("/api/checkout-session", {
-        price_id: stripePriceId,
-        email: safeEmail,
-        external_id: externalId,
-        couponCode: couponId,
+        stripePriceId,
+        externalId,
+        couponId,
       });
+
 
       const sessionId = res.data?.sessionId;
 
