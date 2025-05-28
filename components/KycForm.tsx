@@ -68,11 +68,12 @@ export default function KycForm({
     setFormData((prev) => ({ ...prev, [field]: value?.value || '' }));
   };
 
-  const updateOwner = (index: number, field: string, value: string) => {
-    const updated = [...owners];
-    updated[index][field] = value;
-    setOwners(updated);
-  };
+  const updateOwner = (index: number, field: keyof Owner, value: string) => {
+  const updated = [...owners];
+  updated[index] = { ...updated[index], [field]: value };
+  setOwners(updated);
+};
+
 
   const addOwner = () => {
     setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
