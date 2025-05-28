@@ -10,56 +10,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { price_id, email, external_id, couponCode } = req.body;
+  const { stripePriceId, externalId, couponId } = req.body;
 
-  if (!price_id || !email || !external_id) {
+  if (!stripePriceId || !externalId) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
-    const params: Stripe.Checkout.SessionCreateParams = {
+    const sessionData: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
-      customer_email: email,
       line_items: [
         {
-          price: price_id,
+          price: stripePriceId,
           quantity: 1,
         },
       ],
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/kyc-submitted?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
-      metadata: { external_id, price_id },
+      billing_address_collection: "auto",
+      metadata: {
+        external_id: externalId,
+        stripe_price_id: stripePriceId,
+      },
     };
 
-    // ✅ Attach coupon if provided
-    if (couponCode && couponCode.trim() !== "") {
-      const promotionCodeId = await findPromotionCodeId(couponCode.trim().toUpperCase());
-      if (promotionCodeId) {
-        params.discounts = [{ promotion_code: promotionCodeId }];
-      } else {
-        console.warn(`⚠️ Coupon code ${couponCode} was not found or inactive.`);
-      }
+    if (couponId) {
+      sessionData.discounts = [{ coupon: couponId }];
     }
 
-    const session = await stripe.checkout.sessions.create(params);
-
+    const session = await stripe.checkout.sessions.create(sessionData);
     return res.status(200).json({ sessionId: session.id });
   } catch (err: any) {
-    console.error("Stripe checkout session error:", err.message || err);
+    console.error("❌ Stripe checkout session error:", err.message || err);
     return res.status(500).json({ error: "Stripe checkout session creation failed" });
   }
-}
-
-// ✅ Helper to find the Promotion Code ID
-async function findPromotionCodeId(code: string): Promise<string | null> {
-  const promotions = await stripe.promotionCodes.list({ active: true, limit: 100 });
-
-  const promo = promotions.data.find((p) => p.code.toUpperCase() === code);
-
-  if (!promo) {
-    return null; // No matching promo code found
-  }
-
-  return promo.id;
 }

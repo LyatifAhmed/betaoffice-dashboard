@@ -12,21 +12,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { couponCode } = req.body;
 
-  if (!couponCode) {
+  if (!couponCode || typeof couponCode !== "string") {
     return res.status(400).json({ valid: false });
   }
 
   try {
-    const promotions = await stripe.promotionCodes.list({ active: true });
-    const promo = promotions.data.find((p) => p.code === couponCode);
+    const promotions = await stripe.promotionCodes.list({ active: true, limit: 100 });
 
-    if (promo) {
-      return res.status(200).json({ valid: true, discountAmount: promo.coupon.amount_off ? promo.coupon.amount_off / 100 : 0 });
-    } else {
-      return res.status(200).json({ valid: false });
+    const promo = promotions.data.find(
+      (p) => p.code.toLowerCase() === couponCode.toLowerCase()
+    );
+
+    if (promo && promo.coupon.valid) {
+      const discountAmount = promo.coupon.amount_off
+        ? promo.coupon.amount_off / 100
+        : 0;
+
+      return res.status(200).json({
+        valid: true,
+        discountAmount,
+        couponId: promo.coupon.id, // ✅ pass Stripe coupon ID for /checkout-session
+      });
     }
+
+    return res.status(200).json({ valid: false });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error validating coupon:", error);
     return res.status(500).json({ valid: false });
   }
 }

@@ -1,8 +1,11 @@
 "use client";
-
+//force uopdate 
 import { useEffect, useState } from "react";
-import axios from "axios"; // ✅ Added axios
+import axios from "axios";
 import { toast } from "react-hot-toast";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 type Props = {
   onChange?: (
@@ -13,7 +16,10 @@ type Props = {
 };
 
 export default function StickyCart({ onChange }: Props) {
-  const planMap: Record<string, { label: string; hoxtonProductId: number; price: number }> = {
+  const planMap: Record<
+    string,
+    { label: string; hoxtonProductId: number; price: number }
+  > = {
     "price_1RBKvBACVQjWBIYus7IRSyEt": {
       label: "Monthly (£20 + VAT)",
       hoxtonProductId: 2736,
@@ -26,10 +32,11 @@ export default function StickyCart({ onChange }: Props) {
     },
   };
 
-  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt"); // default monthly
+  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt");
   const [couponCode, setCouponCode] = useState<string>("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [couponApplied, setCouponApplied] = useState<boolean>(false);
+  const [couponId, setCouponId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
@@ -41,7 +48,6 @@ export default function StickyCart({ onChange }: Props) {
         stored
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onChange]);
 
   const handleChange = (plan: "monthly" | "annual") => {
@@ -56,28 +62,86 @@ export default function StickyCart({ onChange }: Props) {
   };
 
   const handleApplyCoupon = async () => {
-    const trimmedCode = couponCode.trim().toUpperCase();
-    if (!trimmedCode) return;
+  const trimmedCode = couponCode.trim().toUpperCase();
+  if (!trimmedCode) return;
 
-    try {
-      const res = await axios.post("/api/validate-coupon", { couponCode: trimmedCode });
+  try {
+    const res = await axios.post("/api/validate-coupon", {
+      couponCode: trimmedCode,
+    });
 
-      if (res.data.valid) {
-        setDiscountAmount(res.data.discountAmount || 10); // fallback £10
-        setCouponApplied(true);
-        toast.success(`🎉 Coupon ${trimmedCode} applied successfully!`);
-      } else {
-        setDiscountAmount(0);
-        setCouponApplied(false);
-        toast.error("Invalid coupon code. Please try another.");
-      }
-    } catch (error) {
-      console.error(error);
-      setDiscountAmount(0);
-      setCouponApplied(false);
-      toast.error("❌ Error validating coupon. Please try again.");
+    if (res.data.valid) {
+      setDiscountAmount(res.data.discountAmount || 0);
+      setCouponId(res.data.couponId || null); // ✅ capture couponId
+      setCouponApplied(true);
+      toast.success(`🎉 Coupon "${trimmedCode}" applied successfully!`);
+    } else {
+      resetCouponState();
+      toast.error("Invalid or expired coupon code.");
     }
+  } catch (error) {
+    console.error("Coupon validation error:", error);
+    resetCouponState();
+    toast.error("❌ Error validating coupon. Try again later.");
+  }
+};
+
+const resetCouponState = () => {
+  setDiscountAmount(0);
+  setCouponId(null);
+  setCouponApplied(false);
+};
+
+
+
+  const resetCouponState = () => {
+    setDiscountAmount(0);
+    setCouponApplied(false);
+    setCouponId(null);
   };
+
+  const handleCheckout = async () => {
+  const stripe = await stripePromise;
+  if (!stripe) {
+    toast.error("Stripe failed to load.");
+    return;
+  }
+
+  // ✅ Fallback: generate external ID if not passed from upstream
+  const externalId = `${(email || "user").split("@")[0]}-${new Date()
+    .toISOString()
+    .replace(/[-:.TZ]/g, "")
+    .slice(0, 14)}`;
+
+  try {
+    console.log("🛒 Creating checkout session with:", {
+      stripePriceId,
+      couponId,
+      externalId,
+    });
+
+    const res = await axios.post("/api/checkout-session", {
+      price_id: stripePriceId,
+      email,         // Only if you are still using this in the backend route
+      external_id: externalId,
+      couponCode: couponId, // 👈 Make sure this maps to `promotion_code` or Stripe coupon in your backend
+    });
+
+    const sessionId = res.data?.sessionId;
+
+    if (sessionId) {
+      await stripe.redirectToCheckout({ sessionId });
+    } else {
+      console.warn("❌ No session ID returned:", res.data);
+      toast.error("Unable to start checkout.");
+    }
+  } catch (error: any) {
+    console.error("❌ Stripe checkout error:", error);
+    toast.error("Checkout failed. Please try again.");
+  }
+};
+
+
 
   const currentPlan = planMap[stripePriceId];
 
@@ -85,12 +149,14 @@ export default function StickyCart({ onChange }: Props) {
     <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base space-y-2 sm:space-y-0">
       <div className="flex flex-col">
         <strong>Selected Plan:</strong>{" "}
-        <span className="text-blue-600 font-medium">{currentPlan?.label || "Loading..."}</span>
+        <span className="text-blue-600 font-medium">
+          {currentPlan?.label || "Loading..."}
+        </span>
 
-        {/* Show discounted price */}
         {couponApplied && (
           <span className="text-green-600 text-sm mt-1">
-            Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
+            Discounted Price: £
+            {(currentPlan.price - discountAmount).toFixed(2)}
           </span>
         )}
       </div>
@@ -118,7 +184,6 @@ export default function StickyCart({ onChange }: Props) {
         </button>
       </div>
 
-      {/* Coupon Input */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mt-2 sm:mt-0">
         <input
           type="text"
@@ -134,7 +199,13 @@ export default function StickyCart({ onChange }: Props) {
           Apply
         </button>
       </div>
+
+      <button
+        onClick={handleCheckout}
+        className="bg-black text-white px-4 py-2 rounded hover:opacity-80 mt-4 sm:mt-0"
+      >
+        Checkout
+      </button>
     </div>
   );
 }
-// 🔄 Trigger redeploy: sticky cart update

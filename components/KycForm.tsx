@@ -11,7 +11,7 @@ interface Props {
   lockedProductId: number;
   selectedPlanLabel: string;
   couponCode: string;
-  discountedPrice: number; // ✅ added here
+  discountedPrice: number;
 }
 
 interface Owner {
@@ -29,7 +29,12 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice }: Props) {
+export default function KycForm({
+  lockedProductId,
+  selectedPlanLabel,
+  couponCode,
+  discountedPrice,
+}: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
@@ -46,10 +51,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     customer_last_name: '',
   });
 
-  const [owners, setOwners] = useState<Owner[]>([
-    { first_name: '', last_name: '', email: '' },
-  ]);
-
+  const [owners, setOwners] = useState<Owner[]>([{ first_name: '', last_name: '', email: '' }]);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -62,13 +64,13 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleSelectChange = (field: string, value: { value: string } | null) => {
+    setFormData((prev) => ({ ...prev, [field]: value?.value || '' }));
   };
 
   const updateOwner = (index: number, field: string, value: string) => {
     const updated = [...owners];
-    (updated[index] as any)[field] = value;
+    updated[index][field] = value;
     setOwners(updated);
   };
 
@@ -86,13 +88,13 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     e.preventDefault();
     setLoading(true);
     setMessage("");
-  
+
     if (!agree) {
       setMessage("❌ You must agree to the Terms and Privacy Policy.");
       setLoading(false);
       return;
     }
-  
+
     for (const [i, owner] of owners.entries()) {
       if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
@@ -100,7 +102,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         return;
       }
     }
-  
+
     try {
       const stripePriceId = localStorage.getItem("selected_plan");
       const productIdMap: Record<string, number> = {
@@ -108,35 +110,31 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         "price_1RBKvlACVQjWBIYuVs4Of01v": 2737,
       };
       const product_id = productIdMap[stripePriceId || ""] || 0;
-  
+
       if (!product_id) {
         setMessage("❌ No valid subscription plan selected.");
         setLoading(false);
         return;
       }
-  
-      const data = {
-        ...formData,
-        product_id,
-        members: owners,
-      };
-  
-      // ✅ Step 1: Save KYC temp to backend
+
+      const data = { ...formData, product_id, members: owners };
+
+      // Step 1: Save KYC temp to backend
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
-  
-      // ✅ Step 2: Redirect to Stripe Checkout
+
+      // Step 2: Redirect to Stripe Checkout
       const stripe = await stripePromise;
       const checkoutRes = await axios.post("/api/checkout-session", {
         email: formData.email,
         price_id: stripePriceId,
         external_id,
-        coupon_code: couponCode, // ✅ Pass coupon to backend
-        discounted_price: discountedPrice, // ✅ Pass discounted price
+        coupon_code: couponCode,
+        discounted_price: discountedPrice,
       });
-  
+
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
-  
+
     } catch (err) {
       console.error(err);
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -148,10 +146,9 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
       setLoading(false);
     }
   };
-  
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
       <div className="mb-4 text-sm text-gray-700 bg-blue-50 border border-blue-200 px-4 py-3 rounded space-y-1">
@@ -170,9 +167,8 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         )}
       </div>
 
-
+      {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Basic Info */}
         <label className="block">First Name<span className="text-red-500">*</span>
           <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
@@ -192,13 +188,14 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
           <input name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Organisation Type<span className="text-red-500">*</span>
-          <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option?.value || '')} className="w-full" />
+          <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
         </label>
         <label className="block">Company Number
           <input name="limited_company_number" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
       </div>
 
+      {/* Address */}
       <h3 className="font-medium mt-6">Address</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
@@ -214,7 +211,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
           <input required name="postcode" onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Country<span className="text-red-500">*</span>
-          <Select options={countries} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option?.value || '')} className="w-full" />
+          <Select options={countries} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
         </label>
       </div>
 
