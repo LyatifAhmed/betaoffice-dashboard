@@ -68,6 +68,8 @@ export default function KycForm({
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [useCompanySearch, setUseCompanySearch] = useState(true);
   const [useAddressSearch, setUseAddressSearch] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+
   const countries = countryList().getData();
   const router = useRouter();
 
@@ -121,14 +123,19 @@ export default function KycForm({
   }, [companyQuery]);
 
   useEffect(() => {
-    const debounced = debounce(async () => {
-      if (!postcodeSearch.trim()) return;
+  const debounced = debounce(async () => {
+    if (!postcodeSearch.trim()) return;
+    try {
       const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
       setAddressSuggestions(res.data.addresses || []);
-    }, 500);
-    debounced();
-    return () => debounced.cancel();
-  }, [postcodeSearch]);
+    } finally {
+      setIsSearching(false); // stop loading after fetch
+    }
+  }, 500);
+  debounced();
+  return () => debounced.cancel();
+}, [postcodeSearch]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,42 +278,70 @@ export default function KycForm({
         </label>
       </div>
 
-      <div className="flex items-center justify-between">
-          <label className="font-medium">📍 Auto-fill UK Address</label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={useAddressSearch}
-              onChange={() => setUseAddressSearch(!useAddressSearch)}
-            />
-            <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
-          </label>
-        </div>
+     <div className="flex items-center justify-between">
+      <label className="font-medium">📍 Auto-fill UK Address</label>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={useAddressSearch}
+          onChange={() => setUseAddressSearch(!useAddressSearch)}
+        />
+        <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
+      </label>
+    </div>
 
-        {useAddressSearch && (
-          <>
-            <input
-              type="text"
-              placeholder="Enter UK postcode..."
-              className="border p-2 rounded w-full"
-              value={postcodeSearch}
-              onChange={(e) => setPostcodeSearch(e.target.value)}
-            />
-            {addressSuggestions.length > 0 && (
-              <ul className="border rounded bg-white dark:bg-gray-800 max-h-40 overflow-y-auto text-sm">
-                {addressSuggestions.map((a, i) => (
-                  <li
-                    key={i}
-                    onClick={() => handleAddressSelect(a)}
-                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer"
-                  >
-                    {a}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
+    {useAddressSearch && (
+      <>
+        <input
+          type="text"
+          placeholder="Enter UK postcode..."
+          className="border p-2 rounded w-full mb-2"
+          value={postcodeSearch}
+          onChange={(e) => {
+            setPostcodeSearch(e.target.value);
+            setIsSearching(true); // set loading state on input
+          }}
+        />
+
+        {isSearching && (
+          <div className="text-sm text-gray-500 flex items-center gap-2 mb-2">
+            <svg
+              className="animate-spin h-4 w-4 text-blue-500"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+            Searching address…
+          </div>
         )}
+
+        {!isSearching && addressSuggestions.length > 0 && (
+          <select
+            className="border p-2 rounded w-full text-sm"
+            onChange={(e) => {
+              const selectedAddress = addressSuggestions[parseInt(e.target.value)];
+              if (selectedAddress) handleAddressSelect(selectedAddress);
+            }}
+          >
+            <option value="">Select your address</option>
+            {addressSuggestions.map((a, i) => (
+              <option key={i} value={i}>
+                {a}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {!isSearching && postcodeSearch.trim() && addressSuggestions.length === 0 && (
+          <p className="text-sm text-gray-500 italic">No results found for this postcode.</p>
+        )}
+      </>
+    )}
+
+
       </div>
 
       {/* Address Info */}
