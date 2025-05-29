@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const sessionData: Stripe.Checkout.SessionCreateParams = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
@@ -35,11 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
+    // ✅ Apply Stripe Coupon if provided
     if (couponId) {
-      sessionData.discounts = [{ coupon: couponId }];
+      sessionParams.discounts = [{ coupon: couponId }];
     }
 
-    const session = await stripe.checkout.sessions.create(sessionData);
+    const session = await stripe.checkout.sessions.create(sessionParams);
     return res.status(200).json({ sessionId: session.id });
   } catch (err: any) {
     console.error("❌ Stripe checkout session error:", err.message || err);

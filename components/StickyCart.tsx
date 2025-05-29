@@ -3,40 +3,30 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { loadStripe } from "@stripe/stripe-js";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+interface Props {
+  onChange?: (plan: "monthly" | "annual", hoxtonProductId: number, stripePriceId: string) => void;
+  onCoupon?: (couponCode: string, discount: number, couponId: string | null) => void;
+}
 
-type Props = {
-  onChange?: (
-    plan: "monthly" | "annual",
-    hoxtonProductId: number,
-    stripePriceId: string
-  ) => void;
-  email?: string; // optional prop for checkout
+const planMap = {
+  "price_1RBKvBACVQjWBIYus7IRSyEt": {
+    label: "Monthly (£20 + VAT)",
+    hoxtonProductId: 2736,
+    price: 20,
+  },
+  "price_1RBKvlACVQjWBIYuVs4Of01v": {
+    label: "Annual (£200 + VAT)",
+    hoxtonProductId: 2737,
+    price: 200,
+  },
 };
 
-export default function StickyCart({ onChange, email }: Props) {
-  const planMap: Record<
-    string,
-    { label: string; hoxtonProductId: number; price: number }
-  > = {
-    "price_1RBKvBACVQjWBIYus7IRSyEt": {
-      label: "Monthly (£20 + VAT)",
-      hoxtonProductId: 2736,
-      price: 20,
-    },
-    "price_1RBKvlACVQjWBIYuVs4Of01v": {
-      label: "Annual (£200 + VAT)",
-      hoxtonProductId: 2737,
-      price: 200,
-    },
-  };
-
-  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt");
-  const [couponCode, setCouponCode] = useState<string>("");
-  const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [couponApplied, setCouponApplied] = useState<boolean>(false);
+export default function StickyCart({ onChange, onCoupon }: Props) {
+  const [stripePriceId, setStripePriceId] = useState("price_1RBKvBACVQjWBIYus7IRSyEt");
+  const [couponCode, setCouponCode] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState(false);
   const [couponId, setCouponId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,6 +71,7 @@ export default function StickyCart({ onChange, email }: Props) {
         setDiscountAmount(res.data.discountAmount || 0);
         setCouponId(res.data.couponId || null);
         setCouponApplied(true);
+        onCoupon?.(trimmedCode, res.data.discountAmount || 0, res.data.couponId || null);
         toast.success(`🎉 Coupon "${trimmedCode}" applied successfully!`);
       } else {
         resetCouponState();
@@ -90,41 +81,6 @@ export default function StickyCart({ onChange, email }: Props) {
       console.error("Coupon validation error:", error);
       resetCouponState();
       toast.error("❌ Error validating coupon. Try again later.");
-    }
-  };
-
-  const handleCheckout = async () => {
-    const stripe = await stripePromise;
-    if (!stripe) {
-      toast.error("Stripe failed to load.");
-      return;
-    }
-
-    const safeEmail = email || "test@example.com";
-    const externalId = `${safeEmail.split("@")[0]}-${new Date()
-      .toISOString()
-      .replace(/[-:.TZ]/g, "")
-      .slice(0, 14)}`;
-
-    try {
-      const res = await axios.post("/api/checkout-session", {
-        stripePriceId,
-        externalId,
-        couponId,
-      });
-
-
-      const sessionId = res.data?.sessionId;
-
-      if (sessionId) {
-        await stripe.redirectToCheckout({ sessionId });
-      } else {
-        console.warn("❌ No session ID returned:", res.data);
-        toast.error("Unable to start checkout.");
-      }
-    } catch (error: any) {
-      console.error("❌ Stripe checkout error:", error);
-      toast.error("Checkout failed. Please try again.");
     }
   };
 
@@ -140,8 +96,7 @@ export default function StickyCart({ onChange, email }: Props) {
 
         {couponApplied && (
           <span className="text-green-600 text-sm mt-1">
-            Discounted Price: £
-            {(currentPlan.price - discountAmount).toFixed(2)}
+            Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
           </span>
         )}
       </div>
@@ -184,13 +139,6 @@ export default function StickyCart({ onChange, email }: Props) {
           Apply
         </button>
       </div>
-
-      <button
-        onClick={handleCheckout}
-        className="bg-black text-white px-4 py-2 rounded hover:opacity-80 mt-4 sm:mt-0"
-      >
-        Checkout
-      </button>
     </div>
   );
 }

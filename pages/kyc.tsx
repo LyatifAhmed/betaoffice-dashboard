@@ -18,9 +18,10 @@ const planMap = {
 export default function KycPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
   const [hoxtonProductId, setHoxtonProductId] = useState<number>(planMap.monthly.hoxtonProductId);
-  const [planLoaded, setPlanLoaded] = useState(false);
-  const [couponCode, setCouponCode] = useState<string>("");
+  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt");
+  const [couponId, setCouponId] = useState<string | null>(null);
   const [discountedPrice, setDiscountedPrice] = useState<number>(0);
+  const [planLoaded, setPlanLoaded] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan") as "monthly" | "annual" | null;
@@ -31,25 +32,38 @@ export default function KycPage() {
     setPlanLoaded(true);
   }, []);
 
-  const handleCartChange = (plan: "monthly" | "annual", hoxtonId: number) => {
+  const handleCartChange = (
+    plan: "monthly" | "annual",
+    hoxtonId: number,
+    priceId: string
+  ) => {
     setSelectedPlan(plan);
     setHoxtonProductId(hoxtonId);
+    setStripePriceId(priceId);
+  };
+
+  const handleCouponUpdate = (discount: number, coupon: string | null) => {
+    setDiscountedPrice(discount);
+    setCouponId(coupon);
   };
 
   const selectedPlanLabel = planMap[selectedPlan]?.label || "Unknown Plan";
 
   return (
     <>
-      <StickyCart onChange={handleCartChange} />
+      <StickyCart
+        onChange={handleCartChange}
+        onCoupon={handleCouponUpdate}
+      />
       <main className="py-10 px-4">
         {planLoaded && hoxtonProductId ? (
           <KycForm
-          lockedProductId={hoxtonProductId}
-          selectedPlanLabel={selectedPlanLabel}
-          couponCode={couponCode}            // ✅ added
-          discountedPrice={discountedPrice}  // ✅ added
-        />
-        
+            lockedProductId={hoxtonProductId}
+            selectedPlanLabel={selectedPlanLabel}
+            discountedPrice={discountedPrice}
+            couponCode={couponId || ""}
+            stripePriceId={stripePriceId}
+          />
         ) : (
           <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
             Loading selected plan...

@@ -1,11 +1,13 @@
+// Updated KycForm.tsx with toggleable UK company and address autofill
+
 "use client";
 
-import { loadStripe } from "@stripe/stripe-js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
 import Select from "react-select";
 import countryList from "react-select-country-list";
+import debounce from "lodash.debounce";
 
 interface Props {
   lockedProductId: number;
@@ -19,15 +21,6 @@ interface Owner {
   last_name: string;
   email: string;
 }
-
-const businessTypes = [
-  { value: '1', label: 'Limited company (LTD, LP, LLP, LLC, Corp)' },
-  { value: '13', label: 'Association, club or society' },
-  { value: '10', label: 'Charity / non-profit' },
-  { value: '3', label: 'Individual / sole trader' },
-  { value: '12', label: 'Trust, foundation or fund' },
-  { value: '9', label: 'Unincorporated / not yet registered' },
-];
 
 export default function KycForm({
   lockedProductId,
@@ -45,7 +38,7 @@ export default function KycForm({
     address_line_2: '',
     city: '',
     postcode: '',
-    country: '',
+    country: 'GB',
     phone_number: '',
     customer_first_name: '',
     customer_last_name: '',
@@ -55,9 +48,15 @@ export default function KycForm({
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
+  const [postcodeSearch, setPostcodeSearch] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [useCompanySearch, setUseCompanySearch] = useState(true);
+  const [useAddressSearch, setUseAddressSearch] = useState(true);
+
   const countries = countryList().getData();
   const router = useRouter();
-  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -69,20 +68,50 @@ export default function KycForm({
   };
 
   const updateOwner = (index: number, field: keyof Owner, value: string) => {
-  const updated = [...owners];
-  updated[index] = { ...updated[index], [field]: value };
-  setOwners(updated);
-};
-
-
-  const addOwner = () => {
-    setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
+    const updated = [...owners];
+    updated[index] = { ...updated[index], [field]: value };
+    setOwners(updated);
   };
 
-  const removeOwner = (index: number) => {
-    if (owners.length > 1) {
-      setOwners((prev) => prev.filter((_, i) => i !== index));
-    }
+  const fetchCompanies = debounce(async (query: string) => {
+    if (!query.trim()) return;
+    const res = await axios.get(`/api/companies?query=${query}`);
+    setCompanySuggestions(res.data.companies);
+  }, 500);
+
+  const fetchAddresses = debounce(async (postcode: string) => {
+    if (!postcode.trim()) return;
+    const res = await axios.get(`/api/address?postcode=${postcode}`);
+    setAddressSuggestions(res.data.addresses || []);
+  }, 500);
+
+  useEffect(() => {
+    fetchCompanies(companyQuery);
+  }, [companyQuery]);
+
+  useEffect(() => {
+    fetchAddresses(postcodeSearch);
+  }, [postcodeSearch]);
+
+  const handleCompanySelect = (company: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      company_name: company.name,
+      limited_company_number: company.companyNumber,
+      address_line_1: company.address,
+    }));
+    setCompanySuggestions([]);
+  };
+
+  const handleAddressSelect = (address: string) => {
+    const [line1, city, postcode] = address.split(',').map(s => s.trim());
+    setFormData((prev) => ({
+      ...prev,
+      address_line_1: line1 || '',
+      city: city || '',
+      postcode: postcode || '',
+    }));
+    setAddressSuggestions([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,7 +177,7 @@ export default function KycForm({
     }
   };
 
-  return (
+    return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
@@ -171,28 +200,28 @@ export default function KycForm({
       {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">First Name<span className="text-red-500">*</span>
-          <input required name="customer_first_name" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Last Name<span className="text-red-500">*</span>
-          <input required name="customer_last_name" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required name="customer_last_name" value={formData.customer_last_name} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Email Address<span className="text-red-500">*</span>
-          <input required type="email" name="email" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Phone Number
-          <input name="phone_number" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Company Name<span className="text-red-500">*</span>
-          <input required name="company_name" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Trading Name
-          <input name="trading_name" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Organisation Type<span className="text-red-500">*</span>
-          <Select options={businessTypes} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
+          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
         </label>
         <label className="block">Company Number
-          <input name="limited_company_number" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
       </div>
 
@@ -200,19 +229,19 @@ export default function KycForm({
       <h3 className="font-medium mt-6">Address</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
-          <input required name="address_line_1" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Address Line 2
-          <input name="address_line_2" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input name="address_line_2" value={formData.address_line_2} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">City<span className="text-red-500">*</span>
-          <input required name="city" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required name="city" value={formData.city} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Postcode<span className="text-red-500">*</span>
-          <input required name="postcode" onChange={handleChange} className="border p-2 rounded w-full" />
+          <input required name="postcode" value={formData.postcode} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
         <label className="block">Country<span className="text-red-500">*</span>
-          <Select options={countries} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
+          <Select options={countries} value={countries.find(c => c.value === formData.country)} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
         </label>
       </div>
 
@@ -269,4 +298,3 @@ export default function KycForm({
       {message && <p className="text-center mt-4 text-sm text-red-600">{message}</p>}
     </form>
   );
-}
