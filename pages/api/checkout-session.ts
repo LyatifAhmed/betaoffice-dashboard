@@ -10,9 +10,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { stripePriceId, externalId, couponId } = req.body;
+  const { price_id, external_id, coupon_id, email } = req.body;
 
-  if (!stripePriceId || !externalId) {
+  if (!price_id || !external_id) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -22,22 +22,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       payment_method_types: ["card"],
       line_items: [
         {
-          price: stripePriceId,
+          price: price_id,
           quantity: 1,
         },
       ],
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/kyc-submitted?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cancel`,
       billing_address_collection: "auto",
+      customer_email: email,
       metadata: {
-        external_id: externalId,
-        stripe_price_id: stripePriceId,
+        external_id,
+        stripe_price_id: price_id,
       },
     };
 
-    // ✅ Apply Stripe Coupon if provided
-    if (couponId) {
-      sessionParams.discounts = [{ coupon: couponId }];
+    if (coupon_id) {
+      sessionParams.discounts = [{ coupon: coupon_id }];
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

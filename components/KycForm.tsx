@@ -238,6 +238,83 @@ export default function KycForm({
         </label>
       </div>
 
+      {/* Auto-fill Toggles & Search Inputs */}
+      <div className="mt-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <label className="font-medium">🔍 Auto-fill UK Company Info</label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useCompanySearch}
+              onChange={() => setUseCompanySearch(!useCompanySearch)}
+            />
+            <span>{useCompanySearch ? "Enabled" : "Manual Entry"}</span>
+          </label>
+        </div>
+
+        {useCompanySearch && (
+          <>
+            <input
+              type="text"
+              placeholder="Search company name..."
+              className="border p-2 rounded w-full"
+              value={companyQuery}
+              onChange={(e) => setCompanyQuery(e.target.value)}
+            />
+            {companySuggestions.length > 0 && (
+              <ul className="border rounded bg-white dark:bg-gray-800 max-h-40 overflow-y-auto text-sm">
+                {companySuggestions.map((c, i) => (
+                  <li
+                    key={i}
+                    onClick={() => handleCompanySelect(c)}
+                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer"
+                  >
+                    {c.name} ({c.companyNumber}) — {c.status}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+
+        <div className="flex items-center justify-between">
+          <label className="font-medium">📍 Auto-fill UK Address</label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useAddressSearch}
+              onChange={() => setUseAddressSearch(!useAddressSearch)}
+            />
+            <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
+          </label>
+        </div>
+
+        {useAddressSearch && (
+          <>
+            <input
+              type="text"
+              placeholder="Enter UK postcode..."
+              className="border p-2 rounded w-full"
+              value={postcodeSearch}
+              onChange={(e) => setPostcodeSearch(e.target.value)}
+            />
+            {addressSuggestions.length > 0 && (
+              <ul className="border rounded bg-white dark:bg-gray-800 max-h-40 overflow-y-auto text-sm">
+                {addressSuggestions.map((a, i) => (
+                  <li
+                    key={i}
+                    onClick={() => handleAddressSelect(a)}
+                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer"
+                  >
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Address Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
