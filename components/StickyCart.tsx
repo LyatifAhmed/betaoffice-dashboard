@@ -22,8 +22,10 @@ const planMap = {
   },
 };
 
+type StripePriceKey = keyof typeof planMap;
+
 export default function StickyCart({ onChange, onCoupon }: Props) {
-  const [stripePriceId, setStripePriceId] = useState("price_1RBKvBACVQjWBIYus7IRSyEt");
+  const [stripePriceId, setStripePriceId] = useState<StripePriceKey>("price_1RBKvBACVQjWBIYus7IRSyEt");
   const [couponCode, setCouponCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
@@ -31,18 +33,19 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
-    if (stored && planMap[stored]) {
-      setStripePriceId(stored);
+    if (stored && stored in planMap) {
+      const key = stored as StripePriceKey;
+      setStripePriceId(key);
       onChange?.(
-        stored === "price_1RBKvBACVQjWBIYus7IRSyEt" ? "monthly" : "annual",
-        planMap[stored].hoxtonProductId,
-        stored
+        key === "price_1RBKvBACVQjWBIYus7IRSyEt" ? "monthly" : "annual",
+        planMap[key].hoxtonProductId,
+        key
       );
     }
   }, [onChange]);
 
   const handleChange = (plan: "monthly" | "annual") => {
-    const newStripeId =
+    const newStripeId: StripePriceKey =
       plan === "monthly"
         ? "price_1RBKvBACVQjWBIYus7IRSyEt"
         : "price_1RBKvlACVQjWBIYuVs4Of01v";
