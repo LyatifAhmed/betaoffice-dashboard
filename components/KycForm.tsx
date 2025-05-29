@@ -67,6 +67,8 @@ export default function KycForm({
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const [postcodeSearch, setPostcodeSearch] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [useCompanySearch, setUseCompanySearch] = useState(true);
+  const [useAddressSearch, setUseAddressSearch] = useState(true);
   const countries = countryList().getData();
   const router = useRouter();
 
@@ -191,7 +193,7 @@ export default function KycForm({
       setLoading(false);
     }
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
       {/* Plan Info */}
