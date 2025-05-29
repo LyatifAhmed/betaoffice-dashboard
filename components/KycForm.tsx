@@ -1,5 +1,3 @@
-// KycForm.tsx — Company name autofill only; address via postcode search
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -35,27 +33,12 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({
-  lockedProductId,
-  selectedPlanLabel,
-  couponCode,
-  discountedPrice,
-  stripePriceId,
-}: Props) {
+export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice, stripePriceId }: Props) {
   const [formData, setFormData] = useState({
-    company_name: '',
-    trading_name: '',
-    organisation_type: '',
-    limited_company_number: '',
-    email: '',
-    address_line_1: '',
-    address_line_2: '',
-    city: '',
-    postcode: '',
-    country: 'GB',
-    phone_number: '',
-    customer_first_name: '',
-    customer_last_name: '',
+    company_name: '', trading_name: '', organisation_type: '',
+    limited_company_number: '', email: '', address_line_1: '',
+    address_line_2: '', city: '', postcode: '', country: 'GB',
+    phone_number: '', customer_first_name: '', customer_last_name: ''
   });
 
   const [owners, setOwners] = useState<Owner[]>([{ first_name: '', last_name: '', email: '' }]);
@@ -98,8 +81,10 @@ export default function KycForm({
   };
 
   const handleAddressSelect = (address: string) => {
-    const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
-    const postcode = parts.pop() || '';
+    const postcodeMatch = address.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}$/i);
+    const postcode = postcodeMatch ? postcodeMatch[0] : '';
+    const addressWithoutPostcode = address.replace(postcode, '').trim();
+    const parts = addressWithoutPostcode.split(',').map(p => p.trim()).filter(Boolean);
     const city = parts.pop() || '';
     const line1 = parts.join(', ');
 
@@ -123,18 +108,18 @@ export default function KycForm({
   }, [companyQuery]);
 
   useEffect(() => {
-  const debounced = debounce(async () => {
-    if (!postcodeSearch.trim()) return;
-    try {
-      const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
-      setAddressSuggestions(res.data.addresses || []);
-    } finally {
-      setIsSearching(false); // stop loading after fetch
-    }
-  }, 500);
-  debounced();
-  return () => debounced.cancel();
-}, [postcodeSearch]);
+    const debounced = debounce(async () => {
+      if (!postcodeSearch.trim()) return;
+      try {
+        const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
+        setAddressSuggestions(res.data.addresses || []);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [postcodeSearch]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -278,68 +263,61 @@ export default function KycForm({
         </label>
       </div>
 
-     <div className="flex items-center justify-between">
-      <label className="font-medium">📍 Auto-fill UK Address</label>
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={useAddressSearch}
-          onChange={() => setUseAddressSearch(!useAddressSearch)}
-        />
-        <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
-      </label>
-    </div>
+     {/* Toggle for Address Search */}
+      <div className="flex items-center justify-between">
+        <label className="font-medium">📍 Auto-fill UK Address</label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={useAddressSearch}
+            onChange={() => setUseAddressSearch(!useAddressSearch)}
+          />
+          <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
+        </label>
+      </div>
 
-    {useAddressSearch && (
-      <>
-        <input
-          type="text"
-          placeholder="Enter UK postcode..."
-          className="border p-2 rounded w-full mb-2"
-          value={postcodeSearch}
-          onChange={(e) => {
-            setPostcodeSearch(e.target.value);
-            setIsSearching(true); // set loading state on input
-          }}
-        />
-
-        {isSearching && (
-          <div className="text-sm text-gray-500 flex items-center gap-2 mb-2">
-            <svg
-              className="animate-spin h-4 w-4 text-blue-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-            Searching address…
-          </div>
-        )}
-
-        {!isSearching && addressSuggestions.length > 0 && (
-          <select
-            className="border p-2 rounded w-full text-sm"
+      {useAddressSearch && (
+        <>
+          <input
+            type="text"
+            placeholder="Enter UK postcode..."
+            className="border p-2 rounded w-full mb-2"
+            value={postcodeSearch}
             onChange={(e) => {
-              const selectedAddress = addressSuggestions[parseInt(e.target.value)];
-              if (selectedAddress) handleAddressSelect(selectedAddress);
+              setPostcodeSearch(e.target.value);
+              setIsSearching(true);
             }}
-          >
-            <option value="">Select your address</option>
-            {addressSuggestions.map((a, i) => (
-              <option key={i} value={i}>
-                {a}
-              </option>
-            ))}
-          </select>
-        )}
+          />
 
-        {!isSearching && postcodeSearch.trim() && addressSuggestions.length === 0 && (
-          <p className="text-sm text-gray-500 italic">No results found for this postcode.</p>
-        )}
-      </>
-    )}
+          {isSearching && (
+            <div className="text-sm text-gray-500">Searching address…</div>
+          )}
+
+          {!isSearching && addressSuggestions.length > 0 && (
+            <select
+              className="border p-2 rounded w-full text-sm"
+              onChange={(e) => {
+                const index = parseInt(e.target.value);
+                const selected = addressSuggestions[index];
+                if (selected) handleAddressSelect(selected);
+              }}
+            >
+              <option value="">Select your address</option>
+              {addressSuggestions.map((addr, index) => (
+                <option key={index} value={index}>{addr}</option>
+              ))}
+            </select>
+          )}
+
+          {!isSearching && postcodeSearch.trim() && addressSuggestions.length === 0 && (
+            <p className="text-sm text-gray-500 italic">No results found for this postcode.</p>
+          )}
+
+          {formData.address_line_1 && (
+            <div className="text-green-600 text-sm mt-1">✅ Address fields auto-filled.</div>
+          )}
+        </>
+      )}
 
 
       </div>
