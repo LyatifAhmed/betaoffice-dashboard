@@ -253,7 +253,25 @@ export default function KycForm({
           </>
         )}
 
-        <div className="flex items-center justify-between">
+        
+
+      {/* Company Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">Company Name<span className="text-red-500">*</span>
+          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Trading Name
+          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Organisation Type<span className="text-red-500">*</span>
+          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
+        </label>
+        <label className="block">Company Number
+          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+      </div>
+
+      <div className="flex items-center justify-between">
           <label className="font-medium">📍 Auto-fill UK Address</label>
           <label className="flex items-center gap-2">
             <input
@@ -290,24 +308,6 @@ export default function KycForm({
           </>
         )}
       </div>
-
-      {/* Company Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <label className="block">Company Name<span className="text-red-500">*</span>
-          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Trading Name
-          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Organisation Type<span className="text-red-500">*</span>
-          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
-        </label>
-        <label className="block">Company Number
-          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-      </div>
-
-      
 
       {/* Address Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
