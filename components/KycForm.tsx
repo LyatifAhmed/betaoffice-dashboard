@@ -1,4 +1,4 @@
-// Updated KycForm.tsx: removed CH address autofill, enabled postcode-based lookup
+// KycForm.tsx — Company name autofill only; address via postcode search
 
 "use client";
 
@@ -35,7 +35,13 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice, stripePriceId }: Props) {
+export default function KycForm({
+  lockedProductId,
+  selectedPlanLabel,
+  couponCode,
+  discountedPrice,
+  stripePriceId,
+}: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
@@ -56,9 +62,12 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const [postcodeSearch, setPostcodeSearch] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
-
+  const [useCompanySearch, setUseCompanySearch] = useState(true);
+  const [useAddressSearch, setUseAddressSearch] = useState(true);
   const countries = countryList().getData();
   const router = useRouter();
 
@@ -77,15 +86,39 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     setOwners(updated);
   };
 
+  const handleCompanySelect = (company: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      company_name: company.name,
+      limited_company_number: company.companyNumber,
+    }));
+    setCompanySuggestions([]);
+  };
+
   const handleAddressSelect = (address: string) => {
-    const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+    const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
     const postcode = parts.pop() || '';
     const city = parts.pop() || '';
     const line1 = parts.join(', ');
 
-    setFormData(prev => ({ ...prev, address_line_1: line1, city, postcode }));
+    setFormData((prev) => ({
+      ...prev,
+      address_line_1: line1,
+      city,
+      postcode,
+    }));
     setAddressSuggestions([]);
   };
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!companyQuery.trim()) return;
+      const res = await axios.get(`/api/companies?query=${companyQuery}`);
+      setCompanySuggestions(res.data.companies);
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [companyQuery]);
 
   useEffect(() => {
     const debounced = debounce(async () => {
