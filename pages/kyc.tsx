@@ -42,9 +42,13 @@ export default function KycPage() {
     setStripePriceId(priceId);
   };
 
-  const handleCouponUpdate = (discount: number, coupon: string | null) => {
+  const handleCouponUpdate = (
+    couponCode: string,
+    discount: number,
+    couponId: string | null
+  ) => {
     setDiscountedPrice(discount);
-    setCouponId(coupon);
+    setCouponId(couponId);
   };
 
   const selectedPlanLabel = planMap[selectedPlan]?.label || "Unknown Plan";
