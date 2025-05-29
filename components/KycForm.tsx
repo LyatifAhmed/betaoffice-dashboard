@@ -1,5 +1,4 @@
-
-// Updated KycForm.tsx with CH address autofill, editable fields, and fallback UK address search
+// Updated KycForm.tsx: removed CH address autofill, enabled postcode-based lookup
 
 "use client";
 
@@ -36,13 +35,7 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({
-  lockedProductId,
-  selectedPlanLabel,
-  couponCode,
-  discountedPrice,
-  stripePriceId,
-}: Props) {
+export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice, stripePriceId }: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
     trading_name: '',
@@ -63,12 +56,9 @@ export default function KycForm({
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [companyQuery, setCompanyQuery] = useState('');
-  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const [postcodeSearch, setPostcodeSearch] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
-  const [useCompanySearch, setUseCompanySearch] = useState(true);
-  const [useAddressSearch, setUseAddressSearch] = useState(true);
+
   const countries = countryList().getData();
   const router = useRouter();
 
@@ -87,51 +77,15 @@ export default function KycForm({
     setOwners(updated);
   };
 
-  const addOwner = () => {
-    setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
-  };
-
-  const handleCompanySelect = (company: any) => {
-    const [line1 = '', city = '', postcode = ''] = company.address.split(',').map((s: string) => s.trim());
-    setFormData((prev) => ({
-      ...prev,
-      company_name: company.name,
-      limited_company_number: company.companyNumber,
-      address_line_1: line1,
-      city,
-      postcode,
-    }));
-    setCompanySuggestions([]);
-  };
-
   const handleAddressSelect = (address: string) => {
-  const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
+    const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+    const postcode = parts.pop() || '';
+    const city = parts.pop() || '';
+    const line1 = parts.join(', ');
 
-  const postcode = parts.pop() || '';
-  const city = parts.pop() || '';
-  const line1 = parts.join(', '); // Everything before city + postcode
-
-  setFormData((prev) => ({
-    ...prev,
-    address_line_1: line1,
-    city,
-    postcode,
-  }));
-
-  setAddressSuggestions([]);
-};
-
-
-
-  useEffect(() => {
-    const debounced = debounce(async () => {
-      if (!companyQuery.trim()) return;
-      const res = await axios.get(`/api/companies?query=${companyQuery}`);
-      setCompanySuggestions(res.data.companies);
-    }, 500);
-    debounced();
-    return () => debounced.cancel();
-  }, [companyQuery]);
+    setFormData(prev => ({ ...prev, address_line_1: line1, city, postcode }));
+    setAddressSuggestions([]);
+  };
 
   useEffect(() => {
     const debounced = debounce(async () => {
@@ -204,6 +158,28 @@ export default function KycForm({
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
+      <div>
+        <input
+          type="text"
+          placeholder="Enter UK postcode"
+          value={postcodeSearch}
+          onChange={(e) => setPostcodeSearch(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+        {addressSuggestions.length > 0 && (
+          <ul className="border rounded bg-white max-h-40 overflow-y-auto text-sm">
+            {addressSuggestions.map((a, i) => (
+              <li
+                key={i}
+                onClick={() => handleAddressSelect(a)}
+                className="p-2 hover:bg-blue-100 cursor-pointer"
+              >
+                {a}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       {/* Plan Info */}
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
