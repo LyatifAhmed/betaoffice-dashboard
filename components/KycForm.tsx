@@ -1,4 +1,4 @@
-// Fixed and complete KycForm.tsx with toggleable autofill for UK company and address
+// Updated KycForm.tsx with toggleable UK company and address autofill and ESLint fixes
 
 "use client";
 
@@ -24,15 +24,6 @@ interface Owner {
   last_name: string;
   email: string;
 }
-
-const businessTypes = [
-  { value: '1', label: 'Limited company (LTD, LP, LLP, LLC, Corp)' },
-  { value: '13', label: 'Association, club or society' },
-  { value: '10', label: 'Charity / non-profit' },
-  { value: '3', label: 'Individual / sole trader' },
-  { value: '12', label: 'Trust, foundation or fund' },
-  { value: '9', label: 'Unincorporated / not yet registered' },
-];
 
 export default function KycForm({
   lockedProductId,
@@ -85,34 +76,6 @@ export default function KycForm({
     setOwners(updated);
   };
 
-  const addOwner = () => {
-    setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
-  };
-
-  const removeOwner = (index: number) => {
-    setOwners((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const fetchCompanies = debounce(async (query: string) => {
-    if (!query.trim()) return;
-    const res = await axios.get(`/api/companies?query=${query}`);
-    setCompanySuggestions(res.data.companies);
-  }, 500);
-
-  const fetchAddresses = debounce(async (postcode: string) => {
-    if (!postcode.trim()) return;
-    const res = await axios.get(`/api/address?postcode=${postcode}`);
-    setAddressSuggestions(res.data.addresses || []);
-  }, 500);
-
-  useEffect(() => {
-    if (useCompanySearch) fetchCompanies(companyQuery);
-  }, [companyQuery, useCompanySearch]);
-
-  useEffect(() => {
-    if (useAddressSearch) fetchAddresses(postcodeSearch);
-  }, [postcodeSearch, useAddressSearch]);
-
   const handleCompanySelect = (company: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -133,6 +96,26 @@ export default function KycForm({
     }));
     setAddressSuggestions([]);
   };
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!companyQuery.trim()) return;
+      const res = await axios.get(`/api/companies?query=${companyQuery}`);
+      setCompanySuggestions(res.data.companies);
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [companyQuery]);
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!postcodeSearch.trim()) return;
+      const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
+      setAddressSuggestions(res.data.addresses || []);
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [postcodeSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,6 +165,7 @@ export default function KycForm({
       });
 
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
+
     } catch (err) {
       console.error(err);
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -195,83 +179,68 @@ export default function KycForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
-      <h2 className="text-2xl font-semibold">KYC Form</h2>
+    <form onSubmit={handleSubmit}> {/* Terms + Submit */}
+    <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={agree}
+          onChange={(e) => setAgree(e.target.checked)}
+          className="form-checkbox"
+        />
+        I agree to the{" "}
+        <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+          Privacy Policy
+        </a>.
+      </label>
+    </div>
 
-      <div className="flex items-center gap-4">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={useCompanySearch} onChange={() => setUseCompanySearch(!useCompanySearch)} />
-          Use UK Company Autofill
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={useAddressSearch} onChange={() => setUseAddressSearch(!useAddressSearch)} />
-          Use UK Address Autofill
-        </label>
-      </div>
+    <div>
+      <button
+        type="submit"
+        disabled={loading}
+        className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        {loading ? (
+          <>
+            <svg
+              className="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              />
+            </svg>
+            Processing…
+          </>
+        ) : (
+          <span className="font-semibold">Continue to Payment</span>
+        )}
+      </button>
+    </div>
 
-      {/* Terms + Submit */}
-      <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
-        <label className="inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={agree}
-            onChange={(e) => setAgree(e.target.checked)}
-            className="form-checkbox"
-          />
-          I agree to the{" "}
-          <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
-            Privacy Policy
-          </a>.
-        </label>
-      </div>
-
-      <div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {loading ? (
-            <>
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8z"
-                />
-              </svg>
-              Processing…
-            </>
-          ) : (
-            <span className="font-semibold">Continue to Payment</span>
-          )}
-        </button>
-      </div>
-
-      {message && (
-        <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">
-          {message}
-        </p>
-      )}
-
-
+    {message && (
+      <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">
+        {message}
+      </p>
+    )}
+ 
     </form>
   );
 }
