@@ -105,15 +105,22 @@ export default function KycForm({
   };
 
   const handleAddressSelect = (address: string) => {
-    const [line1, city, postcode] = address.split(',').map(s => s.trim());
-    setFormData((prev) => ({
-      ...prev,
-      address_line_1: line1 || '',
-      city: city || '',
-      postcode: postcode || '',
-    }));
-    setAddressSuggestions([]);
-  };
+  const parts = address.split(',').map(s => s.trim());
+
+  const line1 = parts.slice(0, -2).join(', ');
+  const city = parts[parts.length - 2] || '';
+  const postcode = parts[parts.length - 1] || '';
+
+  setFormData((prev) => ({
+    ...prev,
+    address_line_1: line1,
+    city,
+    postcode,
+  }));
+
+  setAddressSuggestions([]);
+};
+
 
   useEffect(() => {
     const debounced = debounce(async () => {
