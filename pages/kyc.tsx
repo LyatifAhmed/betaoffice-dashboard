@@ -24,10 +24,18 @@ export default function KycPage() {
   const [planLoaded, setPlanLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("selected_plan") as "monthly" | "annual" | null;
-    if (stored && planMap[stored]) {
-      setSelectedPlan(stored);
-      setHoxtonProductId(planMap[stored].hoxtonProductId);
+    const stored = localStorage.getItem("selected_plan");
+    console.log("Stored plan in localStorage:", stored);
+    if (stored === "price_1RBKvBACVQjWBIYus7IRSyEt") {
+      setSelectedPlan("monthly");
+      setHoxtonProductId(planMap.monthly.hoxtonProductId);
+      setStripePriceId(stored);
+    } else if (stored === "price_1RBKvlACVQjWBIYuVs4Of01v") {
+      setSelectedPlan("annual");
+      setHoxtonProductId(planMap.annual.hoxtonProductId);
+      setStripePriceId(stored);
+    } else {
+      console.warn("Unknown or missing stored plan. Defaulting to monthly.");
     }
     setPlanLoaded(true);
   }, []);
@@ -53,12 +61,17 @@ export default function KycPage() {
 
   const selectedPlanLabel = planMap[selectedPlan]?.label || "Unknown Plan";
 
+  console.log("Render State", {
+    selectedPlan,
+    hoxtonProductId,
+    stripePriceId,
+    planLoaded,
+  });
+
   return (
     <>
-      <StickyCart
-        onChange={handleCartChange}
-        onCoupon={handleCouponUpdate}
-      />
+      <StickyCart onChange={handleCartChange} onCoupon={handleCouponUpdate} />
+
       <main className="py-10 px-4">
         {planLoaded && hoxtonProductId ? (
           <KycForm

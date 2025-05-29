@@ -1,4 +1,4 @@
-// Updated KycForm.tsx with toggleable UK company and address autofill and ESLint fixes
+// Updated KycForm.tsx with full form fields, auto-fill, and ESLint fixes
 
 "use client";
 
@@ -26,11 +26,21 @@ interface Owner {
   email: string;
 }
 
+const businessTypes = [
+  { value: '1', label: 'Limited company (LTD, LP, LLP, LLC, Corp)' },
+  { value: '13', label: 'Association, club or society' },
+  { value: '10', label: 'Charity / non-profit' },
+  { value: '3', label: 'Individual / sole trader' },
+  { value: '12', label: 'Trust, foundation or fund' },
+  { value: '9', label: 'Unincorporated / not yet registered' },
+];
+
 export default function KycForm({
   lockedProductId,
   selectedPlanLabel,
   couponCode,
   discountedPrice,
+  stripePriceId,
 }: Props) {
   const [formData, setFormData] = useState({
     company_name: '',
@@ -75,6 +85,16 @@ export default function KycForm({
     const updated = [...owners];
     updated[index] = { ...updated[index], [field]: value };
     setOwners(updated);
+  };
+
+  const addOwner = () => {
+    setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
+  };
+
+  const removeOwner = (index: number) => {
+    if (owners.length > 1) {
+      setOwners((prev) => prev.filter((_, i) => i !== index));
+    }
   };
 
   const handleCompanySelect = (company: any) => {
@@ -138,7 +158,6 @@ export default function KycForm({
     }
 
     try {
-      const stripePriceId = localStorage.getItem("selected_plan");
       const productIdMap: Record<string, number> = {
         "price_1RBKvBACVQjWBIYus7IRSyEt": 2736,
         "price_1RBKvlACVQjWBIYuVs4Of01v": 2737,
@@ -166,7 +185,6 @@ export default function KycForm({
       });
 
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
-
     } catch (err) {
       console.error(err);
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -180,68 +198,155 @@ export default function KycForm({
   };
 
   return (
-    <form onSubmit={handleSubmit}> {/* Terms + Submit */}
-    <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
-      <label className="inline-flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={agree}
-          onChange={(e) => setAgree(e.target.checked)}
-          className="form-checkbox"
-        />
-        I agree to the{" "}
-        <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
-          Terms of Service
-        </a>{" "}
-        and{" "}
-        <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
-          Privacy Policy
-        </a>.
-      </label>
-    </div>
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
+      {/* Plan Info */}
+      <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
+        <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
+        {discountedPrice > 0 && <div className="text-green-600">✅ Discounted Price: £{discountedPrice.toFixed(2)}</div>}
+        {couponCode && <div className="text-green-500 text-sm">Coupon <strong>{couponCode.toUpperCase()}</strong> applied!</div>}
+      </div>
 
-    <div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
-      >
-        {loading ? (
-          <>
-            <svg
-              className="animate-spin h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8z"
-              />
-            </svg>
-            Processing…
-          </>
-        ) : (
-          <span className="font-semibold">Continue to Payment</span>
-        )}
+      {/* Basic Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">First Name<span className="text-red-500">*</span>
+          <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Last Name<span className="text-red-500">*</span>
+          <input required name="customer_last_name" value={formData.customer_last_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Email Address<span className="text-red-500">*</span>
+          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Phone Number
+          <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+      </div>
+
+      {/* Company Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">Company Name<span className="text-red-500">*</span>
+          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Trading Name
+          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Organisation Type<span className="text-red-500">*</span>
+          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
+        </label>
+        <label className="block">Company Number
+          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+      </div>
+
+      {/* Address Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">Address Line 1<span className="text-red-500">*</span>
+          <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Address Line 2
+          <input name="address_line_2" value={formData.address_line_2} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">City<span className="text-red-500">*</span>
+          <input required name="city" value={formData.city} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Postcode<span className="text-red-500">*</span>
+          <input required name="postcode" value={formData.postcode} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Country<span className="text-red-500">*</span>
+          <Select options={countries} value={countries.find(c => c.value === formData.country)} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
+        </label>
+      </div>
+
+      {/* Business Owners */}
+      <h3 className="font-medium mt-6">Business Owners</h3>
+      {owners.map((owner, i) => (
+        <div key={i} className="border p-4 rounded mb-4 space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">First Name<span className="text-red-500">*</span>
+              <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block">Last Name<span className="text-red-500">*</span>
+              <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+            <label className="block md:col-span-2">Email Address<span className="text-red-500">*</span>
+              <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
+            </label>
+          </div>
+          {owners.length > 1 && (
+            <button type="button" onClick={() => setOwners(owners.filter((_, idx) => idx !== i))} className="text-red-500 text-sm">
+              Remove Owner
+            </button>
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={() => setOwners([...owners, { first_name: '', last_name: '', email: '' }])} className="text-blue-600 underline mt-2">
+        + Add Another Owner
       </button>
-    </div>
 
-    {message && (
-      <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">
-        {message}
-      </p>
-    )}
- 
+
+      {/* Submit Section (as you already had) */}
+      <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
+        <label className="inline-flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={agree}
+            onChange={(e) => setAgree(e.target.checked)}
+            className="form-checkbox"
+          />
+          I agree to the{" "}
+          <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+            Privacy Policy
+          </a>.
+        </label>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
+              </svg>
+              Processing…
+            </>
+          ) : (
+            <span className="font-semibold">Continue to Payment</span>
+          )}
+        </button>
+      </div>
+
+      {message && (
+        <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">
+          {message}
+        </p>
+      )}
+
+      {/* ... */}
     </form>
   );
 }
