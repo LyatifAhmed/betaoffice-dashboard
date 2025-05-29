@@ -97,30 +97,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     setAddressSuggestions([]);
   };
 
-  useEffect(() => {
-    const debounced = debounce(async () => {
-      if (!companyQuery.trim()) return;
-      const res = await axios.get(`/api/companies?query=${companyQuery}`);
-      setCompanySuggestions(res.data.companies);
-    }, 500);
-    debounced();
-    return () => debounced.cancel();
-  }, [companyQuery]);
-
-  useEffect(() => {
-    const debounced = debounce(async () => {
-      if (!postcodeSearch.trim()) return;
-      try {
-        const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
-        setAddressSuggestions(res.data.addresses || []);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 500);
-    debounced();
-    return () => debounced.cancel();
-  }, [postcodeSearch]);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,65 +239,77 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         </label>
       </div>
 
-     {/* Toggle for Address Search */}
-      <div className="flex items-center justify-between">
-        <label className="font-medium">📍 Auto-fill UK Address</label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={useAddressSearch}
-            onChange={() => setUseAddressSearch(!useAddressSearch)}
-          />
-          <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
-        </label>
-      </div>
+     {/* UK Address Lookup */}
+    <div className="flex items-center justify-between">
+      <label className="font-medium">📍 Auto-fill UK Address</label>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={useAddressSearch}
+          onChange={() => setUseAddressSearch(!useAddressSearch)}
+        />
+        <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
+      </label>
+    </div>
 
-      {useAddressSearch && (
-        <>
+    {useAddressSearch && (
+      <>
+        <div className="flex gap-2 mb-2">
           <input
             type="text"
             placeholder="Enter UK postcode..."
-            className="border p-2 rounded w-full mb-2"
+            className="border p-2 rounded w-full"
             value={postcodeSearch}
-            onChange={(e) => {
-              setPostcodeSearch(e.target.value);
-              setIsSearching(true);
-            }}
+            onChange={(e) => setPostcodeSearch(e.target.value)}
           />
+          <button
+            type="button"
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={async () => {
+              setIsSearching(true);
+              try {
+                const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
+                setAddressSuggestions(res.data.addresses || []);
+              } catch (err) {
+                setAddressSuggestions([]);
+              } finally {
+                setIsSearching(false);
+              }
+            }}
+          >
+            Search
+          </button>
+        </div>
 
-          {isSearching && (
-            <div className="text-sm text-gray-500">Searching address…</div>
-          )}
+        {isSearching && (
+          <div className="text-sm text-gray-500">Searching address…</div>
+        )}
 
-          {!isSearching && addressSuggestions.length > 0 && (
-            <select
-              className="border p-2 rounded w-full text-sm"
-              onChange={(e) => {
-                const index = parseInt(e.target.value);
-                const selected = addressSuggestions[index];
-                if (selected) handleAddressSelect(selected);
-              }}
-            >
-              <option value="">Select your address</option>
-              {addressSuggestions.map((addr, index) => (
-                <option key={index} value={index}>{addr}</option>
-              ))}
-            </select>
-          )}
+        {!isSearching && addressSuggestions.length > 0 && (
+          <select
+            className="border p-2 rounded w-full text-sm"
+            onChange={(e) => {
+              const index = parseInt(e.target.value);
+              const selected = addressSuggestions[index];
+              if (selected) handleAddressSelect(selected);
+            }}
+          >
+            <option value="">Select your address</option>
+            {addressSuggestions.map((addr, index) => (
+              <option key={index} value={index}>{addr}</option>
+            ))}
+          </select>
+        )}
 
-          {!isSearching && postcodeSearch.trim() && addressSuggestions.length === 0 && (
-            <p className="text-sm text-gray-500 italic">No results found for this postcode.</p>
-          )}
+        {!isSearching && postcodeSearch.trim() && addressSuggestions.length === 0 && (
+          <p className="text-sm text-gray-500 italic">No results found for this postcode.</p>
+        )}
+      </>
+    )}
 
-          {formData.address_line_1 && (
-            <div className="text-green-600 text-sm mt-1">✅ Address fields auto-filled.</div>
-          )}
-        </>
-      )}
 
 
       </div>
-
       {/* Address Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
