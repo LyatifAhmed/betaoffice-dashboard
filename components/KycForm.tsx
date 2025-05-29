@@ -1,4 +1,5 @@
-// Updated KycForm.tsx with full form fields, auto-fill, and ESLint fixes
+
+// Updated KycForm.tsx with CH address autofill, editable fields, and fallback UK address search
 
 "use client";
 
@@ -66,9 +67,6 @@ export default function KycForm({
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const [postcodeSearch, setPostcodeSearch] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
-  const [useCompanySearch, setUseCompanySearch] = useState(true);
-  const [useAddressSearch, setUseAddressSearch] = useState(true);
-
   const countries = countryList().getData();
   const router = useRouter();
 
@@ -91,18 +89,15 @@ export default function KycForm({
     setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
   };
 
-  const removeOwner = (index: number) => {
-    if (owners.length > 1) {
-      setOwners((prev) => prev.filter((_, i) => i !== index));
-    }
-  };
-
   const handleCompanySelect = (company: any) => {
+    const [line1 = '', city = '', postcode = ''] = company.address.split(',').map((s: string) => s.trim());
     setFormData((prev) => ({
       ...prev,
       company_name: company.name,
       limited_company_number: company.companyNumber,
-      address_line_1: company.address,
+      address_line_1: line1,
+      city,
+      postcode,
     }));
     setCompanySuggestions([]);
   };
@@ -196,7 +191,7 @@ export default function KycForm({
       setLoading(false);
     }
   };
-
+  
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
       {/* Plan Info */}
@@ -423,7 +418,6 @@ export default function KycForm({
         </p>
       )}
 
-      {/* ... */}
     </form>
   );
 }
