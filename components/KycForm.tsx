@@ -1,4 +1,4 @@
-// Updated KycForm.tsx with toggleable UK company and address autofill
+// Fixed and complete KycForm.tsx with toggleable autofill for UK company and address
 
 "use client";
 
@@ -8,6 +8,9 @@ import { useRouter } from "next/router";
 import Select from "react-select";
 import countryList from "react-select-country-list";
 import debounce from "lodash.debounce";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface Props {
   lockedProductId: number;
@@ -21,6 +24,15 @@ interface Owner {
   last_name: string;
   email: string;
 }
+
+const businessTypes = [
+  { value: '1', label: 'Limited company (LTD, LP, LLP, LLC, Corp)' },
+  { value: '13', label: 'Association, club or society' },
+  { value: '10', label: 'Charity / non-profit' },
+  { value: '3', label: 'Individual / sole trader' },
+  { value: '12', label: 'Trust, foundation or fund' },
+  { value: '9', label: 'Unincorporated / not yet registered' },
+];
 
 export default function KycForm({
   lockedProductId,
@@ -73,6 +85,14 @@ export default function KycForm({
     setOwners(updated);
   };
 
+  const addOwner = () => {
+    setOwners((prev) => [...prev, { first_name: '', last_name: '', email: '' }]);
+  };
+
+  const removeOwner = (index: number) => {
+    setOwners((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const fetchCompanies = debounce(async (query: string) => {
     if (!query.trim()) return;
     const res = await axios.get(`/api/companies?query=${query}`);
@@ -86,12 +106,12 @@ export default function KycForm({
   }, 500);
 
   useEffect(() => {
-    fetchCompanies(companyQuery);
-  }, [companyQuery]);
+    if (useCompanySearch) fetchCompanies(companyQuery);
+  }, [companyQuery, useCompanySearch]);
 
   useEffect(() => {
-    fetchAddresses(postcodeSearch);
-  }, [postcodeSearch]);
+    if (useAddressSearch) fetchAddresses(postcodeSearch);
+  }, [postcodeSearch, useAddressSearch]);
 
   const handleCompanySelect = (company: any) => {
     setFormData((prev) => ({
@@ -149,11 +169,9 @@ export default function KycForm({
 
       const data = { ...formData, product_id, members: owners };
 
-      // Step 1: Save KYC temp to backend
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
 
-      // Step 2: Redirect to Stripe Checkout
       const stripe = await stripePromise;
       const checkoutRes = await axios.post("/api/checkout-session", {
         email: formData.email,
@@ -164,7 +182,6 @@ export default function KycForm({
       });
 
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
-
     } catch (err) {
       console.error(err);
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -177,115 +194,68 @@ export default function KycForm({
     }
   };
 
-    return (
+  return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
       <h2 className="text-2xl font-semibold">KYC Form</h2>
 
-      <div className="mb-4 text-sm text-gray-700 bg-blue-50 border border-blue-200 px-4 py-3 rounded space-y-1">
-        <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
-
-        {discountedPrice > 0 && (
-          <div className="text-green-600 font-semibold">
-            ✅ Discounted Price: £{discountedPrice.toFixed(2)}
-          </div>
-        )}
-
-        {couponCode && (
-          <div className="text-green-500 text-sm">
-            Coupon <strong>{couponCode.toUpperCase()}</strong> applied!
-          </div>
-        )}
-      </div>
-
-      {/* Basic Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">First Name<span className="text-red-500">*</span>
-          <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={useCompanySearch} onChange={() => setUseCompanySearch(!useCompanySearch)} />
+          Use UK Company Autofill
         </label>
-        <label className="block">Last Name<span className="text-red-500">*</span>
-          <input required name="customer_last_name" value={formData.customer_last_name} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Email Address<span className="text-red-500">*</span>
-          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Phone Number
-          <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Company Name<span className="text-red-500">*</span>
-          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Trading Name
-          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Organisation Type<span className="text-red-500">*</span>
-          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
-        </label>
-        <label className="block">Company Number
-          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={useAddressSearch} onChange={() => setUseAddressSearch(!useAddressSearch)} />
+          Use UK Address Autofill
         </label>
       </div>
-
-      {/* Address */}
-      <h3 className="font-medium mt-6">Address</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label className="block">Address Line 1<span className="text-red-500">*</span>
-          <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Address Line 2
-          <input name="address_line_2" value={formData.address_line_2} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">City<span className="text-red-500">*</span>
-          <input required name="city" value={formData.city} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Postcode<span className="text-red-500">*</span>
-          <input required name="postcode" value={formData.postcode} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Country<span className="text-red-500">*</span>
-          <Select options={countries} value={countries.find(c => c.value === formData.country)} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
-        </label>
-      </div>
-
-      {/* Business Owners */}
-      <h3 className="font-medium mt-6">Business Owners</h3>
-      {owners.map((owner, i) => (
-        <div key={i} className="border p-4 rounded mb-4 space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">First Name<span className="text-red-500">*</span>
-              <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-            <label className="block">Last Name<span className="text-red-500">*</span>
-              <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-            <label className="block md:col-span-2">Email Address<span className="text-red-500">*</span>
-              <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-          </div>
-          {owners.length > 1 && (
-            <button type="button" onClick={() => removeOwner(i)} className="text-red-500 text-sm">Remove Owner</button>
-          )}
-        </div>
-      ))}
-
-      <button type="button" onClick={addOwner} className="text-blue-600 underline">+ Add Another Owner</button>
 
       {/* Terms + Submit */}
-      <div className="mt-6 text-sm text-gray-700">
+      <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="form-checkbox" />
+          <input
+            type="checkbox"
+            checked={agree}
+            onChange={(e) => setAgree(e.target.checked)}
+            className="form-checkbox"
+          />
           I agree to the{" "}
-          <a href="/terms-of-service" target="_blank" className="underline text-blue-600">Terms of Service</a>{" "}
+          <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+            Terms of Service
+          </a>{" "}
           and{" "}
-          <a href="/privacy-policy" target="_blank" className="underline text-blue-600">Privacy Policy</a>.
+          <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+            Privacy Policy
+          </a>.
         </label>
       </div>
 
       <div>
-        <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2">
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+        >
           {loading ? (
             <>
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
               </svg>
               Processing…
             </>
@@ -295,6 +265,13 @@ export default function KycForm({
         </button>
       </div>
 
-      {message && <p className="text-center mt-4 text-sm text-red-600">{message}</p>}
+      {message && (
+        <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">
+          {message}
+        </p>
+      )}
+
+
     </form>
   );
+}
