@@ -17,6 +17,7 @@ interface Props {
   selectedPlanLabel: string;
   couponCode: string;
   discountedPrice: number;
+  stripePriceId: string;
 }
 
 interface Owner {
