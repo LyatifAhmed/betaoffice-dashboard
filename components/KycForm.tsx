@@ -47,8 +47,8 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const [message, setMessage] = useState('');
   const [companyQuery, setCompanyQuery] = useState('');
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
-  const [postcodeSearch, setPostcodeSearch] = useState('');
-  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [addressSearchTerm, setAddressSearchTerm] = useState('');
+  const [addressResults, setAddressResults] = useState<any[]>([]);
   const [useCompanySearch, setUseCompanySearch] = useState(true);
   const [useAddressSearch, setUseAddressSearch] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -80,22 +80,46 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     setCompanySuggestions([]);
   };
 
-  const handleAddressSelect = (address: string) => {
-    const postcodeMatch = address.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}$/i);
-    const postcode = postcodeMatch ? postcodeMatch[0] : '';
-    const addressWithoutPostcode = address.replace(postcode, '').trim();
-    const parts = addressWithoutPostcode.split(',').map(p => p.trim()).filter(Boolean);
-    const city = parts.pop() || '';
-    const line1 = parts.join(', ');
-
-    setFormData((prev) => ({
-      ...prev,
-      address_line_1: line1,
-      city,
-      postcode,
-    }));
-    setAddressSuggestions([]);
+  const handleAddressSelect = async (id: string) => {
+    try {
+      const res = await axios.get(`/api/get-address?id=${id}`);
+      const addr = res.data.address;
+      setFormData((prev) => ({
+        ...prev,
+        address_line_1: addr.line_1,
+        address_line_2: addr.line_2,
+        city: addr.town_or_city,
+        postcode: addr.postcode,
+      }));
+      setAddressResults([]);
+    } catch (err) {
+      console.error('Address fetch failed');
+    }
   };
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!companyQuery.trim()) return;
+      const res = await axios.get(`/api/companies?query=${companyQuery}`);
+      setCompanySuggestions(res.data.companies);
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [companyQuery]);
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!addressSearchTerm.trim()) return;
+      try {
+        const res = await axios.get(`/api/address-autocomplete?term=${addressSearchTerm}`);
+        setAddressResults(res.data.suggestions || []);
+      } catch {
+        setAddressResults([]);
+      }
+    }, 400);
+    debounced();
+    return () => debounced.cancel();
+  }, [addressSearchTerm]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
