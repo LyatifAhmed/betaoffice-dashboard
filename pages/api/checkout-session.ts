@@ -5,14 +5,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-03-31.basil", // ✅ Recommended: use stable version (no need "basil" unless you tested)
 });
 
+type CheckoutRequestBody = {
+  price_id: string;
+  external_id: string;
+  coupon_id?: string;
+  email: string;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { price_id, external_id, coupon_id, email } = req.body;
+  const { price_id, external_id, coupon_id, email } = req.body as CheckoutRequestBody;
 
-  if (!price_id || !external_id) {
+  if (!price_id || !external_id || !email) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -42,8 +49,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const session = await stripe.checkout.sessions.create(sessionParams);
     return res.status(200).json({ sessionId: session.id });
-  } catch (err: any) {
-    console.error("❌ Stripe checkout session error:", err.message || err);
-    return res.status(500).json({ error: "Stripe checkout session creation failed" });
+  } catch (err) {
+    console.error("❌ Stripe Checkout Error:", err);
+    return res.status(500).json({ error: "Failed to create checkout session" });
   }
 }
