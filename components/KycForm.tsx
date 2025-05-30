@@ -1,4 +1,4 @@
-// KycForm.tsx — Full integration with UK postcode validation
+// KycForm.tsx — Manual UK Address Entry Only
 
 "use client";
 
@@ -35,10 +35,6 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-function isValidUKPostcode(postcode: string): boolean {
-  return /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i.test(postcode.trim());
-}
-
 export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice, stripePriceId }: Props) {
   const [formData, setFormData] = useState({
     company_name: '', trading_name: '', organisation_type: '',
@@ -51,13 +47,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [companyQuery, setCompanyQuery] = useState('');
-  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
-  const [postcodeSearch, setPostcodeSearch] = useState('');
-  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
-  const [useCompanySearch, setUseCompanySearch] = useState(true);
-  const [useAddressSearch, setUseAddressSearch] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
 
   const countries = countryList().getData();
   const router = useRouter();
@@ -77,50 +66,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     setOwners(updated);
   };
 
-  const handleCompanySelect = (company: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      company_name: company.name,
-      limited_company_number: company.companyNumber,
-    }));
-    setCompanySuggestions([]);
-  };
-
-  const handleAddressSelect = (address: string) => {
-    const postcodeMatch = address.match(/[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}$/i);
-    const postcode = postcodeMatch ? postcodeMatch[0] : '';
-    const addressWithoutPostcode = address.replace(postcode, '').trim();
-    const parts = addressWithoutPostcode.split(',').map(p => p.trim()).filter(Boolean);
-    const city = parts.pop() || '';
-    const line1 = parts.join(', ');
-
-    setFormData((prev) => ({
-      ...prev,
-      address_line_1: line1,
-      city,
-      postcode,
-    }));
-    setAddressSuggestions([]);
-  };
-
-  const handlePostcodeSearch = async () => {
-    const trimmedPostcode = postcodeSearch.trim();
-    if (!isValidUKPostcode(trimmedPostcode)) {
-      setMessage("❌ Please enter a valid UK postcode.");
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const res = await axios.get(`/api/address?postcode=${trimmedPostcode}`);
-      setAddressSuggestions(res.data.addresses || []);
-    } catch (err) {
-      setAddressSuggestions([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -128,12 +73,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
 
     if (!agree) {
       setMessage("❌ You must agree to the Terms and Privacy Policy.");
-      setLoading(false);
-      return;
-    }
-
-    if (!isValidUKPostcode(formData.postcode)) {
-      setMessage("❌ Please enter a valid UK postcode in the address section.");
       setLoading(false);
       return;
     }
@@ -188,15 +127,12 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
-      
-      {/* Plan Info */}
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
         {discountedPrice > 0 && <div className="text-green-600">✅ Discounted Price: £{discountedPrice.toFixed(2)}</div>}
         {couponCode && <div className="text-green-500 text-sm">Coupon <strong>{couponCode.toUpperCase()}</strong> applied!</div>}
       </div>
 
-      {/* Basic Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">First Name<span className="text-red-500">*</span>
           <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />
@@ -211,48 +147,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
           <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
       </div>
-      {/* Auto-fill Toggles & Search Inputs */}
-      <div className="mt-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <label className="font-medium">🔍 Auto-fill UK Company Info</label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={useCompanySearch}
-              onChange={() => setUseCompanySearch(!useCompanySearch)}
-            />
-            <span>{useCompanySearch ? "Enabled" : "Manual Entry"}</span>
-          </label>
-        </div>
 
-        {useCompanySearch && (
-          <>
-            <input
-              type="text"
-              placeholder="Search company name..."
-              className="border p-2 rounded w-full"
-              value={companyQuery}
-              onChange={(e) => setCompanyQuery(e.target.value)}
-            />
-            {companySuggestions.length > 0 && (
-              <ul className="border rounded bg-white dark:bg-gray-800 max-h-40 overflow-y-auto text-sm">
-                {companySuggestions.map((c, i) => (
-                  <li
-                    key={i}
-                    onClick={() => handleCompanySelect(c)}
-                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer"
-                  >
-                    {c.name} ({c.companyNumber}) — {c.status}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-
-        
-
-      {/* Company Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Company Name<span className="text-red-500">*</span>
           <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
@@ -268,78 +163,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         </label>
       </div>
 
-     {/* UK Address Lookup */}
-    <div className="flex items-center justify-between">
-      <label className="font-medium">📍 Auto-fill UK Address</label>
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={useAddressSearch}
-          onChange={() => setUseAddressSearch(!useAddressSearch)}
-        />
-        <span>{useAddressSearch ? "Enabled" : "Manual Entry"}</span>
-      </label>
-    </div>
-
-    {useAddressSearch && (
-      <>
-        <div className="flex gap-2 mb-2">
-          <input
-            type="text"
-            placeholder="Enter UK postcode..."
-            className="border p-2 rounded w-full"
-            value={postcodeSearch}
-            onChange={(e) => setPostcodeSearch(e.target.value)}
-          />
-          <button
-            type="button"
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={async () => {
-              setIsSearching(true);
-              try {
-                const res = await axios.get(`/api/address?postcode=${postcodeSearch}`);
-                setAddressSuggestions(res.data.addresses || []);
-              } catch (err) {
-                setAddressSuggestions([]);
-              } finally {
-                setIsSearching(false);
-              }
-            }}
-          >
-            Search
-          </button>
-        </div>
-
-        {isSearching && (
-          <div className="text-sm text-gray-500">Searching address…</div>
-        )}
-
-        {!isSearching && addressSuggestions.length > 0 && (
-          <select
-            className="border p-2 rounded w-full text-sm"
-            onChange={(e) => {
-              const index = parseInt(e.target.value);
-              const selected = addressSuggestions[index];
-              if (selected) handleAddressSelect(selected);
-            }}
-          >
-            <option value="">Select your address</option>
-            {addressSuggestions.map((addr, index) => (
-              <option key={index} value={index}>{addr}</option>
-            ))}
-          </select>
-        )}
-
-        {!isSearching && postcodeSearch.trim() && addressSuggestions.length === 0 && (
-          <p className="text-sm text-gray-500 italic">No results found for this postcode.</p>
-        )}
-      </>
-    )}
-
-
-
-      </div>
-      {/* Address Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
           <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
@@ -358,7 +181,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         </label>
       </div>
 
-      {/* Business Owners */}
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
         <div key={i} className="border p-4 rounded mb-4 space-y-2">
@@ -384,8 +206,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         + Add Another Owner
       </button>
 
-
-      {/* Submit Section (as you already had) */}
       <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
         <label className="inline-flex items-center gap-2">
           <input
@@ -394,11 +214,11 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
             onChange={(e) => setAgree(e.target.checked)}
             className="form-checkbox"
           />
-          I agree to the{" "}
+          I agree to the {" "}
           <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
             Terms of Service
           </a>{" "}
-          and{" "}
+          and {" "}
           <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
             Privacy Policy
           </a>.
@@ -446,7 +266,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
           {message}
         </p>
       )}
-
     </form>
   );
 }
