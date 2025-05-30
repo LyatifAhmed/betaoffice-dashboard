@@ -178,9 +178,11 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
           <input
             type="text"
             placeholder="Search company name..."
+            className="border border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none p-2 rounded w-full bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm placeholder-gray-400"
             value={companyQuery}
             onChange={(e) => setCompanyQuery(e.target.value)}
           />
+
           <ul>
             {companySuggestions.map((c, i) => (
               <li key={i} onClick={() => handleCompanySelect(c)}>
