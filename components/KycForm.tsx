@@ -1,4 +1,4 @@
-// KycForm.tsx — Manual UK Address Entry Only
+// KycForm.tsx — Company autofill enabled, address manual only
 
 "use client";
 
@@ -47,7 +47,9 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
+  const [useCompanySearch, setUseCompanySearch] = useState(true);
   const countries = countryList().getData();
   const router = useRouter();
 
@@ -65,6 +67,25 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     updated[index] = { ...updated[index], [field]: value };
     setOwners(updated);
   };
+
+  const handleCompanySelect = (company: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      company_name: company.name,
+      limited_company_number: company.companyNumber,
+    }));
+    setCompanySuggestions([]);
+  };
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!companyQuery.trim()) return;
+      const res = await axios.get(`/api/companies?query=${companyQuery}`);
+      setCompanySuggestions(res.data.companies);
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [companyQuery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +120,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
       }
 
       const data = { ...formData, product_id, members: owners };
-
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
 
@@ -147,6 +167,29 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
           <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
       </div>
+      {/* Company Search Toggle */}
+      <label>
+        <input type="checkbox" checked={useCompanySearch} onChange={() => setUseCompanySearch(!useCompanySearch)} />
+        Autofill UK Company Info
+      </label>
+
+      {useCompanySearch && (
+        <>
+          <input
+            type="text"
+            placeholder="Search company name..."
+            value={companyQuery}
+            onChange={(e) => setCompanyQuery(e.target.value)}
+          />
+          <ul>
+            {companySuggestions.map((c, i) => (
+              <li key={i} onClick={() => handleCompanySelect(c)}>
+                {c.name} ({c.companyNumber}) — {c.status}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Company Name<span className="text-red-500">*</span>
