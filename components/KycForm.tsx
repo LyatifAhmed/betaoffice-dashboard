@@ -53,6 +53,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const countries = countryList().getData();
   const router = useRouter();
 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
