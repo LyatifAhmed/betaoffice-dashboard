@@ -6,23 +6,26 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { code } = req.query;
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  if (!code || typeof code !== 'string') {
-    return res.status(400).json({ valid: false, error: 'No code provided' });
+  const { coupon_code } = req.body;
+
+  if (!coupon_code) {
+    return res.status(400).json({ error: "Coupon code is required" });
   }
 
   try {
-    const promo = await stripe.promotionCodes.list({
-      code,
-      active: true,
-      limit: 1,
-    });
+    const coupon = await stripe.coupons.retrieve(coupon_code.toLowerCase());
 
-    const isValid = promo.data.length > 0;
-    return res.status(200).json({ valid: isValid });
+    if (!coupon.valid) {
+      return res.status(400).json({ error: "Coupon is invalid or expired" });
+    }
+
+    return res.status(200).json({ valid: true, amount_off: coupon.amount_off, percent_off: coupon.percent_off });
   } catch (err) {
-    console.error('❌ Coupon validation failed:', err);
-    return res.status(500).json({ valid: false, error: 'Server error' });
+    console.error("Coupon validation failed:", err);
+    return res.status(400).json({ error: "Invalid coupon" });
   }
 }
