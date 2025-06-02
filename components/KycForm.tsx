@@ -53,7 +53,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const countries = countryList().getData();
   const router = useRouter();
 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -124,13 +123,23 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
 
+      // ✅ Get coupon_id from couponCode (if exists)
+      let coupon_id = null;
+      if (couponCode) {
+        try {
+          const couponRes = await axios.post("/api/validate-coupon", { code: couponCode });
+          coupon_id = couponRes.data.id;
+        } catch (err) {
+          console.warn("⚠️ Invalid coupon code provided, ignoring.");
+        }
+      }
+
       const stripe = await stripePromise;
       const checkoutRes = await axios.post("/api/checkout-session", {
         email: formData.email,
         price_id: stripePriceId,
         external_id,
-        coupon_code: couponCode,
-        discounted_price: discountedPrice,
+        coupon_id,
       });
 
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });

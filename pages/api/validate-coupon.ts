@@ -1,3 +1,4 @@
+// pages/api/validate-coupon.ts
 import { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
@@ -6,26 +7,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { coupon_code } = req.body;
-
-  if (!coupon_code) {
-    return res.status(400).json({ error: "Coupon code is required" });
-  }
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: "Coupon code is required" });
 
   try {
-    const coupon = await stripe.coupons.retrieve(coupon_code.toLowerCase());
+    const coupons = await stripe.coupons.list({ limit: 100 }); // or filter using metadata if needed
+    const coupon = coupons.data.find(c => c.name?.toLowerCase() === code.toLowerCase());
 
-    if (!coupon.valid) {
-      return res.status(400).json({ error: "Coupon is invalid or expired" });
-    }
+    if (!coupon) return res.status(404).json({ error: "Coupon not found" });
 
-    return res.status(200).json({ valid: true, amount_off: coupon.amount_off, percent_off: coupon.percent_off });
-  } catch (err) {
-    console.error("Coupon validation failed:", err);
-    return res.status(400).json({ error: "Invalid coupon" });
+    return res.status(200).json({ id: coupon.id, name: coupon.name, percent_off: coupon.percent_off });
+  } catch (error) {
+    console.error("Coupon validation failed", error);
+    return res.status(500).json({ error: "Server error" });
   }
 }
+
