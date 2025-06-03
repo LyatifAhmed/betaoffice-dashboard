@@ -2,24 +2,31 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-03-31.basil", // or latest stable
+  apiVersion: "2025-03-31.basil", // Use stable version
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { couponCode } = req.body; // make sure this matches your frontend
+  const { couponCode } = req.body;
 
   if (!couponCode) {
     return res.status(400).json({ valid: false, error: "Missing coupon code" });
   }
 
   try {
-    const coupon = await stripe.coupons.retrieve(couponCode);
+    const promoList = await stripe.promotionCodes.list({
+      code: couponCode.trim(),
+      active: true,
+    });
 
-    if (!coupon || coupon.valid === false) {
+    const promo = promoList.data[0];
+
+    if (!promo || !promo.coupon || !promo.active) {
       return res.status(200).json({ valid: false });
     }
+
+    const coupon = promo.coupon;
 
     const discountAmount =
       coupon.amount_off != null
@@ -38,4 +45,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ valid: false });
   }
 }
+
 
