@@ -1,4 +1,4 @@
-// KycForm.tsx — Company autofill enabled, address manual only
+// ✅ Revised KycForm.tsx — Fixes coupon logic & layout
 
 "use client";
 
@@ -173,6 +173,25 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
+      <div className="flex gap-2 items-center">
+        <input
+          type="text"
+          placeholder="Enter coupon code"
+          className="border p-2 rounded w-full"
+          value={couponInput}
+          onChange={(e) => setCouponInput(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={validateCoupon}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+          disabled={checkingCoupon}
+        >
+          {checkingCoupon ? "Checking..." : "Apply"}
+        </button>
+      </div>
+      {isCouponValid === true && <p className="text-green-500">✅ Valid coupon applied</p>}
+      {isCouponValid === false && <p className="text-red-500">❌ Invalid or expired coupon</p>}
       <div className="flex gap-2 items-center">
         <input
           type="text"
