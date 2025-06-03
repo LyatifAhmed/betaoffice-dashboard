@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-03-31.basil", // ✅ Recommended stable version
+  apiVersion: "2025-03-31.basil",
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -21,13 +21,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const promo = promoList.data[0];
-
     if (!promo || !promo.coupon) {
       return res.status(200).json({ valid: false });
     }
 
     const coupon = promo.coupon;
-
     const discountAmount =
       coupon.amount_off != null
         ? coupon.amount_off / 100
@@ -41,7 +39,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       couponId: coupon.id,
     });
   } catch (err: any) {
-    console.error("Stripe validation error:", err.message);
+    console.error("Stripe promo error:", err.message);
     return res.status(200).json({ valid: false });
   }
 }
+
