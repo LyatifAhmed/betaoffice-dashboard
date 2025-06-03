@@ -2,27 +2,27 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-03-31.basil",
+  apiVersion: "2025-03-31.basil", // ✅ Recommended stable version
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { code } = req.body;
+  const { couponCode } = req.body;
 
-  if (!code) {
-    return res.status(400).json({ valid: false, error: "Missing coupon code" });
+  if (!couponCode || typeof couponCode !== "string") {
+    return res.status(400).json({ valid: false, error: "Missing or invalid coupon code" });
   }
 
   try {
     const promoList = await stripe.promotionCodes.list({
-      code: code.trim(),
+      code: couponCode.trim(),
       active: true,
     });
 
     const promo = promoList.data[0];
 
-    if (!promo || !promo.coupon || !promo.active) {
+    if (!promo || !promo.coupon) {
       return res.status(200).json({ valid: false });
     }
 
@@ -41,10 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       couponId: coupon.id,
     });
   } catch (err: any) {
-    console.error("Stripe error:", err.message);
+    console.error("Stripe validation error:", err.message);
     return res.status(200).json({ valid: false });
   }
 }
-
-
-
