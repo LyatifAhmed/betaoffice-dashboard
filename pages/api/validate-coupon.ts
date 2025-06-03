@@ -2,21 +2,21 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-03-31.basil", // Use stable version
+  apiVersion: "2025-03-31.basil",
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { couponCode } = req.body;
+  const { code } = req.body;
 
-  if (!couponCode) {
+  if (!code) {
     return res.status(400).json({ valid: false, error: "Missing coupon code" });
   }
 
   try {
     const promoList = await stripe.promotionCodes.list({
-      code: couponCode.trim(),
+      code: code.trim(),
       active: true,
     });
 

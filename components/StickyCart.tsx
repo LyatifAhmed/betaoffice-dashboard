@@ -67,7 +67,7 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
 
     try {
       const res = await axios.post("/api/validate-coupon", {
-        couponCode: trimmedCode,
+        code: trimmedCode, // ✅ Updated key to match backend
       });
 
       if (res.data.valid) {
