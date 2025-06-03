@@ -44,9 +44,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // ✅ Only include the discount if coupon_id is valid
-    if (coupon_id && typeof coupon_id === "string") {
+    if (coupon_id && typeof coupon_id === "string" && coupon_id.trim() !== "") {
       sessionParams.discounts = [{ coupon: coupon_id }];
     }
+
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
