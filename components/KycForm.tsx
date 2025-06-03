@@ -1,4 +1,5 @@
-// ✅ Revised KycForm.tsx — Fixes coupon logic & layout
+// Paste this entire component in your KycForm.tsx file
+// All coupon logic now handled by the parent and StickyCart
 
 "use client";
 
@@ -35,25 +36,27 @@ const businessTypes = [
   { value: '9', label: 'Unincorporated / not yet registered' },
 ];
 
-export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode, discountedPrice, stripePriceId }: Props) {
+export default function KycForm({
+  lockedProductId,
+  selectedPlanLabel,
+  couponCode,
+  discountedPrice,
+  stripePriceId,
+}: Props) {
   const [formData, setFormData] = useState({
-    company_name: '', trading_name: '', organisation_type: '',
-    limited_company_number: '', email: '', address_line_1: '',
-    address_line_2: '', city: '', postcode: '', country: 'GB',
-    phone_number: '', customer_first_name: '', customer_last_name: ''
+    company_name: "", trading_name: "", organisation_type: "",
+    limited_company_number: "", email: "", address_line_1: "",
+    address_line_2: "", city: "", postcode: "", country: "GB",
+    phone_number: "", customer_first_name: "", customer_last_name: ""
   });
 
-  const [owners, setOwners] = useState<Owner[]>([{ first_name: '', last_name: '', email: '' }]);
+  const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "" }]);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [companyQuery, setCompanyQuery] = useState('');
+  const [message, setMessage] = useState("");
+  const [companyQuery, setCompanyQuery] = useState("");
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const [useCompanySearch, setUseCompanySearch] = useState(true);
-  const [couponInput, setCouponInput] = useState('');
-  const [validCouponId, setValidCouponId] = useState<string | null>(null);
-  const [isCouponValid, setIsCouponValid] = useState<boolean | null>(null);
-  const [checkingCoupon, setCheckingCoupon] = useState(false);
 
   const countries = countryList().getData();
   const router = useRouter();
@@ -74,7 +77,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   };
 
   const handleSelectChange = (field: string, value: { value: string } | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value?.value || '' }));
+    setFormData((prev) => ({ ...prev, [field]: value?.value || "" }));
   };
 
   const updateOwner = (index: number, field: keyof Owner, value: string) => {
@@ -90,28 +93,6 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
       limited_company_number: company.companyNumber,
     }));
     setCompanySuggestions([]);
-  };
-
-  const validateCoupon = async () => {
-    if (!couponInput.trim()) return;
-    setCheckingCoupon(true);
-    setIsCouponValid(null);
-    setValidCouponId(null);
-
-    try {
-      const res = await axios.post("/api/validate-coupon", { code: couponInput.trim() });
-      if (res.data.valid) {
-        setIsCouponValid(true);
-        setValidCouponId(res.data.id);
-      } else {
-        setIsCouponValid(false);
-      }
-    } catch (err) {
-      console.error("Coupon validation failed:", err);
-      setIsCouponValid(false);
-    } finally {
-      setCheckingCoupon(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,19 +115,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     }
 
     try {
-      const productIdMap: Record<string, number> = {
-        "price_1RBKvBACVQjWBIYus7IRSyEt": 2736,
-        "price_1RBKvlACVQjWBIYuVs4Of01v": 2737,
-      };
-      const product_id = productIdMap[stripePriceId || ""] || 0;
-
-      if (!product_id) {
-        setMessage("❌ No valid subscription plan selected.");
-        setLoading(false);
-        return;
-      }
-
-      const data = { ...formData, product_id, members: owners };
+      const data = { ...formData, product_id: lockedProductId, members: owners };
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
 
@@ -155,7 +124,7 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
         email: formData.email,
         price_id: stripePriceId,
         external_id,
-        coupon_id: validCouponId,
+        coupon_id: couponCode || null,
       });
 
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
@@ -172,55 +141,13 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
-      <div className="flex gap-2 items-center">
-        <input
-          type="text"
-          placeholder="Enter coupon code"
-          className="border p-2 rounded w-full"
-          value={couponInput}
-          onChange={(e) => setCouponInput(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={validateCoupon}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-          disabled={checkingCoupon}
-        >
-          {checkingCoupon ? "Checking..." : "Apply"}
-        </button>
-      </div>
-      {isCouponValid === true && <p className="text-green-500">✅ Valid coupon applied</p>}
-      {isCouponValid === false && <p className="text-red-500">❌ Invalid or expired coupon</p>}
-      <div className="flex gap-2 items-center">
-        <input
-          type="text"
-          placeholder="Enter coupon code"
-          className="border p-2 rounded w-full"
-          value={couponInput}
-          onChange={(e) => setCouponInput(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={validateCoupon}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-          disabled={checkingCoupon}
-        >
-          {checkingCoupon ? "Checking..." : "Apply"}
-        </button>
-      </div>
-      {isCouponValid === true && (
-        <p className="text-green-500 text-sm">✅ Coupon applied: <strong>{couponInput.toUpperCase()}</strong></p>
-      )}
-      {isCouponValid === false && (
-        <p className="text-red-500 text-sm">❌ Invalid coupon code.</p>
-      )}
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
         {discountedPrice > 0 && <div className="text-green-600">✅ Discounted Price: £{discountedPrice.toFixed(2)}</div>}
         {couponCode && <div className="text-green-500 text-sm">Coupon <strong>{couponCode.toUpperCase()}</strong> applied!</div>}
       </div>
-
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">First Name<span className="text-red-500">*</span>
           <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />

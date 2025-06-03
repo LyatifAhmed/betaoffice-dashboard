@@ -8,34 +8,28 @@ const planMap = {
   monthly: {
     hoxtonProductId: 2736,
     label: "Monthly (£20 + VAT)",
+    stripePriceId: "price_1RBKvBACVQjWBIYus7IRSyEt",
   },
   annual: {
     hoxtonProductId: 2737,
     label: "Annual (£200 + VAT)",
+    stripePriceId: "price_1RBKvlACVQjWBIYuVs4Of01v",
   },
 };
 
 export default function KycPage() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
-  const [hoxtonProductId, setHoxtonProductId] = useState<number>(planMap.monthly.hoxtonProductId);
-  const [stripePriceId, setStripePriceId] = useState<string>("price_1RBKvBACVQjWBIYus7IRSyEt");
-  const [couponId, setCouponId] = useState<string | null>(null);
   const [discountedPrice, setDiscountedPrice] = useState<number>(0);
+  const [couponId, setCouponId] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState<string>("");
   const [planLoaded, setPlanLoaded] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
-    console.log("Stored plan in localStorage:", stored);
-    if (stored === "price_1RBKvBACVQjWBIYus7IRSyEt") {
-      setSelectedPlan("monthly");
-      setHoxtonProductId(planMap.monthly.hoxtonProductId);
-      setStripePriceId(stored);
-    } else if (stored === "price_1RBKvlACVQjWBIYuVs4Of01v") {
+    if (stored === planMap.annual.stripePriceId) {
       setSelectedPlan("annual");
-      setHoxtonProductId(planMap.annual.hoxtonProductId);
-      setStripePriceId(stored);
     } else {
-      console.warn("Unknown or missing stored plan. Defaulting to monthly.");
+      setSelectedPlan("monthly");
     }
     setPlanLoaded(true);
   }, []);
@@ -43,43 +37,36 @@ export default function KycPage() {
   const handleCartChange = (
     plan: "monthly" | "annual",
     hoxtonId: number,
-    priceId: string
+    stripePriceId: string
   ) => {
     setSelectedPlan(plan);
-    setHoxtonProductId(hoxtonId);
-    setStripePriceId(priceId);
+    localStorage.setItem("selected_plan", stripePriceId);
   };
 
   const handleCouponUpdate = (
-    couponCode: string,
+    code: string,
     discount: number,
-    couponId: string | null
+    id: string | null
   ) => {
+    setCouponCode(code);
     setDiscountedPrice(discount);
-    setCouponId(couponId);
+    setCouponId(id);
   };
 
-  const selectedPlanLabel = planMap[selectedPlan]?.label || "Unknown Plan";
-
-  console.log("Render State", {
-    selectedPlan,
-    hoxtonProductId,
-    stripePriceId,
-    planLoaded,
-  });
+  const currentPlan = planMap[selectedPlan];
 
   return (
     <>
       <StickyCart onChange={handleCartChange} onCoupon={handleCouponUpdate} />
 
       <main className="py-10 px-4">
-        {planLoaded && hoxtonProductId ? (
+        {planLoaded ? (
           <KycForm
-            lockedProductId={hoxtonProductId}
-            selectedPlanLabel={selectedPlanLabel}
+            lockedProductId={currentPlan.hoxtonProductId}
+            selectedPlanLabel={currentPlan.label}
+            stripePriceId={currentPlan.stripePriceId}
             discountedPrice={discountedPrice}
-            couponCode={couponId || ""}
-            stripePriceId={stripePriceId}
+            couponCode={couponCode}
           />
         ) : (
           <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
