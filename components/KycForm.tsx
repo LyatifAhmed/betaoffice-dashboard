@@ -50,8 +50,23 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
   const [companyQuery, setCompanyQuery] = useState('');
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const [useCompanySearch, setUseCompanySearch] = useState(true);
+  const [couponInput, setCouponInput] = useState('');
+  const [validCouponId, setValidCouponId] = useState<string | null>(null);
+  const [isCouponValid, setIsCouponValid] = useState<boolean | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+
   const countries = countryList().getData();
   const router = useRouter();
+
+  useEffect(() => {
+    const debounced = debounce(async () => {
+      if (!companyQuery.trim()) return;
+      const res = await axios.get(`/api/companies?query=${companyQuery}`);
+      setCompanySuggestions(res.data.companies);
+    }, 500);
+    debounced();
+    return () => debounced.cancel();
+  }, [companyQuery]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -77,15 +92,27 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
     setCompanySuggestions([]);
   };
 
-  useEffect(() => {
-    const debounced = debounce(async () => {
-      if (!companyQuery.trim()) return;
-      const res = await axios.get(`/api/companies?query=${companyQuery}`);
-      setCompanySuggestions(res.data.companies);
-    }, 500);
-    debounced();
-    return () => debounced.cancel();
-  }, [companyQuery]);
+  const validateCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCheckingCoupon(true);
+    setIsCouponValid(null);
+    setValidCouponId(null);
+
+    try {
+      const res = await axios.post("/api/validate-coupon", { code: couponInput.trim() });
+      if (res.data.valid) {
+        setIsCouponValid(true);
+        setValidCouponId(res.data.id);
+      } else {
+        setIsCouponValid(false);
+      }
+    } catch (err) {
+      console.error("Coupon validation failed:", err);
+      setIsCouponValid(false);
+    } finally {
+      setCheckingCoupon(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,23 +150,12 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
       const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
       const external_id = res.data.external_id;
 
-      // ✅ Get coupon_id from couponCode (if exists)
-      let coupon_id = null;
-      if (couponCode) {
-        try {
-          const couponRes = await axios.post("/api/validate-coupon", { code: couponCode });
-          coupon_id = couponRes.data.id;
-        } catch (err) {
-          console.warn("⚠️ Invalid coupon code provided, ignoring.");
-        }
-      }
-
       const stripe = await stripePromise;
       const checkoutRes = await axios.post("/api/checkout-session", {
         email: formData.email,
         price_id: stripePriceId,
         external_id,
-        coupon_id,
+        coupon_id: validCouponId,
       });
 
       await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
@@ -157,6 +173,29 @@ export default function KycForm({ lockedProductId, selectedPlanLabel, couponCode
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 text-black dark:text-white shadow rounded space-y-6">
+      <div className="flex gap-2 items-center">
+        <input
+          type="text"
+          placeholder="Enter coupon code"
+          className="border p-2 rounded w-full"
+          value={couponInput}
+          onChange={(e) => setCouponInput(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={validateCoupon}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+          disabled={checkingCoupon}
+        >
+          {checkingCoupon ? "Checking..." : "Apply"}
+        </button>
+      </div>
+      {isCouponValid === true && (
+        <p className="text-green-500 text-sm">✅ Coupon applied: <strong>{couponInput.toUpperCase()}</strong></p>
+      )}
+      {isCouponValid === false && (
+        <p className="text-red-500 text-sm">❌ Invalid coupon code.</p>
+      )}
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
         {discountedPrice > 0 && <div className="text-green-600">✅ Discounted Price: £{discountedPrice.toFixed(2)}</div>}
