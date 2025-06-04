@@ -13,14 +13,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: "Missing or invalid external_id" });
   }
 
-  // Set secure, HTTP-only cookie
+  // ✅ Güvenli ve cross-site uyumlu cookie ayarı
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.setHeader("Set-Cookie", serialize("external_id", external_id, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // production'da true olmalı
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "strict" : "lax", // ✅ küçük harf!
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 gün
+    maxAge: 60 * 60 * 24 * 7,
   }));
+
 
   return res.status(200).json({ success: true });
 }
