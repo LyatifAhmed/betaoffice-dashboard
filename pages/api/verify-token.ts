@@ -13,18 +13,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!email) return res.status(401).json({ error: "Invalid or expired token" });
 
   try {
-    // ✅ response değişkeni tanımlandı
     const response = await axios.get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/customer?email=${email}`);
     const externalId = response.data.external_id;
 
-    // ✅ HTTP-only cookie set
     res.setHeader("Set-Cookie", [
       serialize("external_id", externalId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 gün
+        maxAge: 60 * 60 * 24 * 7,
       }),
     ]);
 
@@ -34,3 +32,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Failed to retrieve customer data" });
   }
 }
+
