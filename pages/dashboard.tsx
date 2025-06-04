@@ -25,7 +25,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get("/api/me");
+        const res = await axios.get("/api/me", { withCredentials: true });
         setSubscription(res.data.subscription);
         setMailItems(res.data.mailItems);
       } catch (err) {

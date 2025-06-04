@@ -23,9 +23,7 @@ export default function MagicLoginPage() {
 
       if (res.data.email && res.data.external_id) {
         // ✅ Cookie'yi güvenli şekilde backend üzerinden ayarla
-        await axios.post("/api/set-cookie", {
-          external_id: res.data.external_id,
-        });
+        await axios.post("/api/set-cookie", { external_id: res.data.external_id }, { withCredentials: true });
 
         setStatus("✅ Login successful. Redirecting...");
         router.replace("/dashboard");
