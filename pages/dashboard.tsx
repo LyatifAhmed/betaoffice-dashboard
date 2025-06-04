@@ -5,6 +5,24 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { MailIcon, UserIcon, LogOutIcon, FileTextIcon, ShieldAlert } from "lucide-react";
 
+type MailItem = {
+  id: string;
+  created_at: string;
+  url: string;
+  ai_metadata?: {
+    sender_name?: string;
+    document_title?: string;
+  };
+};
+
+export default function Dashboard() {
+  const router = useRouter();
+  const [subscription, setSubscription] = useState<any>(null);
+  const [mailItems, setMailItems] = useState<MailItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+
 export default function Dashboard() {
   const router = useRouter();
   const [subscription, setSubscription] = useState<any>(null);
