@@ -1,9 +1,12 @@
-// pages/api/me.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
+import { parse } from "cookie";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const externalId = req.cookies.external_id;
+  // ✅ Cookie'den external_id'yi çekiyoruz
+  const cookieHeader = req.headers.cookie || "";
+  const parsedCookies = parse(cookieHeader);
+  const externalId = parsedCookies.external_id;
 
   if (!externalId) {
     return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
