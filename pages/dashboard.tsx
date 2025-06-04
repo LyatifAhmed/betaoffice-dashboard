@@ -22,37 +22,32 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const externalId = typeof window !== "undefined" ? localStorage.getItem("external_id") : null;
-
   useEffect(() => {
-  if (!externalId) {
-    router.push("/login");
-    return;
-  }
-  const fetchData = async () => {
-    try {
-      const sub = await axios.get(`/api/hoxton/subscription?external_id=${externalId}`);
-      setSubscription(sub.data);
+    const fetchData = async () => {
+      try {
+        const res = await axios.get("/api/me");
+        setSubscription(res.data.subscription);
+        setMailItems(res.data.mailItems);
+      } catch (err) {
+        console.error("Auth error", err);
+        router.push("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      const mail = await axios.get(`/api/hoxton/mail?external_id=${externalId}`);
-      setMailItems(mail.data);
-    } catch (err) {
-      setError("Failed to load data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-}, [externalId, router]); // 🔁 'router' eklendi
-
+    fetchData();
+  }, [router]);
 
   const cancelSubscription = async () => {
-    if (!window.confirm("Are you sure you want to cancel your subscription at the end of your billing term?")) return;
+    if (!window.confirm("Are you sure you want to cancel your subscription?")) return;
     try {
-      await axios.post(`/api/hoxton/cancel-subscription`, { external_id: externalId });
-      alert("Your subscription will be canceled at the end of the billing cycle.");
-    } catch (err) {
-      alert("Failed to cancel subscription.");
+      await axios.post("/api/hoxton/cancel-subscription", {
+        external_id: subscription.customer.external_id,
+      });
+      alert("Subscription cancel scheduled.");
+    } catch {
+      alert("Failed to cancel.");
     }
   };
 
@@ -86,8 +81,7 @@ export default function Dashboard() {
           <div>
             <h3 className="font-semibold text-yellow-800 mb-1">Identity verification pending</h3>
             <p className="text-sm text-yellow-700">
-              Your subscription is active but mail delivery is on hold until you complete the KYC verification.
-              Please check your inbox for a link from HoxtonMix to complete the ID check.
+              Please complete the KYC verification to receive mail.
             </p>
           </div>
         </div>
@@ -116,7 +110,7 @@ export default function Dashboard() {
       <div className="mt-10 text-right">
         <button
           onClick={() => {
-            localStorage.removeItem("external_id");
+            document.cookie = "external_id=; Max-Age=0; path=/"; // Clear cookie
             router.push("/login");
           }}
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-500"
@@ -127,4 +121,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

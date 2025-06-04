@@ -1,0 +1,28 @@
+// pages/api/me.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import axios from "axios";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const cookie = req.headers.cookie || "";
+  const match = cookie.match(/external_id=([^;]+)/);
+  const externalId = match?.[1];
+
+  if (!externalId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    const [subscriptionRes, mailRes] = await Promise.all([
+      axios.get(`${process.env.NEXT_PUBLIC_API_BASE}/subscription?external_id=${externalId}`),
+      axios.get(`${process.env.NEXT_PUBLIC_API_BASE}/mail?external_id=${externalId}`)
+    ]);
+
+    return res.status(200).json({
+      subscription: subscriptionRes.data,
+      mailItems: mailRes.data
+    });
+  } catch (error) {
+    console.error("Fetch failed", error);
+    return res.status(500).json({ error: "Failed to load data" });
+  }
+}
