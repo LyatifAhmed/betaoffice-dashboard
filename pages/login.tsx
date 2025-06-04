@@ -35,8 +35,9 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-8 max-w-md w-full space-y-6">
           <h1 className="text-2xl font-bold text-center text-gray-800">Sign in to your Dashboard</h1>
           <p className="text-sm text-gray-600 text-center">
-            Enter your email and we'll send you a secure login link.
+            Enter your email and we&apos;ll send you a secure login link.
           </p>
+
           <input
             type="email"
             required

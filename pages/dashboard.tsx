@@ -15,27 +15,26 @@ export default function Dashboard() {
   const externalId = typeof window !== "undefined" ? localStorage.getItem("external_id") : null;
 
   useEffect(() => {
-    if (!externalId) {
-      router.push("/login");
-      return;
-    }
-    const fetchData = async () => {
-      try {
-        const sub = await axios.get(`/api/hoxton/subscription?external_id=${externalId}`);
-        setSubscription(sub.data);
+  if (!externalId) {
+    router.push("/login");
+    return;
+  }
+  const fetchData = async () => {
+    try {
+      const sub = await axios.get(`/api/hoxton/subscription?external_id=${externalId}`);
+      setSubscription(sub.data);
 
-        if (sub.data.subscription.status === "ACTIVE") {
-          const mail = await axios.get(`/api/hoxton/mail?external_id=${externalId}`);
-          setMailItems(mail.data);
-        }
-      } catch (err) {
-        setError("Failed to load data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [externalId]);
+      const mail = await axios.get(`/api/hoxton/mail?external_id=${externalId}`);
+      setMailItems(mail.data);
+    } catch (err) {
+      setError("Failed to load data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [externalId, router]); // 🔁 'router' eklendi
+
 
   const cancelSubscription = async () => {
     if (!window.confirm("Are you sure you want to cancel your subscription at the end of your billing term?")) return;
