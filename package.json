@@ -26,6 +26,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "22.14.0",
     "@types/react": "19.1.0",
