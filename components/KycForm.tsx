@@ -16,10 +16,11 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 interface Props {
   lockedProductId: number;
   selectedPlanLabel: string;
-  couponCode: string;
+  couponId: string | null;
   discountedPrice: number;
   stripePriceId: string;
 }
+
 
 interface Owner {
   first_name: string;
@@ -39,9 +40,9 @@ const businessTypes = [
 export default function KycForm({
   lockedProductId,
   selectedPlanLabel,
-  couponCode,
   discountedPrice,
   stripePriceId,
+  couponId
 }: Props) {
   const [formData, setFormData] = useState({
     company_name: "", trading_name: "", organisation_type: "",
@@ -96,58 +97,59 @@ export default function KycForm({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
+  e.preventDefault();
+  setLoading(true);
+  setMessage("");
 
-    if (!agree) {
-      setMessage("❌ You must agree to the Terms and Privacy Policy.");
+  if (!agree) {
+    setMessage("❌ You must agree to the Terms and Privacy Policy.");
+    setLoading(false);
+    return;
+  }
+
+  for (const [i, owner] of owners.entries()) {
+    if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
+      setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
       setLoading(false);
       return;
     }
+  }
 
-    for (const [i, owner] of owners.entries()) {
-      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
-        setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
-        setLoading(false);
-        return;
-      }
+  try {
+    const data = { ...formData, product_id: lockedProductId, members: owners };
+    const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
+    const external_id = res.data.external_id;
+
+    const stripe = await stripePromise;
+    const checkoutRes = await axios.post("/api/checkout-session", {
+      email: formData.email,
+      price_id: stripePriceId,
+      external_id,
+      coupon_id: couponId || undefined, // ✅ Accept null or undefined
+    });
+
+    await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
+  } catch (err) {
+    console.error(err);
+    if (axios.isAxiosError(err) && err.response?.status === 409) {
+      setMessage("❌ This email is already linked to another business. Please use a different email.");
+    } else {
+      setMessage("❌ An error occurred. Please try again.");
     }
+  } finally {
+    setLoading(false);
+  }
+};
 
-    try {
-      const data = { ...formData, product_id: lockedProductId, members: owners };
-      const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
-      const external_id = res.data.external_id;
-
-      const stripe = await stripePromise;
-      const checkoutRes = await axios.post("/api/checkout-session", {
-        email: formData.email,
-        price_id: stripePriceId,
-        external_id,
-        coupon_id: couponCode || null,
-      });
-
-      await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
-    } catch (err) {
-      console.error(err);
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setMessage("❌ This email is already linked to another business. Please use a different email.");
-      } else {
-        setMessage("❌ An error occurred. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
         {discountedPrice > 0 && <div className="text-green-600">✅ Discounted Price: £{discountedPrice.toFixed(2)}</div>}
-        {couponCode && <div className="text-green-500 text-sm">Coupon <strong>{couponCode.toUpperCase()}</strong> applied!</div>}
+        {couponId && <div className="text-green-500 text-sm">Coupon <strong>{couponId.toUpperCase()}</strong> applied!</div>}
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">First Name<span className="text-red-500">*</span>
           <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import StickyCart from "../components/StickyCart";
-import KycForm from "../components/KycForm";
+import KycForm from "../components/KycForm"; // This is your form component
 
 const planMap = {
   monthly: {
@@ -66,7 +66,7 @@ export default function KycPage() {
             selectedPlanLabel={currentPlan.label}
             stripePriceId={currentPlan.stripePriceId}
             discountedPrice={discountedPrice}
-            couponCode={couponCode}
+            couponId={couponId} // ✅ matches KycForm props
           />
         ) : (
           <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
