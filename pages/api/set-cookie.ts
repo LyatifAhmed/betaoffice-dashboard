@@ -1,13 +1,26 @@
+// pages/api/set-cookie.ts
 import type { NextApiRequest, NextApiResponse } from "next";
+import { serialize } from "cookie";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
-
-  const { external_id } = req.body;
-  if (!external_id || typeof external_id !== "string") {
-    return res.status(400).json({ error: "Missing external_id" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  res.setHeader("Set-Cookie", `external_id=${external_id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
+  const { external_id } = req.body;
+
+  if (!external_id || typeof external_id !== "string") {
+    return res.status(400).json({ error: "Missing or invalid external_id" });
+  }
+
+  // Set secure, HTTP-only cookie
+  res.setHeader("Set-Cookie", serialize("external_id", external_id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // production'da true olmalı
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 gün
+  }));
+
   return res.status(200).json({ success: true });
 }

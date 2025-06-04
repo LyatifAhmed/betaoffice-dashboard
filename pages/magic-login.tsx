@@ -22,6 +22,9 @@ export default function MagicLoginPage() {
         const res = await axios.post("/api/verify-token", { token });
 
         if (res.data.email && res.data.external_id) {
+          // ✅ Set secure HTTP-only cookie
+          await axios.post("/api/set-cookie", { external_id: res.data.external_id });
+
           setStatus("✅ Login successful. Redirecting...");
           router.replace("/dashboard");
         } else {
