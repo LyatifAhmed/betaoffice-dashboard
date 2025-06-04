@@ -3,12 +3,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const cookie = req.headers.cookie || "";
-  const match = cookie.match(/external_id=([^;]+)/);
-  const externalId = match?.[1];
+  const externalId = req.cookies.external_id;
 
   if (!externalId) {
-    return res.status(401).json({ error: "Not authenticated" });
+    return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
   }
 
   try {
@@ -21,8 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subscription: subscriptionRes.data,
       mailItems: mailRes.data
     });
-  } catch (error) {
-    console.error("Fetch failed", error);
-    return res.status(500).json({ error: "Failed to load data" });
+  } catch (error: any) {
+    console.error("Fetch failed:", error?.response?.data || error.message);
+    return res.status(500).json({ error: "Failed to load subscription or mail data" });
   }
 }

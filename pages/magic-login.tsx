@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import Cookies from "js-cookie"; // sadece user_email için kullanılıyor
 
 export default function MagicLoginPage() {
   const router = useRouter();
@@ -23,10 +22,6 @@ export default function MagicLoginPage() {
         const res = await axios.post("/api/verify-token", { token });
 
         if (res.data.email && res.data.external_id) {
-          Cookies.set("user_email", res.data.email, { expires: 7 }); // optional
-          // Set HTTP-only cookie via API call
-          await axios.post("/api/set-cookie", { external_id: res.data.external_id });
-
           setStatus("✅ Login successful. Redirecting...");
           router.replace("/dashboard");
         } else {

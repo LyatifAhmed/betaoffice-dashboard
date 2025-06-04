@@ -16,16 +16,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const response = await axios.get(
       `${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/customer?email=${email}`
     );
+
+    if (!response.data || !response.data.external_id) {
+      return res.status(404).json({ error: "Customer not found" });
+    }
+
     const externalId = response.data.external_id;
 
-    // Güvenli HTTP-only cookie ayarlama
     res.setHeader("Set-Cookie", [
       serialize("external_id", externalId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 gün
+        maxAge: 60 * 60 * 24 * 7,
       }),
     ]);
 
