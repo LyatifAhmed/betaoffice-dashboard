@@ -18,14 +18,6 @@ type MailItem = {
 export default function Dashboard() {
   const router = useRouter();
   const [subscription, setSubscription] = useState<any>(null);
-  const [mailItems, setMailItems] = useState<MailItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-
-export default function Dashboard() {
-  const router = useRouter();
-  const [subscription, setSubscription] = useState<any>(null);
   const [mailItems, setMailItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
