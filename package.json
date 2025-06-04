@@ -11,6 +11,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^7.0.0",
     "axios": "^1.8.4",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.2.4",
     "react": "^19.0.0",
     "react-cookie-consent": "^9.0.0",
