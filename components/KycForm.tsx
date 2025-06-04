@@ -146,9 +146,30 @@ export default function KycForm({
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
-        {discountedPrice > 0 && <div className="text-green-600">✅ Discounted Price: £{discountedPrice.toFixed(2)}</div>}
-        {couponId && <div className="text-green-500 text-sm">Coupon <strong>{couponId.toUpperCase()}</strong> applied!</div>}
+
+        {(() => {
+          const originalPrice = stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt" ? 20 : 200;
+          const finalPrice = originalPrice - discountedPrice;
+
+          return (
+            <>
+              {discountedPrice > 0 ? (
+                <div className="text-green-600">
+                  ✅ Discounted Price: £{finalPrice.toFixed(2)} <span className="line-through text-gray-400 ml-2">£{originalPrice.toFixed(2)}</span>
+                </div>
+              ) : (
+                <div className="text-gray-700">Price: £{originalPrice.toFixed(2)}</div>
+              )}
+              {couponId && (
+                <div className="text-green-500 text-sm">
+                  Coupon <strong>{couponId.toUpperCase()}</strong> applied!
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">First Name<span className="text-red-500">*</span>
