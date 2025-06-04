@@ -19,7 +19,7 @@ export default function MagicLoginPage() {
       }
 
       try {
-        const res = await axios.post("/api/verify-token", { token });
+        const res = await axios.post("/api/verify-token", { token }, { withCredentials: true });
 
         if (res.data.email && res.data.external_id) {
           // ✅ Set HTTP-only cookie securely
