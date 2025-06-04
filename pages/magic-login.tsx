@@ -9,36 +9,39 @@ export default function MagicLoginPage() {
   const [status, setStatus] = useState("Verifying...");
 
   useEffect(() => {
-  const verifyLogin = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
+    const verifyLogin = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
 
-    if (!token) {
-      setStatus("❌ Invalid or missing login token.");
-      return;
-    }
-
-    try {
-      const res = await axios.post("/api/verify-token", { token }, { withCredentials: true });
-
-      if (res.data.email && res.data.external_id) {
-        // ✅ Cookie'yi güvenli şekilde backend üzerinden ayarla
-        await axios.post("/api/set-cookie", { external_id: res.data.external_id }, { withCredentials: true });
-
-        setStatus("✅ Login successful. Redirecting...");
-        router.replace("/dashboard");
-      } else {
-        setStatus("❌ Invalid or expired login token.");
+      if (!token) {
+        setStatus("❌ Invalid or missing login token.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setStatus("❌ Login failed. Please try again.");
-    }
-  };
 
-  verifyLogin();
-}, [router]);
+      try {
+        const res = await axios.post("/api/verify-token", { token });
 
+        if (res.data.email && res.data.external_id) {
+          // ✅ Set HTTP-only cookie securely
+          await axios.post(
+            "/api/set-cookie",
+            { external_id: res.data.external_id },
+            { withCredentials: true } // 🔥 bu önemli
+          );
+
+          setStatus("✅ Login successful. Redirecting...");
+          router.replace("/dashboard");
+        } else {
+          setStatus("❌ Invalid or expired login token.");
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus("❌ Login failed. Please try again.");
+      }
+    };
+
+    verifyLogin();
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 px-4">
