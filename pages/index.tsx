@@ -17,13 +17,15 @@ export default function HomePage() {
     localStorage.setItem("selected_plan", productId);
     router.push("/kyc");
   };
-  
 
   return (
     <>
       <Head>
-        <title>BetaOffice – Virtual Office KYC</title>
-        <meta name="description" content="BetaOffice: Get a professional London address with scanned mail and secure KYC." />
+        <title>BetaOffice – Digital Office for Global Creators</title>
+        <meta
+          name="description"
+          content="BetaOffice: Premium London address with AI-powered mail dashboard, digital KYC, and multi-language support."
+        />
       </Head>
 
       {/* Hero Section */}
@@ -37,16 +39,16 @@ export default function HomePage() {
         />
         <div className="relative z-10 px-6 max-w-3xl w-full mx-4 animate-fade-in-up">
           <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
-            Virtual Office. <span className="text-blue-600">Real Business.</span>
+            Your Global HQ. <span className="text-blue-600">From London.</span>
           </h1>
           <p className="text-lg md:text-xl mb-8 leading-relaxed">
-            Get a professional London address, secure scanned mail, and a fully digital KYC process — all in minutes.
+            Trusted UK address, secure mail viewing, and easy onboarding. Perfect for creators, founders, and remote workers.
           </p>
           <button
             onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
             className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3 rounded-lg shadow-md transition-all duration-200 hover:scale-105"
           >
-            See Plans
+            View Plans
           </button>
         </div>
       </section>
@@ -54,11 +56,11 @@ export default function HomePage() {
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-12">Why BetaOffice?</h2>
+          <h2 className="text-3xl font-bold mb-12">What Makes BetaOffice Unique?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <Feature icon="🏢" title="Central London Address" text="Boost your credibility with a premium London business address." />
-            <Feature icon="📬" title="Scanned Mail Access" text="We scan and notify you instantly. View mail securely online." />
-            <Feature icon="📦" title="Mail Forwarding" text="Physical letters? We forward them to you anywhere in the world." />
+            <Feature icon="📍" title="Verified UK Address" text="Boost your brand with a central London business address." />
+            <Feature icon="🤖" title="AI Mail Dashboard" text="Smart inbox powered by Hoxton’s infrastructure. Access anywhere, anytime." />
+            <Feature icon="🌍" title="Multi-language Onboarding" text="English, Turkish & more – tailored to digital nomads and creators." />
           </div>
         </div>
       </section>
@@ -66,7 +68,7 @@ export default function HomePage() {
       {/* Pricing */}
       <section id="pricing" className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-10">Simple Pricing (excl. VAT)</h2>
+          <h2 className="text-3xl font-bold mb-10">Transparent Pricing (excl. VAT)</h2>
           <div className="flex flex-col md:flex-row justify-center gap-10">
             <PlanCard
               title="Monthly Plan"
@@ -74,8 +76,8 @@ export default function HomePage() {
               billingCycle="/month"
               vatNote="+ VAT (£24 total)"
               benefits={[
-                "London business address",
-                "Scanned letters to your dashboard",
+                "Prestigious London address",
+                "AI-sorted scanned mail",
                 "Email notifications",
                 "Cancel anytime",
               ]}
@@ -92,14 +94,13 @@ export default function HomePage() {
                 "All monthly features",
                 "Save £48/year",
                 "Priority support",
-                "Mail forwarding available (pay per item)",
+                "Physical mail forwarding (per item)",
               ]}
               badge="Best Value"
               color="green"
               onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID!)}
             />
           </div>
-          
         </div>
       </section>
     </>
@@ -178,3 +179,4 @@ function PlanCard({
     </div>
   );
 }
+
