@@ -23,15 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const externalId = response.data.external_id;
 
-    res.setHeader("Set-Cookie", [
-      serialize("external_id", externalId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7,
-      }),
-    ]);
+    // ✅ Set secure, HTTP-only cookie
+    res.setHeader("Set-Cookie", serialize("external_id", externalId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // local'de false olur
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 gün
+    }));
 
     return res.status(200).json({ email, external_id: externalId });
   } catch (err) {
