@@ -26,6 +26,11 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const res = await axios.get("/api/me", { withCredentials: true });
+        if (!res.data?.subscription) {
+          setError("Subscription not found.");
+          router.push("/login");
+          return;
+        }
         setSubscription(res.data.subscription);
         setMailItems(res.data.mailItems);
       } catch (err) {
@@ -43,7 +48,7 @@ export default function Dashboard() {
     if (!window.confirm("Are you sure you want to cancel your subscription?")) return;
     try {
       await axios.post("/api/hoxton/cancel-subscription", {
-        external_id: subscription.customer.external_id,
+        external_id: subscription?.customer?.external_id,
       });
       alert("Subscription cancel scheduled.");
     } catch {
@@ -52,21 +57,21 @@ export default function Dashboard() {
   };
 
   if (loading) return <div className="p-6">Loading...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+  if (error || !subscription) return <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>;
 
-  const isPendingKyc = subscription.subscription.status === "NO_ID";
+  const isPendingKyc = subscription?.subscription?.status === "NO_ID";
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <UserIcon className="h-5 w-5" /> Welcome, {subscription.customer.first_name}
+        <UserIcon className="h-5 w-5" /> Welcome, {subscription?.customer?.first_name}
       </h1>
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Subscription Details</h2>
-        <p>Status: <strong>{subscription.subscription.status}</strong></p>
-        <p>Company: {subscription.company.name}</p>
-        <p>Forwarding Address: {subscription.shipping_address.shipping_address_line_1}, {subscription.shipping_address.shipping_address_city}</p>
+        <p>Status: <strong>{subscription?.subscription?.status}</strong></p>
+        <p>Company: {subscription?.company?.name}</p>
+        <p>Forwarding Address: {subscription?.shipping_address?.shipping_address_line_1}, {subscription?.shipping_address?.shipping_address_city}</p>
         <button
           onClick={cancelSubscription}
           className="mt-4 px-4 py-2 text-sm rounded bg-red-500 text-white hover:bg-red-600"
@@ -110,7 +115,7 @@ export default function Dashboard() {
       <div className="mt-10 text-right">
         <button
           onClick={() => {
-            document.cookie = "external_id=; Max-Age=0; path=/"; // Clear cookie
+            document.cookie = "external_id=; Max-Age=0; path=/";
             router.push("/login");
           }}
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-500"
@@ -120,4 +125,6 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
 }
