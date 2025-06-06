@@ -17,8 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const [subscriptionRes, mailRes] = await Promise.all([
-      axios.get(`${process.env.NEXT_PUBLIC_API_BASE}/subscription?external_id=${externalId}`),
-      axios.get(`${process.env.NEXT_PUBLIC_API_BASE}/mail?external_id=${externalId}`)
+      axios.get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/subscription?external_id=${externalId}`),
+      axios.get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/mail?external_id=${externalId}`)
     ]);
 
     return res.status(200).json({
