@@ -2,8 +2,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import { parse } from "cookie";
 
+export const config = {
+  runtime: "nodejs", // ✅ Vercel'de Edge yerine Node.js çalışsın
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // ✅ Cookie'den external_id'yi çekiyoruz
   const cookieHeader = req.headers.cookie || "";
   const parsedCookies = parse(cookieHeader);
   const externalId = parsedCookies.external_id;
@@ -27,3 +30,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Failed to load subscription or mail data" });
   }
 }
+
