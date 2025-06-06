@@ -1,5 +1,4 @@
-// Paste this entire component in your KycForm.tsx file
-// All coupon logic now handled by the parent and StickyCart
+// Updated KYC Form component with conditional UK shipping address toggle
 
 "use client";
 
@@ -20,7 +19,6 @@ interface Props {
   discountedPrice: number;
   stripePriceId: string;
 }
-
 
 interface Owner {
   first_name: string;
@@ -48,16 +46,18 @@ export default function KycForm({
     company_name: "", trading_name: "", organisation_type: "",
     limited_company_number: "", email: "", address_line_1: "",
     address_line_2: "", city: "", postcode: "", country: "GB",
-    phone_number: "", customer_first_name: "", customer_last_name: ""
+    phone_number: "", customer_first_name: "", customer_last_name: "",
+    shipping_address_line_1: "", shipping_city: "", shipping_postcode: ""
   });
 
+  const [useCompanySearch, setUseCompanySearch] = useState(true);
+  const [showShipping, setShowShipping] = useState(false);
   const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "" }]);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [companyQuery, setCompanyQuery] = useState("");
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
-  const [useCompanySearch, setUseCompanySearch] = useState(true);
 
   const countries = countryList().getData();
   const router = useRouter();
@@ -97,50 +97,54 @@ export default function KycForm({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage("");
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
-  if (!agree) {
-    setMessage("❌ You must agree to the Terms and Privacy Policy.");
-    setLoading(false);
-    return;
-  }
-
-  for (const [i, owner] of owners.entries()) {
-    if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
-      setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
+    if (!agree) {
+      setMessage("❌ You must agree to the Terms and Privacy Policy.");
       setLoading(false);
       return;
     }
-  }
 
-  try {
-    const data = { ...formData, product_id: lockedProductId, members: owners };
-    const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
-    const external_id = res.data.external_id;
-
-    const stripe = await stripePromise;
-    const checkoutRes = await axios.post("/api/checkout-session", {
-      email: formData.email,
-      price_id: stripePriceId,
-      external_id,
-      coupon_id: couponId || undefined, // ✅ Accept null or undefined
-    });
-
-    await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
-  } catch (err) {
-    console.error(err);
-    if (axios.isAxiosError(err) && err.response?.status === 409) {
-      setMessage("❌ This email is already linked to another business. Please use a different email.");
-    } else {
-      setMessage("❌ An error occurred. Please try again.");
+    for (const [i, owner] of owners.entries()) {
+      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
+        setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
+        setLoading(false);
+        return;
+      }
     }
-  } finally {
-    setLoading(false);
-  }
-};
 
+    try {
+      const data = {
+        ...formData,
+        product_id: lockedProductId,
+        members: owners,
+        wants_uk_forwarding: showShipping
+      };
+      const res = await axios.post("https://hoxton-api-backend.onrender.com/api/save-kyc-temp", data);
+      const external_id = res.data.external_id;
+
+      const stripe = await stripePromise;
+      const checkoutRes = await axios.post("/api/checkout-session", {
+        email: formData.email,
+        price_id: stripePriceId,
+        external_id,
+        coupon_id: couponId || undefined
+      });
+
+      await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
+    } catch (err) {
+      console.error(err);
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setMessage("❌ This email is already linked to another business. Please use a different email.");
+      } else {
+        setMessage("❌ An error occurred. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
@@ -243,6 +247,44 @@ export default function KycForm({
           <Select options={countries} value={countries.find(c => c.value === formData.country)} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
         </label>
       </div>
+      <label className="mt-4 inline-flex items-center">
+        <input type="checkbox" checked={showShipping} onChange={() => setShowShipping(!showShipping)} className="form-checkbox" />
+        <span className="ml-2">I want my post forwarded to a UK address</span>
+      </label>
+
+      {showShipping && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="block">UK Shipping Address Line 1<span className="text-red-500">*</span>
+            <input
+              name="shipping_address_line_1"
+              value={formData.shipping_address_line_1}
+              onChange={handleChange}
+              className="border p-2 rounded w-full"
+              required={showShipping}
+            />
+          </label>
+          <label className="block">City<span className="text-red-500">*</span>
+            <input
+              name="shipping_city"
+              value={formData.shipping_city}
+              onChange={handleChange}
+              className="border p-2 rounded w-full"
+              required={showShipping}
+            />
+          </label>
+          <label className="block">Postcode<span className="text-red-500">*</span>
+            <input
+              name="shipping_postcode"
+              value={formData.shipping_postcode}
+              onChange={handleChange}
+              pattern="^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$"
+              title="Enter a valid UK postcode"
+              className="border p-2 rounded w-full"
+              required={showShipping}
+            />
+          </label>
+        </div>
+      )}
 
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
