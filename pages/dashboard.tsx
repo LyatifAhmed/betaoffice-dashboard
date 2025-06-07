@@ -62,7 +62,7 @@ export default function Dashboard() {
   const isPendingKyc = subscription?.subscription?.status === "NO_ID";
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <UserIcon className="h-5 w-5" /> Welcome, {subscription?.customer?.first_name}
       </h1>
@@ -70,8 +70,25 @@ export default function Dashboard() {
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Subscription Details</h2>
         <p>Status: <strong>{subscription?.subscription?.status}</strong></p>
-        <p>Company: {subscription?.company?.name}</p>
-        <p>Forwarding Address: {subscription?.shipping_address?.shipping_address_line_1}, {subscription?.shipping_address?.shipping_address_city}</p>
+        <p>Company: {subscription?.company?.name || <em>Not provided</em>}</p>
+
+        {subscription?.shipping_address?.shipping_address_line_1 ? (
+          <p>
+            Forwarding Address:
+            <br />
+            <strong>
+              {subscription.shipping_address.shipping_address_line_1}
+              {subscription.shipping_address.shipping_address_line_2 && `, ${subscription.shipping_address.shipping_address_line_2}`}
+              <br />
+              {subscription.shipping_address.shipping_address_city}, {subscription.shipping_address.shipping_address_postcode}
+              <br />
+              {subscription.shipping_address.shipping_address_country}
+            </strong>
+          </p>
+        ) : (
+          <p>Forwarding Address: <em>No address selected</em></p>
+        )}
+
         <button
           onClick={cancelSubscription}
           className="mt-4 px-4 py-2 text-sm rounded bg-red-500 text-white hover:bg-red-600"
@@ -92,7 +109,9 @@ export default function Dashboard() {
         </div>
       ) : (
         <section>
-          <h2 className="text-xl font-semibold mb-3 flex items-center gap-2"><MailIcon className="h-5 w-5" /> Incoming Mail</h2>
+          <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+            <MailIcon className="h-5 w-5" /> Incoming Mail
+          </h2>
           {mailItems.length === 0 ? (
             <p>No scanned mail yet.</p>
           ) : (
@@ -126,4 +145,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
