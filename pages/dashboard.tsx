@@ -9,10 +9,8 @@ type MailItem = {
   id: string;
   created_at: string;
   url: string;
-  ai_metadata?: {
-    sender_name?: string;
-    document_title?: string;
-  };
+  sender_name?: string;
+  document_title?: string;
 };
 
 export default function Dashboard() {
@@ -48,10 +46,11 @@ export default function Dashboard() {
     if (!window.confirm("Are you sure you want to cancel your subscription?")) return;
     try {
       await axios.post("/api/hoxton/cancel-subscription", {
-        external_id: subscription?.customer?.external_id,
+        external_id: subscription?.external_id,
       });
       alert("Subscription cancel scheduled.");
-    } catch {
+    } catch (err) {
+      console.error("Cancel error", err);
       alert("Failed to cancel.");
     }
   };
@@ -118,8 +117,8 @@ export default function Dashboard() {
             <ul className="space-y-4">
               {mailItems.map(item => (
                 <li key={item.id} className="border p-4 rounded shadow-sm bg-white">
-                  <p><strong>Sender:</strong> {item.ai_metadata?.sender_name || "Unknown"}</p>
-                  <p><strong>Title:</strong> {item.ai_metadata?.document_title || ""}</p>
+                  <p><strong>Sender:</strong> {item.sender_name || "Unknown"}</p>
+                  <p><strong>Title:</strong> {item.document_title || ""}</p>
                   <p><strong>Date:</strong> {new Date(item.created_at).toLocaleDateString()}</p>
                   <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     <FileTextIcon className="inline h-4 w-4 mr-1" /> View Document
@@ -145,4 +144,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
