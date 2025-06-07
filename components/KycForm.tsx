@@ -47,7 +47,8 @@ export default function KycForm({
     limited_company_number: "", email: "", address_line_1: "",
     address_line_2: "", city: "", postcode: "", country: "GB",
     phone_number: "", customer_first_name: "", customer_last_name: "",
-    shipping_address_line_1: "", shipping_city: "", shipping_postcode: ""
+    shipping_address_line_1: "", shipping_city: "", shipping_postcode: "",
+    shipping_country: "GB"
   });
 
   const [useCompanySearch, setUseCompanySearch] = useState(true);
@@ -71,6 +72,12 @@ export default function KycForm({
     debounced();
     return () => debounced.cancel();
   }, [companyQuery]);
+
+  useEffect(() => {
+    if (showShipping) {
+      setFormData(prev => ({ ...prev, shipping_country: "GB" }));
+    }
+  }, [showShipping]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
