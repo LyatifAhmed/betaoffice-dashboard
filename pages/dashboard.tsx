@@ -63,25 +63,25 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <UserIcon className="h-5 w-5" /> Welcome, {subscription?.customer?.first_name}
+        <UserIcon className="h-5 w-5" /> Welcome, {subscription?.customer_first_name || subscription?.customer?.first_name || "User"}
       </h1>
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Subscription Details</h2>
-        <p>Status: <strong>{subscription?.subscription?.status}</strong></p>
-        <p>Company: {subscription?.company?.name || <em>Not provided</em>}</p>
+        <p>Status: <strong>{subscription?.subscription?.status || "Unknown"}</strong></p>
+        <p>Company: {subscription?.company_name || subscription?.company?.name || <em>Not provided</em>}</p>
 
-        {subscription?.shipping_address?.shipping_address_line_1 ? (
+        {subscription?.shipping_line_1 || subscription?.shipping_address?.shipping_address_line_1 ? (
           <p>
             Forwarding Address:
             <br />
             <strong>
-              {subscription.shipping_address.shipping_address_line_1}
-              {subscription.shipping_address.shipping_address_line_2 && `, ${subscription.shipping_address.shipping_address_line_2}`}
+              {subscription.shipping_line_1 || subscription.shipping_address?.shipping_address_line_1}
+              {subscription.shipping_line_2 && `, ${subscription.shipping_line_2}`}
               <br />
-              {subscription.shipping_address.shipping_address_city}, {subscription.shipping_address.shipping_address_postcode}
+              {subscription.shipping_city}, {subscription.shipping_postcode}
               <br />
-              {subscription.shipping_address.shipping_address_country}
+              {subscription.shipping_country}
             </strong>
           </p>
         ) : (
