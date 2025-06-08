@@ -22,17 +22,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Missing Hoxton API config" });
   }
 
-  try {
-    const authHeader = {
-      auth: {
-        username: hoxtonApiKey,
-        password: "", // Basic Auth only needs username (API key), password is empty
-      },
-    };
+  const headers = {
+    Authorization: `Basic ${Buffer.from(`${hoxtonApiKey}:`).toString("base64")}`,
+  };
 
+  try {
     const [subscriptionRes, mailRes] = await Promise.all([
-      axios.get(`${hoxtonApiBase}/subscription/${externalId}`, authHeader),
-      axios.get(`${hoxtonApiBase}/subscription/${externalId}/mail`, authHeader),
+      axios.get(`${hoxtonApiBase}/subscription/${externalId}`, { headers }),
+      axios.get(`${hoxtonApiBase}/subscription/${externalId}/mail`, { headers }),
     ]);
 
     return res.status(200).json({
@@ -44,3 +41,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Failed to load subscription or mail data from Hoxton API" });
   }
 }
+
