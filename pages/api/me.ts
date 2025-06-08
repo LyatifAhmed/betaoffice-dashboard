@@ -15,21 +15,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
   }
 
-  const hoxtonApiBase = process.env.HOXTON_API_BASE_URL;
+  const hoxtonApiBase = process.env.HOXTON_API_URL;
   const hoxtonApiKey = process.env.HOXTON_API_KEY;
 
   if (!hoxtonApiBase || !hoxtonApiKey) {
     return res.status(500).json({ error: "Missing Hoxton API config" });
   }
 
-  const headers = {
-    Authorization: `Basic ${Buffer.from(`${hoxtonApiKey}:`).toString("base64")}`,
-  };
-
   try {
+    const authHeader = {
+      auth: {
+        username: hoxtonApiKey,
+        password: "", // Only API key is needed
+      },
+    };
+
     const [subscriptionRes, mailRes] = await Promise.all([
-      axios.get(`${hoxtonApiBase}/subscription/${externalId}`, { headers }),
-      axios.get(`${hoxtonApiBase}/subscription/${externalId}/mail`, { headers }),
+      axios.get(`${hoxtonApiBase}/subscription/${externalId}`, authHeader),
+      axios.get(`${hoxtonApiBase}/subscription/${externalId}/mail`, authHeader),
     ]);
 
     return res.status(200).json({
@@ -41,4 +44,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Failed to load subscription or mail data from Hoxton API" });
   }
 }
-
