@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import { MailIcon, UserIcon, LogOutIcon, FileTextIcon, ShieldAlert } from "lucide-react";
+import {
+  MailIcon,
+  UserIcon,
+  LogOutIcon,
+  FileTextIcon,
+  ShieldAlert
+} from "lucide-react";
 
 type MailItem = {
   id: string;
@@ -24,13 +30,16 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const res = await axios.get("/api/me", { withCredentials: true });
-        if (!res.data?.subscription) {
+        const { subscription, mailItems } = res.data;
+
+        if (!subscription) {
           setError("Subscription not found.");
           router.push("/login");
           return;
         }
-        setSubscription(res.data.subscription);
-        setMailItems(res.data.mailItems);
+
+        setSubscription(subscription);
+        setMailItems(mailItems || []);
       } catch (err) {
         console.error("Auth error", err);
         router.push("/login");
@@ -43,27 +52,36 @@ export default function Dashboard() {
   }, [router]);
 
   const cancelSubscription = async () => {
+    if (!subscription?.external_id) {
+      alert("Invalid subscription ID.");
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to cancel your subscription?")) return;
+
     try {
       await axios.post("/api/hoxton/cancel-subscription", {
-        external_id: subscription?.external_id,
+        external_id: subscription.external_id,
       });
-      alert("Subscription cancel scheduled.");
+      alert("✅ Cancellation requested. It will be processed soon.");
     } catch (err) {
       console.error("Cancel error", err);
-      alert("Failed to cancel.");
+      alert("❌ Failed to cancel. Please try again.");
     }
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (error || !subscription) return <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>;
-
   const isPendingKyc = subscription?.subscription?.status === "NO_ID";
+
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (error || !subscription) return (
+    <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <UserIcon className="h-5 w-5" /> Welcome, {subscription?.customer_first_name || subscription?.customer?.first_name || "User"}
+        <UserIcon className="h-5 w-5" />
+        Welcome, {subscription?.customer_first_name || subscription?.customer?.first_name || "User"}
       </h1>
 
       <section className="mb-8">
@@ -71,7 +89,7 @@ export default function Dashboard() {
         <p>Status: <strong>{subscription?.subscription?.status || "Unknown"}</strong></p>
         <p>Company: {subscription?.company_name || subscription?.company?.name || <em>Not provided</em>}</p>
 
-        {subscription?.shipping_line_1 || subscription?.shipping_address?.shipping_address_line_1 ? (
+        {(subscription?.shipping_line_1 || subscription?.shipping_address?.shipping_address_line_1) ? (
           <p>
             Forwarding Address:
             <br />
