@@ -15,32 +15,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
   }
 
-  const hoxtonApiBase = process.env.HOXTON_API_URL;
-  const hoxtonApiKey = process.env.HOXTON_API_KEY;
-
-  if (!hoxtonApiBase || !hoxtonApiKey) {
-    return res.status(500).json({ error: "Missing Hoxton API config" });
+  const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL; // ⬅️ Render’daki FastAPI endpoint’in
+  if (!backendUrl) {
+    return res.status(500).json({ error: "Missing backend URL" });
   }
 
   try {
-    const authHeader = {
-      auth: {
-        username: hoxtonApiKey,
-        password: "", // Only API key is needed
-      },
-    };
-
-    const [subscriptionRes, mailRes] = await Promise.all([
-      axios.get(`${hoxtonApiBase}/subscription/${externalId}`, authHeader),
-      axios.get(`${hoxtonApiBase}/subscription/${externalId}/mail`, authHeader),
-    ]);
-
-    return res.status(200).json({
-      subscription: subscriptionRes.data,
-      mailItems: mailRes.data,
-    });
+    const response = await axios.get(`${backendUrl}/subscription/${externalId}`);
+    return res.status(200).json(response.data);
   } catch (error: any) {
-    console.error("Hoxton API fetch failed:", error?.response?.data || error.message);
-    return res.status(500).json({ error: "Failed to load subscription or mail data from Hoxton API" });
+    console.error("Backend fetch failed:", error?.response?.data || error.message);
+    return res.status(500).json({ error: "Failed to fetch from backend" });
   }
 }
