@@ -8,8 +8,9 @@ import {
   UserIcon,
   LogOutIcon,
   FileTextIcon,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react";
+import { GetServerSidePropsContext } from "next";
 
 type MailItem = {
   id: string;
@@ -73,9 +74,10 @@ export default function Dashboard() {
   const isPendingKyc = subscription?.subscription?.status === "NO_ID";
 
   if (loading) return <div className="p-6">Loading...</div>;
-  if (error || !subscription) return (
-    <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>
-  );
+  if (error || !subscription)
+    return (
+      <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>
+    );
 
   return (
     <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-6">
@@ -161,4 +163,26 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+// ✅ Sunucu tarafında cookie kontrolü
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const cookie = ctx.req.headers.cookie || "";
+  const hasAuth =
+    cookie.includes("external_id=") &&
+    !cookie.includes("external_id=;") &&
+    !cookie.includes("external_id=deleted");
+
+  if (!hasAuth) {
+    return {
+      redirect: {
+        destination: "/login",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
 }
