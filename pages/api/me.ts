@@ -26,9 +26,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       axios.get(`${backendUrl}/mail?external_id=${externalId}`),
     ]);
 
+    const subscription = subscriptionRes.data;
+
     return res.status(200).json({
-      subscription: subscriptionRes.data,
+      subscription,
       mailItems: mailRes.data,
+      stripe_subscription_id: subscription?.stripe_subscription_id || null, // 🔽 EKLENDİ
     });
   } catch (error: any) {
     console.error("Backend fetch failed:", error?.response?.data || error.message);

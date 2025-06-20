@@ -32,48 +32,56 @@ export default function Dashboard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get("/api/me", { withCredentials: true });
-        const { subscription, mailItems } = res.data;
-
-        if (!subscription) {
-          setError("Subscription not found.");
-          router.push("/login");
-          return;
-        }
-
-        setSubscription(subscription);
-        setMailItems(mailItems || []);
-      } catch (err) {
-        console.error("Auth error", err);
-        router.push("/login");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [router]);
-
-  const cancelSubscription = async () => {
-    if (!subscription?.external_id || !subscription?.stripe_subscription_id) {
-      alert("Missing subscription details.");
-      return;
-    }
-
+  const fetchData = async () => {
     try {
-      await axios.post("/api/hoxton/cancel-subscription", {
-        external_id: subscription.external_id,
-        stripe_subscription_id: subscription.stripe_subscription_id,
-      });
-      alert("✅ Your subscription is now set to cancel at the end of your billing period.");
-      setConfirmOpen(false);
+      const res = await axios.get("/api/me", { withCredentials: true });
+      const { subscription, mailItems, stripe_subscription_id } = res.data;
+
+      if (!subscription) {
+        setError("Subscription not found.");
+        router.push("/login");
+        return;
+      }
+
+      setSubscription({ ...subscription, stripe_subscription_id }); // 💡 buraya dikkat
+      setMailItems(mailItems || []);
     } catch (err) {
-      console.error("Cancel error", err);
-      alert("❌ Failed to cancel. Please try again.");
+      console.error("Auth error", err);
+      router.push("/login");
+    } finally {
+      setLoading(false);
     }
   };
+
+  fetchData();
+}, [router]);
+
+
+  const cancelSubscription = async () => {
+  const { external_id, stripe_subscription_id } = subscription || {};
+
+  if (!external_id || !stripe_subscription_id) {
+    alert("Missing subscription details.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Are you sure you want to cancel your subscription?\n\nYour dashboard will reset after the billing period ends."
+  );
+  if (!confirmed) return;
+
+  try {
+    await axios.post("/api/hoxton/cancel-subscription", {
+      external_id,
+      stripe_subscription_id,
+    });
+    alert("✅ Cancellation requested. You will retain access until the end of your billing cycle.");
+  } catch (err) {
+    console.error("Cancel error", err);
+    alert("❌ Failed to cancel. Please try again.");
+  }
+};
+
 
   const isPendingKyc = subscription?.subscription?.status === "NO_ID";
 
