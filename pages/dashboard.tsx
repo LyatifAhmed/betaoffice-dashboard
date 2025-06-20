@@ -58,16 +58,15 @@ export default function Dashboard() {
 
 
   const cancelSubscription = async () => {
-  const { external_id, stripe_subscription_id } = subscription || {};
+  const external_id = subscription?.external_id;
+  const stripe_subscription_id = subscription?.subscription?.stripe_subscription_id;
 
   if (!external_id || !stripe_subscription_id) {
     alert("Missing subscription details.");
     return;
   }
 
-  const confirmed = window.confirm(
-    "Are you sure you want to cancel your subscription?\n\nYour dashboard will reset after the billing period ends."
-  );
+  const confirmed = window.confirm("Are you sure you want to cancel your subscription?");
   if (!confirmed) return;
 
   try {
@@ -75,12 +74,14 @@ export default function Dashboard() {
       external_id,
       stripe_subscription_id,
     });
-    alert("✅ Cancellation requested. You will retain access until the end of your billing cycle.");
+    alert("✅ Cancellation requested. Your subscription will end at the end of this billing period.");
   } catch (err) {
     console.error("Cancel error", err);
     alert("❌ Failed to cancel. Please try again.");
   }
 };
+
+
 
 
   const isPendingKyc = subscription?.subscription?.status === "NO_ID";
