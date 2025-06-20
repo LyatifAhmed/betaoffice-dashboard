@@ -10,6 +10,9 @@ import {
   FileTextIcon,
   ShieldAlert,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { GetServerSidePropsContext } from "next";
 
 type MailItem = {
@@ -26,6 +29,7 @@ export default function Dashboard() {
   const [mailItems, setMailItems] = useState<MailItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,18 +57,18 @@ export default function Dashboard() {
   }, [router]);
 
   const cancelSubscription = async () => {
-    if (!subscription?.external_id) {
-      alert("Invalid subscription ID.");
+    if (!subscription?.external_id || !subscription?.stripe_subscription_id) {
+      alert("Missing subscription details.");
       return;
     }
-
-    if (!window.confirm("Are you sure you want to cancel your subscription?")) return;
 
     try {
       await axios.post("/api/hoxton/cancel-subscription", {
         external_id: subscription.external_id,
+        stripe_subscription_id: subscription.stripe_subscription_id,
       });
-      alert("✅ Cancellation requested. It will be processed soon.");
+      alert("✅ Your subscription is now set to cancel at the end of your billing period.");
+      setConfirmOpen(false);
     } catch (err) {
       console.error("Cancel error", err);
       alert("❌ Failed to cancel. Please try again.");
@@ -75,9 +79,7 @@ export default function Dashboard() {
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (error || !subscription)
-    return (
-      <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>
-    );
+    return <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>;
 
   return (
     <div className="min-h-screen flex flex-col max-w-4xl mx-auto p-6">
@@ -108,12 +110,9 @@ export default function Dashboard() {
           <p>Forwarding Address: <em>No address selected</em></p>
         )}
 
-        <button
-          onClick={cancelSubscription}
-          className="mt-4 px-4 py-2 text-sm rounded bg-red-500 text-white hover:bg-red-600"
-        >
+        <Button onClick={() => setConfirmOpen(true)} className="mt-4 bg-red-500 hover:bg-red-600">
           Cancel Subscription
-        </button>
+        </Button>
       </section>
 
       {isPendingKyc ? (
@@ -161,11 +160,32 @@ export default function Dashboard() {
           <LogOutIcon className="h-4 w-4" /> Logout
         </button>
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure you want to cancel?</DialogTitle>
+          </DialogHeader>
+          <Alert>
+            <AlertTitle className="text-red-600">Important</AlertTitle>
+            <AlertDescription>
+              Your subscription will remain active until the end of your billing cycle. Make sure to download all important scanned documents before then, otherwise your dashboard will reset and files will be permanently deleted.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Go Back
+            </Button>
+            <Button variant="destructive" onClick={cancelSubscription}>
+              Confirm Cancellation
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// ✅ Sunucu tarafında cookie kontrolü
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const cookie = ctx.req.headers.cookie || "";
   const hasAuth =
