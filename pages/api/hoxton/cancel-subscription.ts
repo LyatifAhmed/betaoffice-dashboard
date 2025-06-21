@@ -13,29 +13,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { external_id, stripe_subscription_id } = req.body;
 
-  if (!external_id || typeof external_id !== "string") {
-    return res.status(400).json({ error: "Missing or invalid external_id" });
-  }
-
-  if (!stripe_subscription_id || typeof stripe_subscription_id !== "string") {
-    return res.status(400).json({ error: "Missing or invalid stripe_subscription_id" });
+  if (!external_id || !stripe_subscription_id) {
+    console.error("❌ Missing required fields:", { external_id, stripe_subscription_id });
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
-    // 1. Cancel Stripe subscription at end of billing period
-    const stripeRes = await stripe.subscriptions.update(stripe_subscription_id, {
+    // ✅ 1. Stripe üzerinden aboneliği dönem sonunda iptal et
+    console.log("🔁 Cancelling Stripe subscription at period end...");
+    await stripe.subscriptions.update(stripe_subscription_id, {
       cancel_at_period_end: true,
     });
+    console.log("✅ Stripe cancellation scheduled");
 
-    console.log(`Stripe subscription marked for cancellation at period end: ${stripeRes.id}`);
-
-    // 2. Notify FastAPI backend (which will notify Hoxton Mix at correct time)
+    // ✅ 2. FastAPI backend'e haber ver
     const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
-    await axios.post(`${backendUrl}/cancel-subscription`, { external_id });
+    if (!backendUrl) {
+      console.error("❌ Backend URL not configured");
+      return res.status(500).json({ error: "Missing backend URL" });
+    }
 
-    return res.status(200).json({ success: true });
+    console.log("📡 Notifying backend to cancel Hoxton subscription...");
+    const response = await axios.post(`${backendUrl}/cancel-subscription`, { external_id });
+
+    if (response.status === 200) {
+      console.log("✅ Backend acknowledged cancellation");
+      return res.status(200).json({ success: true });
+    } else {
+      console.error("⚠️ Unexpected backend response:", response.status);
+      return res.status(500).json({ error: "Unexpected response from backend" });
+    }
+
   } catch (err: any) {
-    console.error("Cancel error:", err?.response?.data || err.message || err);
+    console.error("❌ Cancel error:", err?.response?.data || err.message || err);
     return res.status(500).json({ error: "Failed to cancel subscription" });
   }
 }
