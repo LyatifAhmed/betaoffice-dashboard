@@ -4,62 +4,79 @@ import nodemailer from "nodemailer";
 import axios from "axios";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // ✅ Sadece POST metodu kabul edilir
   if (req.method !== "POST") return res.status(405).end();
 
   const { email } = req.body;
 
-  // ✅ E-mail format kontrolü
   if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Invalid email address" });
   }
 
-  try {
-    // ✅ Veritabanında bu e-mail'e ait müşteri var mı kontrol et
-    const check = await axios.get(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/customer?email=${email}`);
-
-    if (!check?.data?.external_id) {
-      return res.status(404).json({ error: "Email not found in our system" });
-    }
-  } catch (err) {
-    console.error("Email lookup error:", err);
-    return res.status(404).json({ error: "Email not found in our system" });
+  const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
+  if (!backendUrl) {
+    return res.status(500).json({ error: "Missing backend URL" });
   }
 
-  // ✅ Token ve giriş URL'si oluştur
+  let customer;
+  try {
+    const check = await axios.get(`${backendUrl}/customer?email=${email}`);
+    customer = check.data;
+
+    // ❗ KYC durumu kontrolü
+    if (!customer?.external_id) {
+      return res.status(404).json({ error: "Email not found in our system" });
+    }
+
+    if (customer?.review_status !== "ACTIVE") {
+      return res.status(403).json({ error: "Your account has not been approved yet." });
+    }
+
+  } catch (err) {
+  if (err instanceof Error) {
+    console.error("Email send error:", (err as any).response || err.message);
+  } else {
+    console.error("Unknown error:", err);
+  }
+
+  return res.status(500).json({ error: "Failed to send email." });
+}
+
+
   const token = generateToken(email);
   const loginUrl = `${process.env.BASE_URL}/magic-login?token=${token}`;
 
   try {
-    // ✅ SMTP mail servisini ayarla
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
-      secure: false, // TLS (587) kullanılıyor
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
 
-    // ✅ Mail içeriği
     await transporter.sendMail({
       from: `"BetaOffice" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: "Your secure login link",
+      subject: "Your secure BetaOffice login link",
       html: `
-        <p>Hello,</p>
-        <p>Click the secure link below to access your BetaOffice dashboard:</p>
-        <p><a href="${loginUrl}">${loginUrl}</a></p>
-        <p>This link will expire in 15 minutes.</p>
+        <p>Hello ${customer.customer_first_name || ""},</p>
+        <p>Click the secure link below to access your <strong>BetaOffice</strong> dashboard:</p>
+        <p><a href="${loginUrl}" style="color: #1d4ed8;">Login to BetaOffice</a></p>
+        <p>This link will expire in <strong>15 minutes</strong>.</p>
         <br />
-        <p>– BetaOffice Team</p>
+        <p style="font-size: 0.9rem; color: #555;">
+          If you did not request this email, you can safely ignore it.<br/>
+          – The BetaOffice Team
+        </p>
       `,
     });
 
     return res.status(200).json({ success: true });
+
   } catch (err) {
     console.error("Email sending failed:", err);
-    return res.status(500).json({ error: "Failed to send email" });
+    return res.status(500).json({ error: "Failed to send login email" });
   }
 }

@@ -43,7 +43,14 @@ export default function Dashboard() {
         return;
       }
 
-      setSubscription({ ...subscription, stripe_subscription_id }); // 💡 buraya dikkat
+      // ✅ Statü kontrolü
+      if (subscription.review_status !== "ACTIVE") {
+        setError("Your identity verification is still pending.");
+        router.push("/login");
+        return;
+      }
+
+      setSubscription({ ...subscription, stripe_subscription_id });
       setMailItems(mailItems || []);
     } catch (err) {
       console.error("Auth error", err);
@@ -55,7 +62,6 @@ export default function Dashboard() {
 
   fetchData();
 }, [router]);
-
 
   const cancelSubscription = async () => {
   const external_id = subscription?.external_id;
@@ -99,7 +105,17 @@ export default function Dashboard() {
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Subscription Details</h2>
-        <p>Status: <strong>{subscription?.subscription?.status || "Unknown"}</strong></p>
+        <p>
+          Status:{" "}
+          {subscription?.review_status === "PENDING" && (
+            <span className="text-yellow-600 font-semibold">Pending Verification</span>
+          )}
+          {subscription?.review_status === "ACTIVE" && (
+            <span className="text-green-600 font-semibold">Active</span>
+          )}
+          {!subscription?.review_status && (
+            <span className="text-gray-500 font-medium">Unknown</span>
+          )}</p>
         <p>Company: {subscription?.company_name || subscription?.company?.name || <em>Not provided</em>}</p>
 
         {(subscription?.shipping_line_1 || subscription?.shipping_address?.shipping_address_line_1) ? (

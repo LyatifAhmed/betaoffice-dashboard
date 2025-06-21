@@ -1,19 +1,29 @@
-// pages/login.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import axios from "axios";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [warning, setWarning] = useState("");
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (router.query.reason === "kyc") {
+      setWarning("⚠️ Your identity verification is still pending. Please wait until your account is approved.");
+    }
+  }, [router.query]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    setWarning("");
 
     try {
       const res = await axios.post("/api/send-login-link", { email });
@@ -37,6 +47,12 @@ export default function LoginPage() {
           <p className="text-sm text-gray-600 text-center">
             Enter your email and we&apos;ll send you a secure login link.
           </p>
+
+          {warning && (
+            <div className="bg-yellow-100 text-yellow-800 text-sm p-3 rounded border border-yellow-300">
+              {warning}
+            </div>
+          )}
 
           <input
             type="email"
