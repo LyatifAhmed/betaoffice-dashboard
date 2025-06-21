@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { GetServerSidePropsContext } from "next";
+import { parse } from "cookie";
 
 type MailItem = {
   id: string;
@@ -45,7 +46,7 @@ export default function Dashboard() {
         }
 
         // ✅ Statü kontrolü - CANCELLED ise giriş engellenir
-        if (subscription?.subscription?.status === "CANCELLED") {
+        if (subscription?.status === "CANCELLED") {
           setError("Your subscription has been cancelled.");
           return;
         }
@@ -94,7 +95,7 @@ export default function Dashboard() {
     }
   };
 
-  const isPendingKyc = subscription?.subscription?.status === "NO_ID";
+  const isPendingKyc = subscription?.status === "NO_ID";
 
   if (loading) return <div className="p-6">Loading...</div>;
 
@@ -227,13 +228,10 @@ export default function Dashboard() {
 }
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-  const cookie = ctx.req.headers.cookie || "";
-  const hasAuth =
-    cookie.includes("external_id=") &&
-    !cookie.includes("external_id=;") &&
-    !cookie.includes("external_id=deleted");
+  const parsed = parse(ctx.req.headers.cookie || "");
+  const externalId = parsed.external_id;
 
-  if (!hasAuth) {
+  if (!externalId) {
     return {
       redirect: {
         destination: "/login",

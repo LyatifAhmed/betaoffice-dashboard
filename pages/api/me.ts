@@ -11,6 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const parsedCookies = parse(cookieHeader);
   const externalId = parsedCookies.external_id;
 
+  console.log("Parsed external_id in /api/me:", externalId);
+
   if (!externalId) {
     return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
   }
@@ -21,7 +23,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Get subscription and mail from your FastAPI backend
     const [subscriptionRes, mailRes] = await Promise.all([
       axios.get(`${backendUrl}/subscription?external_id=${externalId}`),
       axios.get(`${backendUrl}/mail?external_id=${externalId}`),
@@ -30,8 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const subscription = subscriptionRes.data;
     console.log("DEBUG: Hoxton Subscription Response:", subscription);
 
-
-    // ❗ Müşteri sadece CANCELLED durumundaysa giriş reddedilsin
+    // 🔐 Sadece CANCELLED ise erişim engelle
     if (subscription?.status === "CANCELLED") {
       return res.status(403).json({ error: "Your account has been cancelled." });
     }
@@ -46,3 +46,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Failed to fetch from backend" });
   }
 }
+
