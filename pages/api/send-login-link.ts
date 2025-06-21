@@ -22,25 +22,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const check = await axios.get(`${backendUrl}/customer?email=${email}`);
     customer = check.data;
 
-    // ❗ KYC durumu kontrolü
     if (!customer?.external_id) {
       return res.status(404).json({ error: "Email not found in our system" });
     }
 
-    if (customer?.review_status !== "ACTIVE") {
-      return res.status(403).json({ error: "Your account has not been approved yet." });
+    // ✅ Sadece CANCELLED durumunu engelle
+    if (customer?.subscription?.status === "CANCELLED") {
+      return res.status(403).json({ error: "Your subscription has been cancelled." });
     }
 
   } catch (err) {
-  if (err instanceof Error) {
-    console.error("Email send error:", (err as any).response || err.message);
-  } else {
-    console.error("Unknown error:", err);
+    if (err instanceof Error) {
+      console.error("Email send error:", (err as any).response || err.message);
+    } else {
+      console.error("Unknown error:", err);
+    }
+
+    return res.status(500).json({ error: "Failed to send email." });
   }
-
-  return res.status(500).json({ error: "Failed to send email." });
-}
-
 
   const token = generateToken(email);
   const loginUrl = `${process.env.BASE_URL}/magic-login?token=${token}`;
