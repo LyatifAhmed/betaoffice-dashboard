@@ -26,8 +26,17 @@ export default function MagicLoginPage() {
           await axios.post(
             "/api/set-cookie",
             { external_id: res.data.external_id },
-            { withCredentials: true } // 🔥 bu önemli
+            { withCredentials: true }
           );
+
+          // ✅ Hemen ardından statü kontrolü
+          const meRes = await axios.get("/api/me", { withCredentials: true });
+          const subscription = meRes.data.subscription;
+
+          if (subscription?.status === "CANCELLED") {
+            setStatus("❌ Your subscription has been cancelled. Login not allowed.");
+            return;
+          }
 
           setStatus("✅ Login successful. Redirecting...");
           router.replace("/dashboard");
