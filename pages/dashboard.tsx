@@ -32,67 +32,81 @@ export default function Dashboard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const res = await axios.get("/api/me", { withCredentials: true });
-      const { subscription, mailItems, stripe_subscription_id } = res.data;
+    const fetchData = async () => {
+      try {
+        const res = await axios.get("/api/me", { withCredentials: true });
+        const { subscription, mailItems, stripe_subscription_id } = res.data;
 
-      if (!subscription) {
-        setError("Subscription not found.");
+        if (!subscription) {
+          setError("Subscription not found.");
+          router.push("/login");
+          return;
+        }
+
+        // ✅ Statü kontrolü - CANCELLED ise giriş engellenir
+        if (subscription?.subscription?.status === "CANCELLED") {
+          setError("Your subscription has been cancelled.");
+          return;
+        }
+
+        // ✅ KYC tamamlanmamışsa yönlendirme
+        if (subscription.review_status !== "ACTIVE") {
+          setError("Your identity verification is still pending.");
+          router.push("/login");
+          return;
+        }
+
+        setSubscription({ ...subscription, stripe_subscription_id });
+        setMailItems(mailItems || []);
+      } catch (err) {
+        console.error("Auth error", err);
         router.push("/login");
-        return;
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // ✅ Statü kontrolü
-      if (subscription.review_status !== "ACTIVE") {
-        setError("Your identity verification is still pending.");
-        router.push("/login");
-        return;
-      }
-
-      setSubscription({ ...subscription, stripe_subscription_id });
-      setMailItems(mailItems || []);
-    } catch (err) {
-      console.error("Auth error", err);
-      router.push("/login");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchData();
-}, [router]);
+    fetchData();
+  }, [router]);
 
   const cancelSubscription = async () => {
-  const external_id = subscription?.external_id;
-  const stripe_subscription_id = subscription?.subscription?.stripe_subscription_id;
+    const external_id = subscription?.external_id;
+    const stripe_subscription_id = subscription?.subscription?.stripe_subscription_id;
 
-  if (!external_id || !stripe_subscription_id) {
-    alert("Missing subscription details.");
-    return;
-  }
+    if (!external_id || !stripe_subscription_id) {
+      alert("Missing subscription details.");
+      return;
+    }
 
-  const confirmed = window.confirm("Are you sure you want to cancel your subscription?");
-  if (!confirmed) return;
+    const confirmed = window.confirm("Are you sure you want to cancel your subscription?");
+    if (!confirmed) return;
 
-  try {
-    await axios.post("/api/hoxton/cancel-subscription", {
-      external_id,
-      stripe_subscription_id,
-    });
-    alert("✅ Cancellation requested. Your subscription will end at the end of this billing period.");
-  } catch (err) {
-    console.error("Cancel error", err);
-    alert("❌ Failed to cancel. Please try again.");
-  }
-};
-
-
-
+    try {
+      await axios.post("/api/hoxton/cancel-subscription", {
+        external_id,
+        stripe_subscription_id,
+      });
+      alert("✅ Cancellation requested. Your subscription will end at the end of this billing period.");
+    } catch (err) {
+      console.error("Cancel error", err);
+      alert("❌ Failed to cancel. Please try again.");
+    }
+  };
 
   const isPendingKyc = subscription?.subscription?.status === "NO_ID";
 
   if (loading) return <div className="p-6">Loading...</div>;
+
+  // ❌ İptal edilmiş abonelik
+  if (subscription?.subscription?.status === "CANCELLED") {
+    return (
+      <div className="p-6 text-red-600 text-center">
+        <h1 className="text-2xl font-bold mb-4">Your subscription has been cancelled</h1>
+        <p className="text-gray-700">You no longer have access to the dashboard.</p>
+      </div>
+    );
+  }
+
   if (error || !subscription)
     return <div className="p-6 text-red-500">Error: {error || "No subscription loaded."}</div>;
 
