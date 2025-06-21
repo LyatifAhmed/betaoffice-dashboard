@@ -36,6 +36,7 @@ export default function Dashboard() {
       try {
         const res = await axios.get("/api/me", { withCredentials: true });
         const { subscription, mailItems, stripe_subscription_id } = res.data;
+        console.log("📦 Received subscription from API:", subscription);
 
         if (!subscription) {
           setError("Subscription not found.");

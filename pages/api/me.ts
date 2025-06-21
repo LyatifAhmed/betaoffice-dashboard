@@ -28,6 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     const subscription = subscriptionRes.data;
+    console.log("DEBUG: Hoxton Subscription Response:", subscription);
+
 
     // ❗ Müşteri sadece CANCELLED durumundaysa giriş reddedilsin
     if (subscription?.status === "CANCELLED") {
