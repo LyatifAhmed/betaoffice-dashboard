@@ -33,43 +33,53 @@ export default function Dashboard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get("/api/me", { withCredentials: true });
-        const { subscription, mailItems, stripe_subscription_id } = res.data;
-        console.log("📦 Received subscription from API:", subscription);
+  const fetchData = async () => {
+    console.log("🔥 fetchData triggered");
+    try {
+      const res = await axios.get("/api/me", { withCredentials: true });
+      const { subscription, mailItems, stripe_subscription_id } = res.data;
 
-        if (!subscription) {
-          setError("Subscription not found.");
-          router.push("/login");
-          return;
-        }
+      console.log("📦 Raw API response:", res.data);
+      console.log("📦 subscription:", subscription);
+      console.log("📨 mailItems:", mailItems);
+      console.log("💳 stripe_subscription_id:", stripe_subscription_id);
+      console.log("🧾 subscription.status:", subscription?.status);
+      console.log("🔍 subscription.review_status:", subscription?.review_status);
 
-        // ✅ Statü kontrolü - CANCELLED ise giriş engellenir
-        if (subscription?.status === "CANCELLED") {
-          setError("Your subscription has been cancelled.");
-          return;
-        }
-
-        // ✅ KYC tamamlanmamışsa yönlendirme
-        if (subscription.review_status !== "ACTIVE") {
-          setError("Your identity verification is still pending.");
-          router.push("/login");
-          return;
-        }
-
-        setSubscription({ ...subscription, stripe_subscription_id });
-        setMailItems(mailItems || []);
-      } catch (err) {
-        console.error("Auth error", err);
+      if (!subscription) {
+        setError("Subscription not found.");
         router.push("/login");
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    fetchData();
-  }, [router]);
+      // ✅ Statü kontrolü - CANCELLED ise giriş engellenir
+      if (subscription?.status === "CANCELLED") {
+        console.warn("🚫 CANCELLED status detected — blocking dashboard access.");
+        setError("Your subscription has been cancelled.");
+        return;
+      }
+
+      // ✅ KYC tamamlanmamışsa yönlendirme
+      if (subscription.review_status !== "ACTIVE") {
+        console.warn("🟡 KYC not complete — redirecting.");
+        setError("Your identity verification is still pending.");
+        router.push("/login");
+        return;
+      }
+
+      setSubscription({ ...subscription, stripe_subscription_id });
+      setMailItems(mailItems || []);
+    } catch (err) {
+      console.error("❌ Auth error:", err);
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [router]);
+
 
   const cancelSubscription = async () => {
     const external_id = subscription?.external_id;

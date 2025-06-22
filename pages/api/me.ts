@@ -11,16 +11,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const parsedCookies = parse(cookieHeader);
   const externalId = parsedCookies.external_id;
 
-  console.log("Parsed external_id in /api/me:", externalId);
+  console.log("🍪 Parsed external_id in /api/me:", externalId);
 
   if (!externalId) {
+    console.warn("⚠️ Missing external_id in cookie.");
     return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
   }
 
   const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
   if (!backendUrl) {
+    console.error("❌ Missing NEXT_PUBLIC_HOXTON_API_BACKEND_URL in env.");
     return res.status(500).json({ error: "Missing backend URL" });
   }
+
+  console.log(`🌐 Fetching from backend: ${backendUrl}`);
 
   try {
     const [subscriptionRes, mailRes] = await Promise.all([
@@ -29,21 +33,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     const subscription = subscriptionRes.data;
-    console.log("DEBUG: Hoxton Subscription Response:", subscription);
+    const mailItems = mailRes.data;
 
-    // 🔐 Sadece CANCELLED ise erişim engelle
+    console.log("📦 Subscription response:", subscription);
+    console.log("📫 Mail items:", mailItems?.length || 0);
+    console.log("🧾 Subscription status:", subscription?.status);
+    console.log("🔍 Review status:", subscription?.review_status);
+    console.log("💳 Stripe subscription ID:", subscription?.stripe_subscription_id);
+
     if (subscription?.status === "CANCELLED") {
+      console.warn("🚫 Access denied — subscription is CANCELLED.");
       return res.status(403).json({ error: "Your account has been cancelled." });
     }
 
     return res.status(200).json({
       subscription,
-      mailItems: mailRes.data,
+      mailItems,
       stripe_subscription_id: subscription?.stripe_subscription_id || null,
     });
   } catch (error: any) {
-    console.error("Backend fetch failed:", error?.response?.data || error.message);
+    console.error("❌ Backend fetch failed:", error?.response?.data || error.message);
     return res.status(500).json({ error: "Failed to fetch from backend" });
   }
 }
-
