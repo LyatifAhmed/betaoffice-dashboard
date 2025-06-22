@@ -10,9 +10,18 @@ import {
   FileTextIcon,
   ShieldAlert,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { GetServerSidePropsContext } from "next";
 import { parse } from "cookie";
 
@@ -39,13 +48,6 @@ export default function Dashboard() {
         const res = await axios.get("/api/me", { withCredentials: true });
         const { subscription, mailItems, stripe_subscription_id } = res.data;
 
-        console.log("📦 Raw API response:", res.data);
-        console.log("📦 subscription:", subscription);
-        console.log("📨 mailItems:", mailItems);
-        console.log("💳 stripe_subscription_id:", stripe_subscription_id);
-        console.log("🧾 subscription.status:", subscription?.status);
-        console.log("🔍 subscription.review_status:", subscription?.review_status);
-
         if (!subscription) {
           setError("Subscription not found.");
           router.push("/login");
@@ -53,15 +55,7 @@ export default function Dashboard() {
         }
 
         if (subscription?.status === "CANCELLED") {
-          console.warn("🚫 CANCELLED status detected — blocking dashboard access.");
           setError("Your subscription has been cancelled.");
-          return;
-        }
-
-        if (subscription.review_status !== "ACTIVE") {
-          console.warn("🟡 KYC not complete — redirecting.");
-          setError("Your identity verification is still pending.");
-          router.push("/login?reason=kyc");
           return;
         }
 
@@ -125,6 +119,18 @@ export default function Dashboard() {
         Welcome, {subscription?.customer_first_name || subscription?.customer?.first_name || "User"}
       </h1>
 
+      {subscription.review_status !== "ACTIVE" && (
+        <div className="p-6 bg-yellow-50 border border-yellow-300 rounded-lg shadow-sm flex gap-3 items-start mb-6">
+          <ShieldAlert className="text-yellow-600 mt-1" />
+          <div>
+            <h3 className="font-semibold text-yellow-800 mb-1">Verification Pending</h3>
+            <p className="text-sm text-yellow-700">
+              Your identity verification is still pending. Once approved, mail items will be visible here.
+            </p>
+          </div>
+        </div>
+      )}
+
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Subscription Details</h2>
         <p>
@@ -163,17 +169,7 @@ export default function Dashboard() {
         </Button>
       </section>
 
-      {isPendingKyc ? (
-        <div className="p-6 bg-yellow-50 border border-yellow-300 rounded-lg shadow-sm flex gap-3 items-start">
-          <ShieldAlert className="text-yellow-600 mt-1" />
-          <div>
-            <h3 className="font-semibold text-yellow-800 mb-1">Identity verification pending</h3>
-            <p className="text-sm text-yellow-700">
-              Please complete the KYC verification to receive mail.
-            </p>
-          </div>
-        </div>
-      ) : (
+      {subscription.review_status === "ACTIVE" && (
         <section>
           <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
             <MailIcon className="h-5 w-5" /> Incoming Mail
