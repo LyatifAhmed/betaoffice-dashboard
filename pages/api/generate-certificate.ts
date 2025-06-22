@@ -1,9 +1,9 @@
-// File: pages/api/generate-certificate.ts
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { parse } from "cookie";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import axios from "axios";
+import fs from "fs";
+import path from "path";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const parsed = parse(req.headers.cookie || "");
@@ -14,10 +14,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL; // ✅ updated to use NEXT_PUBLIC_SITE_URL
 
-  if (!backendUrl || !baseUrl) {
-    return res.status(500).json({ error: "Missing environment variables." });
+  if (!backendUrl) {
+    return res.status(500).json({ error: "Missing backend URL" });
   }
 
   try {
@@ -31,9 +30,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const page = pdfDoc.addPage([595, 842]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    const imageRes = await fetch(`${baseUrl}/logopdf.png`);
-    const imageBuffer = await imageRes.arrayBuffer();
-    const logoImage = await pdfDoc.embedPng(imageBuffer);
+    // ✅ Logo'yu public klasöründen oku
+    const logoPath = path.join(process.cwd(), "public", "logopdf.png");
+    const logoBytes = fs.readFileSync(logoPath);
+    const logoImage = await pdfDoc.embedPng(logoBytes);
     const pngDims = logoImage.scale(0.4);
 
     page.drawImage(logoImage, {
@@ -74,7 +74,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Content-Disposition", "attachment; filename=certificate.pdf");
     res.status(200).send(Buffer.from(pdfBytes));
   } catch (error: any) {
-    console.error("❌ PDF generation failed:", error.message, error.stack);
+    console.error("❌ PDF generation failed:", error.message);
     res.status(500).json({ error: "Failed to generate certificate." });
   }
 }
+
