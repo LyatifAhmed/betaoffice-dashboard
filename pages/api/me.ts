@@ -50,7 +50,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subscription,
       mailItems,
       stripe_subscription_id: subscription?.stripe_subscription_id || null,
+      _debug: {
+        status: subscription?.status,
+        review_status: subscription?.review_status,
+        stripe_id: subscription?.stripe_subscription_id,
+        full_response: subscription,
+      },
     });
+
   } catch (error: any) {
     console.error("❌ Backend fetch failed:", error?.response?.data || error.message);
     return res.status(500).json({ error: "Failed to fetch from backend" });
