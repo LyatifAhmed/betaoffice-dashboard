@@ -36,6 +36,29 @@ export default function Dashboard() {
     }
   };
 
+  const handleGenerateCertificate = async () => {
+    try {
+      const res = await fetch("/api/generate-certificate");
+
+      if (!res.ok) {
+        throw new Error("Failed to generate certificate");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "betaoffice-certificate.pdf";
+      link.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      alert("❌ Could not generate certificate. Please try again.");
+    }
+  };
+
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
 
@@ -88,7 +111,7 @@ export default function Dashboard() {
                 </span>
                 <div className="flex gap-2">
                   <Button variant="destructive" onClick={cancelSubscription}>Cancel Subscription</Button>
-                  <Button>Generate PDF Certificate</Button>
+                  <Button onClick={handleGenerateCertificate}>Generate PDF Certificate</Button>
                 </div>
               </div>
 
@@ -106,7 +129,7 @@ export default function Dashboard() {
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
                 <p className="text-sm text-gray-500">
-                  Start Date: {new Date(subscription.start_date).toLocaleDateString()}
+                  Start Date: {subscription.start_date ? new Date(subscription.start_date).toLocaleDateString() : "N/A"}
                 </p>
               </div>
 
@@ -122,3 +145,4 @@ export default function Dashboard() {
     </main>
   );
 }
+
