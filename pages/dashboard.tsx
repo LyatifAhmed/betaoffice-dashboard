@@ -33,53 +33,50 @@ export default function Dashboard() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-  const fetchData = async () => {
-    console.log("🔥 fetchData triggered");
-    try {
-      const res = await axios.get("/api/me", { withCredentials: true });
-      const { subscription, mailItems, stripe_subscription_id } = res.data;
+    const fetchData = async () => {
+      console.log("🔥 fetchData triggered");
+      try {
+        const res = await axios.get("/api/me", { withCredentials: true });
+        const { subscription, mailItems, stripe_subscription_id } = res.data;
 
-      console.log("📦 Raw API response:", res.data);
-      console.log("📦 subscription:", subscription);
-      console.log("📨 mailItems:", mailItems);
-      console.log("💳 stripe_subscription_id:", stripe_subscription_id);
-      console.log("🧾 subscription.status:", subscription?.status);
-      console.log("🔍 subscription.review_status:", subscription?.review_status);
+        console.log("📦 Raw API response:", res.data);
+        console.log("📦 subscription:", subscription);
+        console.log("📨 mailItems:", mailItems);
+        console.log("💳 stripe_subscription_id:", stripe_subscription_id);
+        console.log("🧾 subscription.status:", subscription?.status);
+        console.log("🔍 subscription.review_status:", subscription?.review_status);
 
-      if (!subscription) {
-        setError("Subscription not found.");
+        if (!subscription) {
+          setError("Subscription not found.");
+          router.push("/login");
+          return;
+        }
+
+        if (subscription?.status === "CANCELLED") {
+          console.warn("🚫 CANCELLED status detected — blocking dashboard access.");
+          setError("Your subscription has been cancelled.");
+          return;
+        }
+
+        if (subscription.review_status !== "ACTIVE") {
+          console.warn("🟡 KYC not complete — redirecting.");
+          setError("Your identity verification is still pending.");
+          router.push("/login?reason=kyc");
+          return;
+        }
+
+        setSubscription({ ...subscription, stripe_subscription_id });
+        setMailItems(mailItems || []);
+      } catch (err) {
+        console.error("❌ Auth error:", err);
         router.push("/login");
-        return;
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // ✅ Statü kontrolü - CANCELLED ise giriş engellenir
-      if (subscription?.status === "CANCELLED") {
-        console.warn("🚫 CANCELLED status detected — blocking dashboard access.");
-        setError("Your subscription has been cancelled.");
-        return;
-      }
-
-      // ✅ KYC tamamlanmamışsa yönlendirme
-      if (subscription.review_status !== "ACTIVE") {
-        console.warn("🟡 KYC not complete — redirecting.");
-        setError("Your identity verification is still pending.");
-        router.push("/login");
-        return;
-      }
-
-      setSubscription({ ...subscription, stripe_subscription_id });
-      setMailItems(mailItems || []);
-    } catch (err) {
-      console.error("❌ Auth error:", err);
-      router.push("/login");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchData();
-}, [router]);
-
+    fetchData();
+  }, [router]);
 
   const cancelSubscription = async () => {
     const external_id = subscription?.external_id;
@@ -109,7 +106,6 @@ export default function Dashboard() {
 
   if (loading) return <div className="p-6">Loading...</div>;
 
-  // ❌ İptal edilmiş abonelik
   if (subscription?.subscription?.status === "CANCELLED") {
     return (
       <div className="p-6 text-red-600 text-center">
@@ -141,7 +137,8 @@ export default function Dashboard() {
           )}
           {!subscription?.review_status && (
             <span className="text-gray-500 font-medium">Unknown</span>
-          )}</p>
+          )}
+        </p>
         <p>Company: {subscription?.company_name || subscription?.company?.name || <em>Not provided</em>}</p>
 
         {(subscription?.shipping_line_1 || subscription?.shipping_address?.shipping_address_line_1) ? (

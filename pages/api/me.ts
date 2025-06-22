@@ -24,8 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Missing backend URL" });
   }
 
-  console.log(`🌐 Fetching from backend: ${backendUrl}`);
-
   try {
     const [subscriptionRes, mailRes] = await Promise.all([
       axios.get(`${backendUrl}/subscription?external_id=${externalId}`),
@@ -35,31 +33,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const subscription = subscriptionRes.data;
     const mailItems = mailRes.data;
 
-    console.log("📦 Subscription response:", subscription);
-    console.log("📫 Mail items:", mailItems?.length || 0);
-    console.log("🧾 Subscription status:", subscription?.status);
-    console.log("🔍 Review status:", subscription?.review_status);
-    console.log("💳 Stripe subscription ID:", subscription?.stripe_subscription_id);
+    const reviewStatus = subscription?.review_status;
+    const stripeId =
+      subscription?.stripe_subscription_id ||
+      subscription?.subscription?.stripe_subscription_id ||
+      null;
 
-    if (subscription?.status === "CANCELLED") {
-      console.warn("🚫 Access denied — subscription is CANCELLED.");
-      return res.status(403).json({ error: "Your account has been cancelled." });
+    console.log("📦 Subscription:", subscription);
+    console.log("📬 Mail count:", mailItems?.length || 0);
+    console.log("🧾 Review Status:", reviewStatus);
+    console.log("💳 Stripe Subscription ID:", stripeId);
+
+    if (reviewStatus !== "ACTIVE") {
+      console.warn("🚫 Access denied — KYC not completed.");
+      return res.status(403).json({ error: "Your identity verification is not complete." });
     }
 
     return res.status(200).json({
       subscription,
       mailItems,
-      stripe_subscription_id: subscription?.stripe_subscription_id || null,
+      stripe_subscription_id: stripeId,
       _debug: {
-        status: subscription?.status,
-        review_status: subscription?.review_status,
-        stripe_id: subscription?.stripe_subscription_id,
-        full_response: subscription,
+        review_status: reviewStatus,
+        stripe_id: stripeId,
       },
     });
 
   } catch (error: any) {
-    console.error("❌ Backend fetch failed:", error?.response?.data || error.message);
+    console.error("❌ Backend fetch failed:", {
+      message: error?.message,
+      response: error?.response?.data,
+      stack: error?.stack,
+    });
     return res.status(500).json({ error: "Failed to fetch from backend" });
   }
 }
