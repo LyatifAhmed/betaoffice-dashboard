@@ -14,30 +14,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL; // e.g. https://betaoffice.uk
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL; // ✅ updated to use NEXT_PUBLIC_SITE_URL
 
   if (!backendUrl || !baseUrl) {
     return res.status(500).json({ error: "Missing environment variables." });
   }
 
   try {
-    // 1. Subscription verisini çek
     const subRes = await axios.get(`${backendUrl}/subscription?external_id=${externalId}`);
     const subscription = subRes.data;
 
     const companyName = subscription?.company_name || "Your Company";
     const fullName = `${subscription?.customer_first_name || ""} ${subscription?.customer_last_name || ""}`.trim();
 
-    // 2. PDF oluştur
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4 boyutu
+    const page = pdfDoc.addPage([595, 842]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // 3. Logo ekle
     const imageRes = await fetch(`${baseUrl}/logopdf.png`);
     const imageBuffer = await imageRes.arrayBuffer();
     const logoImage = await pdfDoc.embedPng(imageBuffer);
     const pngDims = logoImage.scale(0.4);
+
     page.drawImage(logoImage, {
       x: 50,
       y: 770,
@@ -45,7 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       height: pngDims.height,
     });
 
-    // 4. Metin ekle
     page.drawText("Letter of Certification", { x: 50, y: 720, size: 18, font });
     page.drawText(new Date().toDateString(), { x: 50, y: 700, size: 12, font });
 
@@ -71,8 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     page.drawText("Sincerely,", { x: 50, y: 510, size: 12, font });
     page.drawText("BetaOffice Customer Support", { x: 50, y: 495, size: 12, font });
 
-    // 5. PDF'i gönder
     const pdfBytes = await pdfDoc.save();
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=certificate.pdf");
     res.status(200).send(Buffer.from(pdfBytes));
@@ -81,4 +78,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: "Failed to generate certificate." });
   }
 }
-
