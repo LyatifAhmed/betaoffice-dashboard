@@ -5,6 +5,7 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Mail, Info, FileText } from "lucide-react";
 
 export default function Dashboard() {
@@ -12,6 +13,9 @@ export default function Dashboard() {
   const [subscription, setSubscription] = useState<any>(null);
   const [mailItems, setMailItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     axios.get("/api/me", { withCredentials: true }).then(res => {
@@ -39,25 +43,29 @@ export default function Dashboard() {
   const handleGenerateCertificate = async () => {
     try {
       const res = await fetch("/api/generate-certificate");
-
-      if (!res.ok) {
-        throw new Error("Failed to generate certificate");
-      }
+      if (!res.ok) throw new Error("Failed to generate certificate");
 
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
       link.href = url;
       link.download = "betaoffice-certificate.pdf";
       link.click();
-
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("PDF generation failed:", error);
       alert("❌ Could not generate certificate. Please try again.");
     }
   };
+
+  const filteredMail = mailItems.filter((item) => {
+    const senderMatch = item.sender_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const createdAt = new Date(item.created_at);
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    const dateMatch = (!start || createdAt >= start) && (!end || createdAt <= end);
+    return senderMatch && dateMatch;
+  });
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
@@ -77,8 +85,13 @@ export default function Dashboard() {
         <TabsContent value="mail">
           <Card>
             <CardContent className="p-6">
-              {mailItems.length === 0 ? (
-                <p className="text-gray-500 text-sm">No scanned mail yet.</p>
+              <div className="flex gap-4 mb-4">
+                <Input placeholder="Search sender (e.g., HMRC)" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
+              {filteredMail.length === 0 ? (
+                <p className="text-gray-500 text-sm">No mail matches your criteria.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm border">
@@ -91,22 +104,14 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mailItems.map((item) => (
+                      {filteredMail.map((item) => (
                         <tr key={item.id} className="border-t">
                           <td className="p-2 border">{item.sender_name || "Unknown"}</td>
                           <td className="p-2 border">{item.document_title || "-"}</td>
+                          <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
                           <td className="p-2 border">
-                            {new Date(item.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="p-2 border">
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline flex items-center"
-                            >
-                              <FileText className="w-4 h-4 mr-1" />
-                              View
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
+                              <FileText className="w-4 h-4 mr-1" /> View
                             </a>
                           </td>
                         </tr>
@@ -118,7 +123,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-
 
         <TabsContent value="details">
           <Card>
@@ -170,4 +174,5 @@ export default function Dashboard() {
     </main>
   );
 }
+
 
