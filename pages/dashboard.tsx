@@ -167,49 +167,66 @@ export default function Dashboard() {
         <TabsContent value="details">
           <Card>
             <CardContent className="space-y-6 p-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <span className="text-sm font-medium">
-                  Status: {" "}
-                  <span className={
-                    subscription.review_status === "ACTIVE" ? "text-green-600" :
-                    subscription.review_status === "PENDING" ? "text-yellow-600" :
-                    "text-gray-500"
-                  }>
+                  Status:{" "}
+                  <span
+                    className={
+                      subscription.review_status === "ACTIVE"
+                        ? "text-green-600"
+                        : subscription.review_status === "PENDING"
+                        ? "text-yellow-600"
+                        : "text-gray-500"
+                    }
+                  >
                     {subscription.review_status || "Unknown"}
                   </span>
                 </span>
-                <div className="flex gap-2">
-                  <Button variant="destructive" onClick={cancelSubscription}>Cancel Subscription</Button>
-                  <Button onClick={handleGenerateCertificate}>Generate PDF Certificate</Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="destructive" onClick={cancelSubscription}>
+                    Cancel Subscription
+                  </Button>
+                  <Button onClick={handleGenerateCertificate}>
+                    Generate PDF Certificate
+                  </Button>
                 </div>
               </div>
 
-              <div>
+              <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Company</h2>
                 <p>{subscription.company_name || "Not provided"}</p>
                 <p>
-                  {subscription.shipping_line_1}<br />
-                  {subscription.shipping_city}, {subscription.shipping_postcode}<br />
+                  {subscription.shipping_line_1}
+                  <br />
+                  {subscription.shipping_city}, {subscription.shipping_postcode}
+                  <br />
                   {subscription.shipping_country}
                 </p>
               </div>
 
-              <div>
+              <div className="text-sm">
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
-                <p className="text-sm text-gray-500">
-                  Start Date: {subscription.start_date ? new Date(subscription.start_date).toLocaleDateString() : "N/A"}
+                <p className="text-gray-500">
+                  Start Date:{" "}
+                  {subscription.start_date
+                    ? new Date(subscription.start_date).toLocaleDateString()
+                    : "N/A"}
                 </p>
               </div>
 
-              <div>
+              <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
-                <p>Name: {subscription.customer_first_name} {subscription.customer_last_name}</p>
+                <p>
+                  Name: {subscription.customer_first_name}{" "}
+                  {subscription.customer_last_name}
+                </p>
                 <p>Email: {subscription.customer_email}</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
     </main>
   );
