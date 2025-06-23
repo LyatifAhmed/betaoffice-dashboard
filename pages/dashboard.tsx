@@ -76,24 +76,49 @@ export default function Dashboard() {
 
         <TabsContent value="mail">
           <Card>
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-6">
               {mailItems.length === 0 ? (
                 <p className="text-gray-500 text-sm">No scanned mail yet.</p>
               ) : (
-                mailItems.map(item => (
-                  <div key={item.id} className="border p-4 rounded">
-                    <p><strong>Sender:</strong> {item.sender_name || "Unknown"}</p>
-                    <p><strong>Title:</strong> {item.document_title || "-"}</p>
-                    <p><strong>Date:</strong> {new Date(item.created_at).toLocaleDateString()}</p>
-                    <a href={item.url} target="_blank" className="text-blue-600 hover:underline flex items-center mt-1">
-                      <FileText className="w-4 h-4 mr-1" /> View Document
-                    </a>
-                  </div>
-                ))
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="text-left p-2 border">Sender</th>
+                        <th className="text-left p-2 border">Title</th>
+                        <th className="text-left p-2 border">Date</th>
+                        <th className="text-left p-2 border">Document</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mailItems.map((item) => (
+                        <tr key={item.id} className="border-t">
+                          <td className="p-2 border">{item.sender_name || "Unknown"}</td>
+                          <td className="p-2 border">{item.document_title || "-"}</td>
+                          <td className="p-2 border">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="p-2 border">
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline flex items-center"
+                            >
+                              <FileText className="w-4 h-4 mr-1" />
+                              View
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
 
         <TabsContent value="details">
           <Card>
