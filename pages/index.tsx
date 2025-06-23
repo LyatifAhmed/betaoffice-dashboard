@@ -50,8 +50,19 @@ export default function HomePage() {
           >
             View Plans
           </button>
+
+          {/* Login Link */}
+          <div className="mt-4">
+            <Link
+              href="/login"
+              className="text-blue-700 hover:text-blue-900 underline text-base font-medium transition-colors duration-200"
+            >
+              Already have an account? Log in
+            </Link>
+          </div>
         </div>
       </section>
+
 
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
