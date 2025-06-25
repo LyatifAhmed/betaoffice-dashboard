@@ -1,5 +1,3 @@
-// pages/dashboard.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,6 +15,8 @@ export default function Dashboard() {
   const [lastMailId, setLastMailId] = useState<number | null>(null);
   const [newMailAlert, setNewMailAlert] = useState(false);
   const [searchSender, setSearchSender] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const fetchMailData = async () => {
     try {
@@ -83,9 +83,13 @@ export default function Dashboard() {
     }
   };
 
-  const filteredMails = mailItems.filter((item) =>
-    item.sender_name?.toLowerCase().includes(searchSender.toLowerCase())
-  );
+  const filteredMails = mailItems.filter((item) => {
+    const matchesSender = item.sender_name?.toLowerCase().includes(searchSender.toLowerCase());
+    const createdDate = new Date(item.created_at);
+    const matchesStart = startDate ? createdDate >= new Date(startDate) : true;
+    const matchesEnd = endDate ? createdDate <= new Date(endDate) : true;
+    return matchesSender && matchesStart && matchesEnd;
+  });
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
@@ -117,75 +121,64 @@ export default function Dashboard() {
         <TabsContent value="mail">
           <Card>
             <CardContent className="p-6">
-              <input
-                type="text"
-                placeholder="Search by sender..."
-                className="mb-4 border px-2 py-1 rounded w-full"
-                value={searchSender}
-                onChange={(e) => setSearchSender(e.target.value)}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <input
+                  type="text"
+                  placeholder="Search by sender..."
+                  className="border px-2 py-1 rounded w-full"
+                  value={searchSender}
+                  onChange={(e) => setSearchSender(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="border px-2 py-1 rounded w-full"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="border px-2 py-1 rounded w-full"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
 
               {filteredMails.length === 0 ? (
                 <div className="text-center text-gray-500 text-sm">
                   ✉️ No scanned mail yet.
                 </div>
               ) : (
-                <>
-                  <div className="overflow-x-auto hidden md:table">
-                    <table className="min-w-full text-sm border">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="text-left p-2 border">Sender</th>
-                          <th className="text-left p-2 border">Title</th>
-                          <th className="text-left p-2 border">Date</th>
-                          <th className="text-left p-2 border">Document</th>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="text-left p-2 border">Sender</th>
+                        <th className="text-left p-2 border">Title</th>
+                        <th className="text-left p-2 border">Date</th>
+                        <th className="text-left p-2 border">Document</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredMails.map((item) => (
+                        <tr key={item.id} className="border-t">
+                          <td className="p-2 border">{item.sender_name || "Unknown"}</td>
+                          <td className="p-2 border">{item.document_title || "-"}</td>
+                          <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
+                          <td className="p-2 border">
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline flex items-center"
+                            >
+                              <FileText className="w-4 h-4 mr-1" />View
+                            </a>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {filteredMails.map((item) => (
-                          <tr key={item.id} className="border-t">
-                            <td className="p-2 border">{item.sender_name || "Unknown"}</td>
-                            <td className="p-2 border">{item.document_title || "-"}</td>
-                            <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
-                            <td className="p-2 border">
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline flex items-center"
-                              >
-                                <FileText className="w-4 h-4 mr-1" />View
-                              </a>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="md:hidden space-y-4">
-                    {filteredMails.map((item) => (
-                      <div
-                        key={item.id}
-                        className="border rounded p-4 shadow-sm bg-white dark:bg-gray-800"
-                      >
-                        <p><strong>Sender:</strong> {item.sender_name || "Unknown"}</p>
-                        <p><strong>Title:</strong> {item.document_title || "-"}</p>
-                        <p><strong>Date:</strong> {new Date(item.created_at).toLocaleDateString()}</p>
-                        <p>
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline flex items-center mt-1"
-                          >
-                            <FileText className="w-4 h-4 mr-1" />View Document
-                          </a>
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -196,7 +189,7 @@ export default function Dashboard() {
             <CardContent className="space-y-6 p-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <span className="text-sm font-medium">
-                  Status:{" "}
+                  Status: {" "}
                   <span
                     className={
                       subscription.review_status === "ACTIVE"
@@ -235,7 +228,7 @@ export default function Dashboard() {
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
                 <p className="text-gray-500">
-                  Start Date:{" "}
+                  Start Date: {" "}
                   {subscription.start_date
                     ? new Date(subscription.start_date).toLocaleDateString()
                     : "N/A"}
@@ -245,7 +238,7 @@ export default function Dashboard() {
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
                 <p>
-                  Name: {subscription.customer_first_name}{" "}
+                  Name: {subscription.customer_first_name} {" "}
                   {subscription.customer_last_name}
                 </p>
                 <p>Email: {subscription.customer_email}</p>
@@ -253,7 +246,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </main>
   );
