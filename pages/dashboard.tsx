@@ -1,3 +1,5 @@
+// pages/dashboard.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -128,37 +130,62 @@ export default function Dashboard() {
                   ✉️ No scanned mail yet.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm border">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="text-left p-2 border">Sender</th>
-                        <th className="text-left p-2 border">Title</th>
-                        <th className="text-left p-2 border">Date</th>
-                        <th className="text-left p-2 border">Document</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMails.map((item) => (
-                        <tr key={item.id} className="border-t">
-                          <td className="p-2 border">{item.sender_name || "Unknown"}</td>
-                          <td className="p-2 border">{item.document_title || "-"}</td>
-                          <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
-                          <td className="p-2 border">
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline flex items-center"
-                            >
-                              <FileText className="w-4 h-4 mr-1" />View
-                            </a>
-                          </td>
+                <>
+                  <div className="overflow-x-auto hidden md:table">
+                    <table className="min-w-full text-sm border">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="text-left p-2 border">Sender</th>
+                          <th className="text-left p-2 border">Title</th>
+                          <th className="text-left p-2 border">Date</th>
+                          <th className="text-left p-2 border">Document</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {filteredMails.map((item) => (
+                          <tr key={item.id} className="border-t">
+                            <td className="p-2 border">{item.sender_name || "Unknown"}</td>
+                            <td className="p-2 border">{item.document_title || "-"}</td>
+                            <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
+                            <td className="p-2 border">
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex items-center"
+                              >
+                                <FileText className="w-4 h-4 mr-1" />View
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="md:hidden space-y-4">
+                    {filteredMails.map((item) => (
+                      <div
+                        key={item.id}
+                        className="border rounded p-4 shadow-sm bg-white dark:bg-gray-800"
+                      >
+                        <p><strong>Sender:</strong> {item.sender_name || "Unknown"}</p>
+                        <p><strong>Title:</strong> {item.document_title || "-"}</p>
+                        <p><strong>Date:</strong> {new Date(item.created_at).toLocaleDateString()}</p>
+                        <p>
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center mt-1"
+                          >
+                            <FileText className="w-4 h-4 mr-1" />View Document
+                          </a>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
