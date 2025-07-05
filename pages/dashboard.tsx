@@ -85,32 +85,6 @@ export default function Dashboard() {
     }
   };
 
-  const isExpired = (createdAt: string) => {
-    const created = new Date(createdAt);
-    const now = new Date();
-    const diffDays = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
-    return diffDays > 30;
-  };
-
-  const toggleSelect = (id: string) => {
-    const updated = new Set(selectedMails);
-    if (updated.has(id)) updated.delete(id);
-    else updated.add(id);
-    setSelectedMails(updated);
-  };
-
-  const selectAllExpired = () => {
-    const expiredIds = mailItems.filter(item => isExpired(item.created_at)).map(item => item.id);
-    setSelectedMails(new Set(expiredIds));
-  };
-
-  const deleteSelectedMails = () => {
-    const confirmed = window.confirm("Delete selected expired mails?");
-    if (!confirmed) return;
-    setMailItems(mailItems.filter(item => !selectedMails.has(item.id)));
-    setSelectedMails(new Set());
-  };
-
   const filteredMails = mailItems.filter((item) => {
     const matchesSender = item.sender_name?.toLowerCase().includes(searchSender.toLowerCase());
     const createdDate = new Date(item.created_at);
@@ -124,11 +98,6 @@ export default function Dashboard() {
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
-      <WalletSection
-        balance={subscription?.wallet_balance || 0}
-        customerEmail={subscription?.customer_email}
-      />
-
       <h1 className="text-2xl font-semibold mb-4">
         Welcome, {subscription?.customer_first_name || "User"}
       </h1>
@@ -176,13 +145,6 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="mb-2 flex gap-4">
-                <Button variant="outline" onClick={selectAllExpired}>Select All Expired</Button>
-                <Button variant="destructive" onClick={deleteSelectedMails} disabled={selectedMails.size === 0}>
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete Selected
-                </Button>
-              </div>
-
               {filteredMails.length === 0 ? (
                 <div className="text-center text-gray-500 text-sm">
                   ✉️ No scanned mail yet.
@@ -192,7 +154,6 @@ export default function Dashboard() {
                   <table className="min-w-full text-sm border">
                     <thead className="bg-gray-100">
                       <tr>
-                        <th className="p-2 border"><input type="checkbox" readOnly /></th>
                         <th className="text-left p-2 border">Sender</th>
                         <th className="text-left p-2 border">Title</th>
                         <th className="text-left p-2 border">Date</th>
@@ -202,15 +163,6 @@ export default function Dashboard() {
                     <tbody>
                       {filteredMails.map((item) => (
                         <tr key={item.id} className="border-t">
-                          <td className="p-2 border">
-                            {isExpired(item.created_at) && (
-                              <input
-                                type="checkbox"
-                                checked={selectedMails.has(item.id)}
-                                onChange={() => toggleSelect(item.id)}
-                              />
-                            )}
-                          </td>
                           <td className="p-2 border">{item.sender_name || "Unknown"}</td>
                           <td className="p-2 border">{item.document_title || "-"}</td>
                           <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
@@ -230,6 +182,10 @@ export default function Dashboard() {
                   </table>
                 </div>
               )}
+              <WalletSection
+                balance={subscription.wallet_balance || 0}
+                customerEmail={subscription.customer_email}
+              />
             </CardContent>
           </Card>
         </TabsContent>
