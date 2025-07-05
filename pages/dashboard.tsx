@@ -5,7 +5,15 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Info, FileText } from "lucide-react";
+import { Mail, Info, FileText, RotateCcw } from "lucide-react";
+
+function calculateDaysLeft(dateString: string) {
+  const createdAt = new Date(dateString);
+  const expiresAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const diff = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : 0;
+}
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -49,39 +57,6 @@ export default function Dashboard() {
     }, 10000);
     return () => clearInterval(interval);
   }, [lastMailId]);
-
-  const cancelSubscription = async () => {
-    const confirmed = window.confirm("Are you sure you want to cancel your subscription?");
-    if (!confirmed || !subscription?.external_id || !subscription?.stripe_subscription_id) return;
-
-    try {
-      await axios.post("/api/hoxton/cancel-subscription", {
-        external_id: subscription.external_id,
-        stripe_subscription_id: subscription.stripe_subscription_id,
-      });
-      alert("✅ Cancellation requested. Your subscription will end at the end of this billing period.");
-    } catch (err) {
-      console.error("Cancel error", err);
-      alert("❌ Failed to cancel. Please try again.");
-    }
-  };
-
-  const handleGenerateCertificate = async () => {
-    try {
-      const res = await fetch("/api/generate-certificate");
-      if (!res.ok) throw new Error("Failed to generate certificate");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "betaoffice-certificate.pdf";
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-      alert("❌ Could not generate certificate. Please try again.");
-    }
-  };
 
   const filteredMails = mailItems.filter((item) => {
     const matchesSender = item.sender_name?.toLowerCase().includes(searchSender.toLowerCase());
@@ -155,41 +130,37 @@ export default function Dashboard() {
                         <th className="text-left p-2 border">Sender</th>
                         <th className="text-left p-2 border">Title</th>
                         <th className="text-left p-2 border">Date</th>
+                        <th className="text-left p-2 border">Expires</th>
                         <th className="text-left p-2 border">Document</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredMails.map((item) => (
-                        <tr key={item.id} className="border-t">
-                          <td className="p-2 border">{item.sender_name || "Unknown"}</td>
-                          <td className="p-2 border">{item.document_title || "-"}</td>
-                          <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
-                          <td className="p-2 border space-y-1">
-                            {item.is_expired ? (
-                              <span className="text-red-500 text-sm">⛔ Link expired</span>
-                            ) : (
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline flex items-center"
-                              >
-                                <FileText className="w-4 h-4 mr-1" />View
-                              </a>
-                            )}
-                            {item.can_forward ? (
-                              <button
-                                className="text-sm text-green-600 underline hover:text-green-800 block"
-                                onClick={() => alert(`Forwarding mail ID: ${item.id}`)}
-                              >
-                                📤 Forward
-                              </button>
-                            ) : (
-                              <span className="text-gray-400 text-xs block">Forwarding not available</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredMails.map((item) => {
+                        const daysLeft = calculateDaysLeft(item.created_at);
+                        const expired = daysLeft === 0;
+                        return (
+                          <tr key={item.id} className="border-t">
+                            <td className="p-2 border">{item.sender_name || "Unknown"}</td>
+                            <td className="p-2 border">{item.document_title || "-"}</td>
+                            <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
+                            <td className="p-2 border">{expired ? "Expired" : `${daysLeft} days left`}</td>
+                            <td className="p-2 border">
+                              {expired ? (
+                                <span className="text-gray-400">Link expired</span>
+                              ) : (
+                                <a
+                                  href={item.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline flex items-center"
+                                >
+                                  <FileText className="w-4 h-4 mr-1" />View
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -217,12 +188,8 @@ export default function Dashboard() {
                   </span>
                 </span>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button variant="destructive" onClick={cancelSubscription}>
-                    Cancel Subscription
-                  </Button>
-                  <Button onClick={handleGenerateCertificate}>
-                    Generate PDF Certificate
-                  </Button>
+                  <Button variant="destructive" onClick={() => alert("Cancel logic here")}>Cancel Subscription</Button>
+                  <Button onClick={() => alert("PDF logic here")}>Generate PDF Certificate</Button>
                 </div>
               </div>
 
