@@ -5,7 +5,7 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Info, FileText, Trash2 } from "lucide-react";
+import { Mail, Info, FileText } from "lucide-react";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -17,7 +17,6 @@ export default function Dashboard() {
   const [searchSender, setSearchSender] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedExpiredIds, setSelectedExpiredIds] = useState<Set<string>>(new Set());
 
   const fetchMailData = async () => {
     try {
@@ -25,6 +24,7 @@ export default function Dashboard() {
       setSubscription(res.data.subscription);
       const items = res.data.mailItems || [];
       setMailItems(items);
+
       if (items.length > 0) {
         const newestId = items[0].id;
         if (lastMailId !== null && newestId !== lastMailId) {
@@ -44,7 +44,9 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(fetchMailData, 10000);
+    const interval = setInterval(() => {
+      fetchMailData();
+    }, 10000);
     return () => clearInterval(interval);
   }, [lastMailId]);
 
@@ -81,68 +83,45 @@ export default function Dashboard() {
     }
   };
 
-  const isExpired = (dateStr: string) => {
-    const created = new Date(dateStr);
-    const now = new Date();
-    const diff = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
-    return diff > 30;
-  };
-
   const filteredMails = mailItems.filter((item) => {
-    const createdDate = new Date(item.created_at);
     const matchesSender = item.sender_name?.toLowerCase().includes(searchSender.toLowerCase());
+    const createdDate = new Date(item.created_at);
     const matchesStart = startDate ? createdDate >= new Date(startDate) : true;
     const matchesEnd = endDate ? createdDate <= new Date(endDate) : true;
     return matchesSender && matchesStart && matchesEnd;
   });
-
-  const toggleExpiredSelect = (id: string) => {
-    setSelectedExpiredIds((prev) => {
-      const newSet = new Set(prev);
-      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-      return newSet;
-    });
-  };
-
-  const selectAllExpired = () => {
-    const expiredIds = filteredMails
-      .filter((item) => isExpired(item.created_at))
-      .map((item) => item.id);
-    setSelectedExpiredIds(new Set(expiredIds));
-  };
-
-  const deleteSelected = () => {
-    if (!window.confirm("Delete selected mails from dashboard view?")) return;
-    setMailItems((prev) => prev.filter((item) => !selectedExpiredIds.has(item.id)));
-    setSelectedExpiredIds(new Set());
-  };
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">Welcome, {subscription?.customer_first_name || "User"}</h1>
+      <h1 className="text-2xl font-semibold mb-4">
+        Welcome, {subscription?.customer_first_name || "User"}
+      </h1>
 
       {newMailAlert && (
         <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
           📬 New mail received
-          <button onClick={() => setNewMailAlert(false)} className="ml-4 underline text-sm text-blue-700">
+          <button
+            onClick={() => setNewMailAlert(false)}
+            className="ml-4 underline text-sm text-blue-700"
+          >
             Dismiss
           </button>
         </div>
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4 flex flex-wrap gap-2">
+        <TabsList className="mb-4">
           <TabsTrigger value="mail"><Mail className="w-4 h-4 mr-2" />Incoming Mail</TabsTrigger>
           <TabsTrigger value="details"><Info className="w-4 h-4 mr-2" />Details</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mail">
           <Card>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <input
                   type="text"
                   placeholder="Search by sender..."
@@ -164,46 +143,30 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="flex justify-between items-center mb-2 text-sm">
-                <Button variant="outline" onClick={selectAllExpired}>
-                  Select All Expired
-                </Button>
-                <Button variant="destructive" onClick={deleteSelected} disabled={selectedExpiredIds.size === 0}>
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete Selected
-                </Button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="p-2 border"><input type="checkbox" disabled /></th>
-                      <th className="p-2 border text-left">Sender</th>
-                      <th className="p-2 border text-left">Title</th>
-                      <th className="p-2 border text-left">Date</th>
-                      <th className="p-2 border text-left">Document</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredMails.map((item) => {
-                      const expired = isExpired(item.created_at);
-                      return (
+              {filteredMails.length === 0 ? (
+                <div className="text-center text-gray-500 text-sm">
+                  ✉️ No scanned mail yet.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="text-left p-2 border">Sender</th>
+                        <th className="text-left p-2 border">Title</th>
+                        <th className="text-left p-2 border">Date</th>
+                        <th className="text-left p-2 border">Document</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredMails.map((item) => (
                         <tr key={item.id} className="border-t">
-                          <td className="p-2 border text-center">
-                            {expired && (
-                              <input
-                                type="checkbox"
-                                checked={selectedExpiredIds.has(item.id)}
-                                onChange={() => toggleExpiredSelect(item.id)}
-                              />
-                            )}
-                          </td>
                           <td className="p-2 border">{item.sender_name || "Unknown"}</td>
                           <td className="p-2 border">{item.document_title || "-"}</td>
                           <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
-                          <td className="p-2 border">
-                            {expired ? (
-                              <span className="text-red-500">Expired</span>
+                          <td className="p-2 border space-y-1">
+                            {item.is_expired ? (
+                              <span className="text-red-500 text-sm">⛔ Link expired</span>
                             ) : (
                               <a
                                 href={item.url}
@@ -211,16 +174,26 @@ export default function Dashboard() {
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline flex items-center"
                               >
-                                <FileText className="w-4 h-4 mr-1" /> View
+                                <FileText className="w-4 h-4 mr-1" />View
                               </a>
+                            )}
+                            {item.can_forward ? (
+                              <button
+                                className="text-sm text-green-600 underline hover:text-green-800 block"
+                                onClick={() => alert(`Forwarding mail ID: ${item.id}`)}
+                              >
+                                📤 Forward
+                              </button>
+                            ) : (
+                              <span className="text-gray-400 text-xs block">Forwarding not available</span>
                             )}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -230,13 +203,16 @@ export default function Dashboard() {
             <CardContent className="space-y-6 p-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <span className="text-sm font-medium">
-                  Status: <span className={
-                    subscription.review_status === "ACTIVE"
-                      ? "text-green-600"
-                      : subscription.review_status === "PENDING"
-                      ? "text-yellow-600"
-                      : "text-gray-500"
-                  }>
+                  Status: {" "}
+                  <span
+                    className={
+                      subscription.review_status === "ACTIVE"
+                        ? "text-green-600"
+                        : subscription.review_status === "PENDING"
+                        ? "text-yellow-600"
+                        : "text-gray-500"
+                    }
+                  >
                     {subscription.review_status || "Unknown"}
                   </span>
                 </span>
@@ -266,7 +242,7 @@ export default function Dashboard() {
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
                 <p className="text-gray-500">
-                  Start Date:{" "}
+                  Start Date: {" "}
                   {subscription.start_date
                     ? new Date(subscription.start_date).toLocaleDateString()
                     : "N/A"}
@@ -276,7 +252,7 @@ export default function Dashboard() {
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
                 <p>
-                  Name: {subscription.customer_first_name}{" "}
+                  Name: {subscription.customer_first_name} {" "}
                   {subscription.customer_last_name}
                 </p>
                 <p>Email: {subscription.customer_email}</p>

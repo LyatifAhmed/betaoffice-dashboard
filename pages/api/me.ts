@@ -31,7 +31,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     const subscription = subscriptionRes.data;
-    const mailItems = mailRes.data;
+    const now = new Date();
+
+    const mailItems = (mailRes.data || []).map((item: any) => {
+      const createdAt = new Date(item.created_at);
+      const msSinceCreated = now.getTime() - createdAt.getTime();
+
+      const is_expired = msSinceCreated > 24 * 60 * 60 * 1000; // 24 saat (PDF link)
+      const can_forward = msSinceCreated <= 30 * 24 * 60 * 60 * 1000; // 30 gün
+
+      return {
+        ...item,
+        is_expired,
+        can_forward,
+      };
+    });
 
     const reviewStatus = subscription?.review_status;
     const stripeId =
