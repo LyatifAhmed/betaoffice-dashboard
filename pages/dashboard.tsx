@@ -5,8 +5,9 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Info, FileText, Trash2 } from "lucide-react";
+import { Mail, Info, FileText } from "lucide-react";
 import WalletSection from "@/components/WalletSection";
+import ForwardMailButton from "@/components/ForwardMailButton";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -93,6 +94,14 @@ export default function Dashboard() {
     return matchesSender && matchesStart && matchesEnd;
   });
 
+  const isLinkExpired = (createdAt: string): boolean => {
+    const createdDate = new Date(createdAt);
+    const now = new Date();
+    const diffInMs = now.getTime() - createdDate.getTime();
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+    return diffInDays > 30;
+  };
+
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
 
@@ -158,6 +167,7 @@ export default function Dashboard() {
                         <th className="text-left p-2 border">Title</th>
                         <th className="text-left p-2 border">Date</th>
                         <th className="text-left p-2 border">Document</th>
+                        <th className="text-left p-2 border">Forward</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -175,6 +185,23 @@ export default function Dashboard() {
                             >
                               <FileText className="w-4 h-4 mr-1" />View
                             </a>
+                          </td>
+                          <td className="p-2 border">
+                            <ForwardMailButton
+                              mailId={item.id}
+                              documentTitle={item.document_title}
+                              isExpired={isLinkExpired(item.created_at)}
+                              customerAddress={{
+                                line1: subscription.shipping_line_1,
+                                city: subscription.shipping_city,
+                                postcode: subscription.shipping_postcode,
+                                country: subscription.shipping_country,
+                              }}
+                              externalId={subscription.external_id}
+                              balance={subscription.wallet_balance || 0}
+                              forwardCost={2.5}
+                              onForwardSuccess={fetchMailData}
+                            />
                           </td>
                         </tr>
                       ))}

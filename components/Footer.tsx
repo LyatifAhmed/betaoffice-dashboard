@@ -1,4 +1,5 @@
 import Link from "next/link";
+// @ts-ignore
 import { FaLock, FaShieldAlt, FaCheckCircle, FaStar } from "react-icons/fa";
 
 export default function Footer() {
@@ -8,7 +9,7 @@ export default function Footer() {
         {/* Company Info */}
         <div>
           <h3 className="font-bold text-lg mb-2">BetaOffice</h3>
-          <p className="text-sm mb-1">3rd Floor, 86–90 Paul Street</p>
+          <p className="text-sm mb-1">3rd Floor, 86-90 Paul Street</p>
           <p className="text-sm mb-1">London EC2A 4NE, UK</p>
           <p className="text-sm">Company No: 16274319</p>
           <p className="text-sm">ICO No: ZB883806</p>
