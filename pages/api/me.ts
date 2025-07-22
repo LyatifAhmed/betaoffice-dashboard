@@ -11,24 +11,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const parsedCookies = parse(cookieHeader);
   const externalId = parsedCookies.external_id;
 
+  console.log("🍪 Parsed external_id in /api/me:", externalId);
+
   if (!externalId) {
+    console.warn("⚠️ Missing external_id in cookie.");
     return res.status(401).json({ error: "Not authenticated. Missing external_id cookie." });
   }
 
   const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
-  const backendUser = process.env.NEXT_PUBLIC_API_USER;
-  const backendPass = process.env.NEXT_PUBLIC_API_PASS;
+  const apiUser = process.env.NEXT_PUBLIC_API_USER;
+  const apiPass = process.env.NEXT_PUBLIC_API_PASS;
 
-  if (!backendUrl || !backendUser || !backendPass) {
-    return res.status(500).json({ error: "Backend credentials missing" });
+  if (!backendUrl || !apiUser || !apiPass) {
+    console.error("❌ Missing required environment variables.");
+    return res.status(500).json({ error: "Missing backend URL or credentials" });
   }
 
   try {
-    const auth = { username: backendUser, password: backendPass };
-
     const [subscriptionRes, mailRes] = await Promise.all([
-      axios.get(`${backendUrl}/subscription?external_id=${externalId}`, { auth }),
-      axios.get(`${backendUrl}/mail?external_id=${externalId}`, { auth }),
+      axios.get(`${backendUrl}/subscription?external_id=${externalId}`, {
+        auth: { username: apiUser, password: apiPass },
+      }),
+      axios.get(`${backendUrl}/mail?external_id=${externalId}`, {
+        auth: { username: apiUser, password: apiPass },
+      }),
     ]);
 
     const subscription = subscriptionRes.data;
@@ -38,15 +44,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const createdAt = new Date(item.created_at);
       const msSinceCreated = now.getTime() - createdAt.getTime();
 
+      const is_expired = msSinceCreated > 24 * 60 * 60 * 1000; // 24 saat (PDF link)
+      const can_forward = msSinceCreated <= 30 * 24 * 60 * 60 * 1000; // 30 gün
+
       return {
         ...item,
-        is_expired: msSinceCreated > 24 * 60 * 60 * 1000, // 24 saat
-        can_forward: msSinceCreated <= 30 * 24 * 60 * 60 * 1000, // 30 gün
+        is_expired,
+        can_forward,
       };
     });
 
     const reviewStatus = subscription?.review_status;
-    const stripeId = subscription?.stripe_subscription_id ?? null;
+    const stripeId =
+      subscription?.stripe_subscription_id ||
+      subscription?.subscription?.stripe_subscription_id ||
+      null;
 
     if (reviewStatus !== "ACTIVE") {
       return res.status(403).json({ error: "Your identity verification is not complete." });
@@ -56,12 +68,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subscription,
       mailItems,
       stripe_subscription_id: stripeId,
+      _debug: {
+        review_status: reviewStatus,
+        stripe_id: stripeId,
+      },
     });
 
   } catch (error: any) {
     console.error("❌ Backend fetch failed:", {
       message: error?.message,
       response: error?.response?.data,
+      stack: error?.stack,
     });
     return res.status(500).json({ error: "Failed to fetch from backend" });
   }
