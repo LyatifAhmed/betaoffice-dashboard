@@ -11,7 +11,7 @@ export const config = {
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-03-31.basil", // Versiyonunu gerektiği gibi ayarla
+  apiVersion: "2025-03-31.basil", // senin sürümün neyse onu kullan
 });
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -36,7 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-
         const external_id = session.metadata?.external_id;
         const isTopup = session.metadata?.topup === "true";
         const amount = session.amount_total ?? 0;
@@ -50,21 +49,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           await prisma.wallet.upsert({
             where: { external_id },
             update: { balance_pennies: { increment: amount } },
-            create: {
-              external_id,
-              balance_pennies: amount,
-            },
+            create: { external_id, balance_pennies: amount },
           });
-          console.log(`✅ Wallet updated: +£${amount / 100} for ${external_id}`);
+          console.log(`💰 Wallet top-up: +£${amount / 100} for ${external_id}`);
         } else {
-          console.log("ℹ️ Not a top-up session. Ignoring.");
+          console.log("ℹ️ Checkout completed, but not a top-up session.");
         }
+
         break;
       }
 
-      // 🎯 Gelecekte ekleyebilirsin:
-      // case "invoice.payment_succeeded":
-      // case "customer.subscription.created":
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const external_id = invoice.metadata?.external_id;
+
+        if (!external_id) {
+          console.warn("⚠️ Missing external_id in invoice metadata");
+          break;
+        }
+
+        await prisma.subscription.updateMany({
+          where: { external_id },
+          data: { review_status: "ACTIVE" }, // Veya kendi kullandığın alan
+        });
+
+        console.log(`✅ Subscription payment succeeded — activated for ${external_id}`);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const external_id = subscription.metadata?.external_id;
+
+        if (!external_id) {
+          console.warn("⚠️ Missing external_id in subscription metadata");
+          break;
+        }
+
+        await prisma.subscription.updateMany({
+          where: { external_id },
+          data: { review_status: "CANCELLED" },
+        });
+
+        console.log(`❌ Subscription cancelled for ${external_id}`);
+        break;
+      }
 
       default:
         console.log(`ℹ️ Unhandled event type: ${event.type}`);
@@ -72,8 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({ received: true });
   } catch (err) {
-    console.error("❌ Webhook handler error:", err);
+    console.error("❌ Webhook handler failed:", err);
     res.status(500).send("Internal server error");
   }
 }
-
