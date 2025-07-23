@@ -42,22 +42,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!external_id) {
           console.warn("⚠️ Missing external_id in metadata");
-          break;
+          return res.status(400).end("Missing external_id");
         }
 
         if (isTopup) {
           await prisma.wallet.upsert({
             where: { external_id },
             update: { balance_pennies: { increment: amount } },
-            create: { external_id, balance_pennies: amount },
+            create: {
+              external_id,
+              balance_pennies: amount,
+            },
           });
-          console.log(`💰 Wallet top-up: +£${amount / 100} for ${external_id}`);
+          console.log(`✅ Wallet updated: +£${amount / 100} for ${external_id}`);
         } else {
           console.log("ℹ️ Checkout completed, but not a top-up session.");
         }
 
         break;
       }
+
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
