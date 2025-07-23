@@ -6,7 +6,7 @@ type WalletSectionProps = {
   customerEmail: string;
 };
 
-export default function WalletSection({ balance, customerEmail }: WalletSectionProps) {
+export default function WalletSection({ balance }: WalletSectionProps) {
   const [amount, setAmount] = useState("");
   const [topUpLoading, setTopUpLoading] = useState(false);
 
@@ -33,7 +33,8 @@ export default function WalletSection({ balance, customerEmail }: WalletSectionP
       const res = await fetch("/api/stripe-topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerEmail, amount: parsedAmount }),
+        credentials: "include", // 🍪 external_id cookie üzerinden gitsin diye
+        body: JSON.stringify({ amount: parsedAmount }),
       });
 
       const data = await res.json();

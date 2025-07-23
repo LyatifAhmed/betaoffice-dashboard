@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
+import { parse } from "cookie";
 
 export const config = {
   runtime: "nodejs",
@@ -12,10 +13,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { amount, external_id } = req.body;
+  const { amount } = req.body;
+
+  // 🍪 Cookie'den external_id al
+  const cookieHeader = req.headers.cookie || "";
+  const parsedCookies = parse(cookieHeader);
+  const external_id = parsedCookies.external_id;
 
   if (!amount || !external_id) {
-    return res.status(400).json({ error: "Missing amount or external_id" });
+    return res.status(400).json({ error: "Missing amount or external_id (cookie)" });
   }
 
   if (typeof amount !== "number" || amount <= 0) {
@@ -36,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         {
           price_data: {
             currency: "gbp",
-            unit_amount: Math.round(amount * 100), // Stripe expects pennies
+            unit_amount: Math.round(amount * 100),
             product_data: {
               name: `Balance Top-Up (£${amount.toFixed(2)})`,
             },
