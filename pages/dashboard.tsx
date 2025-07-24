@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { parseCookies } from "nookies";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,12 +34,8 @@ export default function Dashboard() {
         }
         setLastMailId(newestId);
       }
-    } catch (error: any) {
-      if (error?.response?.status === 403) {
-        alert("❌ Your identity verification is not complete. Please check your email.");
-      } else {
-        console.error("Error fetching data:", error);
-      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -106,14 +101,28 @@ export default function Dashboard() {
     return diffInDays > 30;
   };
 
-  if (loading) return <div className="p-6">Loading your dashboard...</div>;
-  if (!subscription) return <div className="p-6 text-red-500">No active subscription found</div>;
+  if (loading)
+    return (
+      <div className="p-6 text-center text-muted-foreground text-sm">
+        ⏳ Loading your data...
+      </div>
+    );
+
+  if (!subscription)
+    return (
+      <div className="p-6 text-center text-red-500 text-sm">
+        ❌ Subscription not found. Please contact support.
+      </div>
+    );
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">
+      <h1 className="text-3xl font-bold tracking-tight mb-1">
         Welcome, {subscription?.customer_first_name || "User"}
       </h1>
+      <p className="text-muted-foreground mb-4">
+        Here’s your virtual office dashboard.
+      </p>
 
       {newMailAlert && (
         <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
@@ -129,8 +138,18 @@ export default function Dashboard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="mail"><Mail className="w-4 h-4 mr-2" />Incoming Mail</TabsTrigger>
-          <TabsTrigger value="details"><Info className="w-4 h-4 mr-2" />Details</TabsTrigger>
+          <TabsTrigger
+            className="data-[state=active]:bg-primary data-[state=active]:text-white"
+            value="mail"
+          >
+            <Mail className="w-4 h-4 mr-2" /> Incoming Mail
+          </TabsTrigger>
+          <TabsTrigger
+            className="data-[state=active]:bg-primary data-[state=active]:text-white"
+            value="details"
+          >
+            <Info className="w-4 h-4 mr-2" /> Details
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="mail">
@@ -159,8 +178,8 @@ export default function Dashboard() {
               </div>
 
               {filteredMails.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm">
-                  ✉️ No scanned mail yet.
+                <div className="text-center text-muted-foreground text-sm py-8">
+                  📭 You have no mail yet. When your company receives physical mail, it will appear here.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -176,10 +195,19 @@ export default function Dashboard() {
                     </thead>
                     <tbody>
                       {filteredMails.map((item) => (
-                        <tr key={item.id} className="border-t">
+                        <tr
+                          key={item.id}
+                          className="border-t hover:bg-muted transition-colors duration-150 ease-in-out"
+                        >
                           <td className="p-2 border">{item.sender_name || "Unknown"}</td>
                           <td className="p-2 border">{item.document_title || "-"}</td>
-                          <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
+                          <td className="p-2 border">
+                            {new Date(item.created_at).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </td>
                           <td className="p-2 border">
                             <a
                               href={item.url}
@@ -187,7 +215,7 @@ export default function Dashboard() {
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline flex items-center"
                             >
-                              <FileText className="w-4 h-4 mr-1" />View
+                              <FileText className="w-4 h-4 mr-1" /> View
                             </a>
                           </td>
                           <td className="p-2 border">
@@ -213,6 +241,7 @@ export default function Dashboard() {
                   </table>
                 </div>
               )}
+
               <WalletSection
                 balance={subscription.wallet_balance || 0}
                 customerEmail={subscription.customer_email}
@@ -240,11 +269,11 @@ export default function Dashboard() {
                   </span>
                 </span>
                 <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={handleGenerateCertificate}>
+                    Generate PDF Certificate
+                  </Button>
                   <Button variant="destructive" onClick={cancelSubscription}>
                     Cancel Subscription
-                  </Button>
-                  <Button onClick={handleGenerateCertificate}>
-                    Generate PDF Certificate
                   </Button>
                 </div>
               </div>
@@ -287,3 +316,4 @@ export default function Dashboard() {
     </main>
   );
 }
+
