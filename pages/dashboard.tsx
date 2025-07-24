@@ -5,7 +5,7 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Info, FileText } from "lucide-react";
+import { Mail, Info, FileText, RefreshCw } from "lucide-react";
 import WalletSection from "@/components/WalletSection";
 import ForwardMailButton from "@/components/ForwardMailButton";
 
@@ -99,6 +99,40 @@ export default function Dashboard() {
     const diffInMs = now.getTime() - createdDate.getTime();
     const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
     return diffInDays > 30;
+  };
+
+  const renderStatusCard = () => {
+    const status = subscription?.review_status;
+    let bgColor = "bg-gray-100 text-gray-800 border-gray-300";
+    let message = "Your subscription status is unknown.";
+
+    if (status === "ACTIVE") {
+      bgColor = "bg-green-100 text-green-800 border-green-300";
+      message = "✅ Your identity is verified. You can now use all features.";
+    } else if (status === "PENDING") {
+      bgColor = "bg-yellow-100 text-yellow-800 border-yellow-300";
+      message = "⏳ Your identity verification is in progress. We’ll notify you when it's complete.";
+    } else if (status === "NO_ID") {
+      bgColor = "bg-blue-100 text-blue-800 border-blue-300";
+      message = "📩 We are waiting for your identity verification. Please check your email.";
+    } else if (status === "CANCELLED") {
+      bgColor = "bg-red-100 text-red-800 border-red-300";
+      message = "❌ Your subscription has been cancelled. Contact support for help.";
+    }
+
+    return (
+      <div className={`p-4 mb-6 rounded border ${bgColor} flex justify-between items-center`}>
+        <p className="text-sm font-medium">{message}</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={fetchMailData}
+          className="text-sm flex items-center"
+        >
+          <RefreshCw className="w-4 h-4 mr-1" /> Refresh status
+        </Button>
+      </div>
+    );
   };
 
   if (loading) return <div className="p-6">Loading...</div>;
