@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { parseCookies } from "nookies";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ export default function Dashboard() {
   const [searchSender, setSearchSender] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedMails, setSelectedMails] = useState<Set<string>>(new Set());
 
   const fetchMailData = async () => {
     try {
@@ -35,8 +35,12 @@ export default function Dashboard() {
         }
         setLastMailId(newestId);
       }
-    } catch (error) {
-      console.error("Error fetching data:", error);
+    } catch (error: any) {
+      if (error?.response?.status === 403) {
+        alert("❌ Your identity verification is not complete. Please check your email.");
+      } else {
+        console.error("Error fetching data:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -102,8 +106,8 @@ export default function Dashboard() {
     return diffInDays > 30;
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
+  if (loading) return <div className="p-6">Loading your dashboard...</div>;
+  if (!subscription) return <div className="p-6 text-red-500">No active subscription found</div>;
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
