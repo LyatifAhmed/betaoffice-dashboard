@@ -143,7 +143,26 @@ export default function Dashboard() {
       <h1 className="text-2xl font-semibold mb-4">
         Welcome, {subscription?.customer_first_name || "User"}
       </h1>
-
+      <Button variant="outline" onClick={fetchMailData}>
+        🔄 Refresh Status
+      </Button>
+      
+      <div
+        className={`mb-6 p-4 rounded-lg border ${
+          subscription.review_status === "ACTIVE"
+            ? "bg-green-50 border-green-400 text-green-800"
+            : subscription.review_status === "PENDING"
+            ? "bg-yellow-50 border-yellow-400 text-yellow-800"
+            : "bg-red-50 border-red-400 text-red-800"
+        }`}
+      >
+        <p className="font-medium">
+          {subscription.review_status === "ACTIVE" && "✅ Your identity has been verified. Welcome!"}
+          {subscription.review_status === "PENDING" && "🕐 Your identity verification is still in progress. We'll notify you when it's ready."}
+          {subscription.review_status === "CANCELLED" && "❌ Your subscription has been cancelled. Please contact support if this is an error."}
+        </p>
+      </div>
+      
       {newMailAlert && (
         <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
           📬 New mail received
