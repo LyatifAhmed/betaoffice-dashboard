@@ -140,28 +140,17 @@ export default function Dashboard() {
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">
-        Welcome, {subscription?.customer_first_name || "User"}
-      </h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold">
+          Welcome, {subscription?.customer_first_name || "User"}
+        </h1>
+        <Button variant="outline" onClick={fetchMailData}>
+          🔄 Refresh Status
+        </Button>
+      </div>
 
       {renderStatusCard()}
-      
-      <div
-        className={`mb-6 p-4 rounded-lg border ${
-          subscription.review_status === "ACTIVE"
-            ? "bg-green-50 border-green-400 text-green-800"
-            : subscription.review_status === "PENDING"
-            ? "bg-yellow-50 border-yellow-400 text-yellow-800"
-            : "bg-red-50 border-red-400 text-red-800"
-        }`}
-      >
-        <p className="font-medium">
-          {subscription.review_status === "ACTIVE" && "✅ Your identity has been verified. Welcome!"}
-          {subscription.review_status === "PENDING" && "🕐 Your identity verification is still in progress. We'll notify you when it's ready."}
-          {subscription.review_status === "CANCELLED" && "❌ Your subscription has been cancelled. Please contact support if this is an error."}
-        </p>
-      </div>
-      
+
       {newMailAlert && (
         <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
           📬 New mail received
@@ -181,16 +170,6 @@ export default function Dashboard() {
         </TabsList>
 
         <TabsContent value="mail">
-          {subscription.review_status !== "ACTIVE" && (
-            <div className="mb-4 p-4 rounded-md border border-yellow-300 bg-yellow-50 text-yellow-900">
-              <h2 className="font-semibold mb-1 text-yellow-800">🕵️ Identity Verification Pending</h2>
-              <p className="text-sm">
-                We’ve received your application, but your identity verification is not yet complete.  
-                Please check your email and follow the instructions to verify your identity.
-              </p>
-            </div>
-          )}
-
           <Card>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
