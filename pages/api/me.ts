@@ -60,10 +60,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subscription?.subscription?.stripe_subscription_id ||
       null;
 
-    if (reviewStatus !== "ACTIVE") {
-      return res.status(403).json({ error: "Your identity verification is not complete." });
-    }
-
     return res.status(200).json({
       subscription,
       mailItems,
