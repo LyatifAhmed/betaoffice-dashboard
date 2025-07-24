@@ -144,9 +144,6 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold">
           Welcome, {subscription?.customer_first_name || "User"}
         </h1>
-        <Button variant="outline" onClick={fetchMailData}>
-          🔄 Refresh Status
-        </Button>
       </div>
 
       {renderStatusCard()}
