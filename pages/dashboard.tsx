@@ -22,25 +22,31 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState("");
 
   const fetchMailData = async () => {
-    try {
-      const res = await axios.get("/api/me", { withCredentials: true });
-      setSubscription(res.data.subscription);
-      const items = res.data.mailItems || [];
-      setMailItems(items);
+  try {
+    const res = await axios.get("/api/me", { withCredentials: true });
+    setSubscription(res.data.subscription);
+    const items = res.data.mailItems || [];
+    setMailItems(items);
 
-      if (items.length > 0) {
-        const newestId = items[0].id;
-        if (lastMailId !== null && newestId !== lastMailId) {
-          setNewMailAlert(true);
-        }
-        setLastMailId(newestId);
+    if (items.length > 0) {
+      const newestId = items[0].id;
+      if (lastMailId !== null && newestId !== lastMailId) {
+        setNewMailAlert(true);
       }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
+      setLastMailId(newestId);
     }
-  };
+  } catch (error: any) {
+    console.error("Error fetching data:", error);
+
+    // 👇 Yönlendirme kontrolü burada:
+    if (error.response?.status === 403) {
+      window.location.href = "/"; // veya "/apply" hangi sayfayı istiyorsan
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchMailData();

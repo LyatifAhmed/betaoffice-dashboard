@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     switch (event.type) {
       case "invoice.payment_failed": {
-        const invoice = event.data.object as any; // <== as any ile type genişletildi
+        const invoice = event.data.object as any;
         const external_id = invoice.metadata?.external_id;
         const customer = invoice.customer;
 
@@ -69,7 +69,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
       }
 
-
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         const external_id = invoice.metadata?.external_id;
@@ -90,7 +89,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const external_id = subscription.metadata?.external_id;
         if (!external_id) break;
 
-        // retry count kontrolü
         const attempts = await prisma.failedPaymentAttempt.findMany({
           where: { external_id },
         });
@@ -128,6 +126,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             update: { balance_pennies: { increment: amount } },
             create: { external_id, balance_pennies: amount },
           });
+
+          await prisma.subscription.updateMany({
+            where: { external_id },
+            data: { wallet_balance: { increment: amount / 100 } },
+          });
+
+          console.log(`💰 Top-up succeeded for ${external_id}: £${(amount / 100).toFixed(2)}`);
         }
         break;
       }

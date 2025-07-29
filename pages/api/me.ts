@@ -40,12 +40,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const subscription = subscriptionRes.data;
     const now = new Date();
 
+    // ❌ Block access if user cancelled before verifying ID
+    if (subscription.review_status === "NO_ID" && subscription.cancel_at_period_end === true) {
+      return res.status(403).json({
+        error: "Your registration was cancelled before ID verification. Please reapply.",
+      });
+    }
+
     const mailItems = (mailRes.data || []).map((item: any) => {
       const createdAt = new Date(item.created_at);
       const msSinceCreated = now.getTime() - createdAt.getTime();
 
-      const is_expired = msSinceCreated > 24 * 60 * 60 * 1000; // 24 saat (PDF link)
-      const can_forward = msSinceCreated <= 30 * 24 * 60 * 60 * 1000; // 30 gün
+      const is_expired = msSinceCreated > 24 * 60 * 60 * 1000;
+      const can_forward = msSinceCreated <= 30 * 24 * 60 * 60 * 1000;
 
       return {
         ...item,
@@ -61,7 +68,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       null;
 
     return res.status(200).json({
-      subscription,
+      subscription: {
+        ...subscription,
+        wallet_balance: subscription.wallet_balance ?? 0, // ✅ EKLENDİ
+      },
       mailItems,
       stripe_subscription_id: stripeId,
       _debug: {
