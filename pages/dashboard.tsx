@@ -138,6 +138,7 @@ export default function Dashboard() {
         externalId={subscription.external_id}
         hoxtonStatus={subscription.review_status}
         cancelAtPeriodEnd={subscription.cancel_at_period_end}
+        reviewStatus={subscription.review_status}
       />
 
       {newMailAlert && (
@@ -270,6 +271,7 @@ export default function Dashboard() {
                     externalId={subscription.external_id}
                     hoxtonStatus={subscription.hoxton_status}
                     cancelAtPeriodEnd={subscription.cancel_at_period_end}
+                    reviewStatus={subscription.review_status}
                   />
 
                   <Button onClick={handleGenerateCertificate}>

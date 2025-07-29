@@ -5,6 +5,7 @@ type Props = {
   externalId: string
   hoxtonStatus: string
   cancelAtPeriodEnd: boolean
+  reviewStatus: string // e.g. "NO_ID", "PENDING", "ACTIVE"
 }
 
 export default function SubscriptionControls({
@@ -12,10 +13,21 @@ export default function SubscriptionControls({
   externalId,
   hoxtonStatus,
   cancelAtPeriodEnd,
+  reviewStatus,
 }: Props) {
   const [loading, setLoading] = useState(false)
 
   const cancel = async () => {
+    if (reviewStatus === "NO_ID") {
+      const confirm = window.confirm(
+        "Your identity has not been verified yet. Cancelling now will revoke your access. Are you sure?"
+      )
+      if (!confirm) return
+    } else {
+      const confirm = window.confirm("Are you sure you want to cancel your subscription?")
+      if (!confirm) return
+    }
+
     setLoading(true)
     try {
       const res = await fetch("/api/backend/cancel-at-period-end", {
