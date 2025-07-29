@@ -6,7 +6,9 @@ export const config = {
   runtime: "nodejs",
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2025-03-31.basil", // Stripe API versiyonu belirtmek iyi bir pratik
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -20,11 +22,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const parsedCookies = parse(cookieHeader);
   const external_id = parsedCookies.external_id;
 
+  // 🛡️ Validation
   if (!amount || !external_id) {
     return res.status(400).json({ error: "Missing amount or external_id (cookie)" });
   }
 
-  if (typeof amount !== "number" || amount <= 0) {
+  if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
     return res.status(400).json({ error: "Invalid amount. Must be a positive number." });
   }
 
@@ -36,13 +39,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      payment_method_types: ["card"], // ✅ Stripe beklediği şekilde: array
       mode: "payment",
       line_items: [
         {
           price_data: {
             currency: "gbp",
-            unit_amount: Math.round(amount * 100),
+            unit_amount: Math.round(amount * 100), // pennies
             product_data: {
               name: `Balance Top-Up (£${amount.toFixed(2)})`,
             },
@@ -52,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
       metadata: {
         external_id,
-        topup: "true",
+        topup: "true", // webhook'ta bu değer kontrol ediliyor
       },
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?topup=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?topup=cancel`,
