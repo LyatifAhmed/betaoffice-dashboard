@@ -5,7 +5,7 @@ type Props = {
   externalId: string
   hoxtonStatus: string
   cancelAtPeriodEnd: boolean
-  reviewStatus: string // e.g. "NO_ID", "PENDING", "ACTIVE"
+  reviewStatus: string
 }
 
 export default function SubscriptionControls({
@@ -18,16 +18,6 @@ export default function SubscriptionControls({
   const [loading, setLoading] = useState(false)
 
   const cancel = async () => {
-    if (reviewStatus === "NO_ID") {
-      const confirm = window.confirm(
-        "Your identity has not been verified yet. Cancelling now will revoke your access. Are you sure?"
-      )
-      if (!confirm) return
-    } else {
-      const confirm = window.confirm("Are you sure you want to cancel your subscription?")
-      if (!confirm) return
-    }
-
     setLoading(true)
     try {
       const res = await fetch("/api/backend/cancel-at-period-end", {
@@ -63,8 +53,25 @@ export default function SubscriptionControls({
     }
   }
 
+  // 🚫 ID verification not done: no cancel button
+  if (reviewStatus === "NO_ID") {
+    return (
+      <p className="text-sm text-gray-500">
+        📩 You haven’t completed identity verification yet. 
+        If you wish to cancel your subscription, please contact support at{" "}
+        <a href="mailto:support@betaoffice.uk" className="underline text-blue-600">
+          support@betaoffice.uk
+        </a>.
+      </p>
+    )
+  }
+
   if (cancelAtPeriodEnd) {
-    return <p className="text-sm text-gray-500">📅 You’ve already scheduled cancellation at the end of this term.</p>
+    return (
+      <p className="text-sm text-gray-500">
+        📅 You’ve already scheduled cancellation at the end of this term.
+      </p>
+    )
   }
 
   if (hoxtonStatus === "stopped") {
