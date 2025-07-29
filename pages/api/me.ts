@@ -28,17 +28,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const [subscriptionRes, mailRes] = await Promise.all([
-      axios.get(`${backendUrl}/subscription?external_id=${externalId}`, {
-        auth: { username: apiUser, password: apiPass },
-      }),
-      axios.get(`${backendUrl}/mail?external_id=${externalId}`, {
-        auth: { username: apiUser, password: apiPass },
-      }),
-    ]);
+    // Fetch subscription first
+    const subscriptionRes = await axios.get(`${backendUrl}/subscription?external_id=${externalId}`, {
+      auth: { username: apiUser, password: apiPass },
+    });
 
     const subscription = subscriptionRes.data;
-    const now = new Date();
 
     // ❌ Block access if user cancelled before verifying ID
     if (subscription.review_status === "NO_ID" && subscription.cancel_at_period_end === true) {
@@ -47,17 +42,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const mailItems = (mailRes.data || []).map((item: any) => {
+    // 📥 Fetch paginated mail items
+    let mailItems: any[] = [];
+    let page = 1;
+    let hasNext = true;
+
+    while (hasNext) {
+      const mailRes = await axios.get(
+        `${backendUrl}/mail?external_id=${externalId}&page=${page}&page_size=50`,
+        { auth: { username: apiUser, password: apiPass } }
+      );
+
+      const pageData = mailRes.data;
+      mailItems.push(...(pageData.results || []));
+      hasNext = !!pageData.next;
+      page++;
+    }
+
+    const now = new Date();
+    const processedMailItems = mailItems.map((item: any) => {
       const createdAt = new Date(item.created_at);
       const msSinceCreated = now.getTime() - createdAt.getTime();
 
-      const is_expired = msSinceCreated > 24 * 60 * 60 * 1000;
-      const can_forward = msSinceCreated <= 30 * 24 * 60 * 60 * 1000;
-
       return {
         ...item,
-        is_expired,
-        can_forward,
+        is_expired: msSinceCreated > 24 * 60 * 60 * 1000,
+        can_forward: msSinceCreated <= 30 * 24 * 60 * 60 * 1000,
       };
     });
 
@@ -70,9 +80,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       subscription: {
         ...subscription,
-        wallet_balance: subscription.wallet_balance ?? 0, // ✅ EKLENDİ
+        wallet_balance: subscription.wallet_balance ?? 0,
       },
-      mailItems,
+      mailItems: processedMailItems,
       stripe_subscription_id: stripeId,
       _debug: {
         review_status: reviewStatus,

@@ -22,42 +22,28 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState("");
 
   const fetchMailData = async () => {
-  try {
-    const res = await axios.get("/api/me", { withCredentials: true });
-    setSubscription(res.data.subscription);
-    const items = res.data.mailItems || [];
-    setMailItems(items);
+    try {
+      const res = await axios.get("/api/me", { withCredentials: true });
+      setSubscription(res.data.subscription);
+      const items = res.data.mailItems || [];
+      setMailItems(items);
 
-    if (items.length > 0) {
-      const newestId = items[0].id;
-      if (lastMailId !== null && newestId !== lastMailId) {
-        setNewMailAlert(true);
+      if (items.length > 0) {
+        const newestId = items[0].id;
+        if (lastMailId !== null && newestId !== lastMailId) {
+          setNewMailAlert(true);
+        }
+        setLastMailId(newestId);
       }
-      setLastMailId(newestId);
+    } catch (error: any) {
+      console.error("Error fetching data:", error);
+      if (error.response?.status === 403) {
+        window.location.href = "/";
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    console.error("Error fetching data:", error);
-
-    // 👇 Yönlendirme kontrolü burada:
-    if (error.response?.status === 403) {
-      window.location.href = "/"; // veya "/apply" hangi sayfayı istiyorsan
-    }
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  useEffect(() => {
-    fetchMailData();
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchMailData();
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [lastMailId]);
+  };
 
   const handleGenerateCertificate = async () => {
     try {
@@ -76,6 +62,17 @@ export default function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    fetchMailData();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchMailData();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [lastMailId]);
+
   const filteredMails = mailItems.filter((item) => {
     const matchesSender = item.sender_name?.toLowerCase().includes(searchSender.toLowerCase());
     const createdDate = new Date(item.created_at);
@@ -87,9 +84,7 @@ export default function Dashboard() {
   const isLinkExpired = (createdAt: string): boolean => {
     const createdDate = new Date(createdAt);
     const now = new Date();
-    const diffInMs = now.getTime() - createdDate.getTime();
-    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-    return diffInDays > 30;
+    return (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24) > 30;
   };
 
   const renderStatusCard = () => {
@@ -102,13 +97,13 @@ export default function Dashboard() {
       message = "✅ Your identity is verified. You can now use all features.";
     } else if (status === "PENDING") {
       bgColor = "bg-yellow-100 text-yellow-800 border-yellow-300";
-      message = "⏳ Your identity verification is in progress. We’ll notify you when it's complete.";
+      message = "⏳ Your identity verification is in progress.";
     } else if (status === "NO_ID") {
       bgColor = "bg-blue-100 text-blue-800 border-blue-300";
       message = "📩 We are waiting for your identity verification. Please check your email.";
     } else if (status === "CANCELLED") {
       bgColor = "bg-red-100 text-red-800 border-red-300";
-      message = "❌ Your subscription has been cancelled. Contact support for help.";
+      message = "❌ Your subscription has been cancelled.";
     }
 
     return (
@@ -131,21 +126,21 @@ export default function Dashboard() {
 
   return (
     <main className="p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">
-          Welcome, {subscription?.customer_first_name || "User"}
-        </h1>
-      </div>
+      <h1 className="text-2xl font-semibold mb-4">
+        Welcome, {subscription?.customer_first_name || "User"}
+      </h1>
 
       {renderStatusCard()}
 
-      <SubscriptionControls
-        stripeSubscriptionId={subscription.stripe_subscription_id}
-        externalId={subscription.external_id}
-        hoxtonStatus={subscription.review_status}
-        cancelAtPeriodEnd={subscription.cancel_at_period_end}
-        reviewStatus={subscription.review_status}
-      />
+      {activeTab === "details" && (
+        <SubscriptionControls
+          stripeSubscriptionId={subscription.stripe_subscription_id}
+          externalId={subscription.external_id}
+          hoxtonStatus={subscription.review_status}
+          cancelAtPeriodEnd={subscription.cancel_at_period_end}
+          reviewStatus={subscription.review_status}
+        />
+      )}
 
       {newMailAlert && (
         <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
@@ -168,32 +163,16 @@ export default function Dashboard() {
         <TabsContent value="mail">
           <Card>
             <CardContent className="p-6">
+              {/* Search */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                <input
-                  type="text"
-                  placeholder="Search by sender..."
-                  className="border px-2 py-1 rounded w-full"
-                  value={searchSender}
-                  onChange={(e) => setSearchSender(e.target.value)}
-                />
-                <input
-                  type="date"
-                  className="border px-2 py-1 rounded w-full"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-                <input
-                  type="date"
-                  className="border px-2 py-1 rounded w-full"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
+                <input type="text" placeholder="Search by sender..." className="border px-2 py-1 rounded w-full" value={searchSender} onChange={(e) => setSearchSender(e.target.value)} />
+                <input type="date" className="border px-2 py-1 rounded w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <input type="date" className="border px-2 py-1 rounded w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
 
+              {/* Mail Table */}
               {filteredMails.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm">
-                  ✉️ No scanned mail yet.
-                </div>
+                <div className="text-center text-gray-500 text-sm">✉️ No scanned mail yet.</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm border">
@@ -213,12 +192,7 @@ export default function Dashboard() {
                           <td className="p-2 border">{item.document_title || "-"}</td>
                           <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
                           <td className="p-2 border">
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline flex items-center"
-                            >
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
                               <FileText className="w-4 h-4 mr-1" />View
                             </a>
                           </td>
@@ -256,35 +230,9 @@ export default function Dashboard() {
         <TabsContent value="details">
           <Card>
             <CardContent className="space-y-6 p-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <span className="text-sm font-medium">
-                  Status: {" "}
-                  <span
-                    className={
-                      subscription.review_status === "ACTIVE"
-                        ? "text-green-600"
-                        : subscription.review_status === "PENDING"
-                        ? "text-yellow-600"
-                        : "text-gray-500"
-                    }
-                  >
-                    {subscription.review_status || "Unknown"}
-                  </span>
-                </span>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <SubscriptionControls
-                    stripeSubscriptionId={subscription.stripe_subscription_id}
-                    externalId={subscription.external_id}
-                    hoxtonStatus={subscription.hoxton_status}
-                    cancelAtPeriodEnd={subscription.cancel_at_period_end}
-                    reviewStatus={subscription.review_status}
-                  />
-
-                  <Button onClick={handleGenerateCertificate}>
-                    Generate PDF Certificate
-                  </Button>
-                </div>
-              </div>
+              <Button onClick={handleGenerateCertificate}>
+                Generate PDF Certificate
+              </Button>
 
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Company</h2>
@@ -302,7 +250,7 @@ export default function Dashboard() {
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
                 <p className="text-gray-500">
-                  Start Date: {" "}
+                  Start Date:{" "}
                   {subscription.start_date
                     ? new Date(subscription.start_date).toLocaleDateString()
                     : "N/A"}
@@ -312,7 +260,7 @@ export default function Dashboard() {
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
                 <p>
-                  Name: {subscription.customer_first_name} {" "}
+                  Name: {subscription.customer_first_name}{" "}
                   {subscription.customer_last_name}
                 </p>
                 <p>Email: {subscription.customer_email}</p>

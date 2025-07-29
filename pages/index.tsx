@@ -62,16 +62,50 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
+      
+      {/* Trusted By Section */}
+      <section className="bg-white py-12">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="text-gray-500 uppercase tracking-wide text-sm mb-6">Used alongside tools trusted by modern entrepreneurs</p>
+          <div className="flex flex-wrap justify-center gap-8 grayscale opacity-70">
+            <Image src="/logos/tide.svg" alt="Tide" width={100} height={40} />
+            <Image src="/logos/wise.svg" alt="Wise" width={100} height={40} />
+            <Image src="/logos/revolut.svg" alt="Revolut" width={100} height={40} />
+            <Image src="/logos/xero.svg" alt="Xero" width={100} height={40} />
+            <Image src="/logos/notion.svg" alt="Notion" width={100} height={40} />
+          </div>
+        </div>
+      </section>
 
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-12">What Makes BetaOffice Unique?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <Feature icon="📍" title="Verified UK Address" text="Boost your brand with a central London business address." />
-            <Feature icon="🤖" title="AI Mail Dashboard" text="Smart inbox powered by Hoxton’s infrastructure. Access anywhere, anytime." />
-            <Feature icon="🌍" title="Multi-language Onboarding" text="English, Turkish & more – tailored to digital nomads and creators." />
+            <Feature icon="📍" title="Director Address Privacy" text="Keep your personal details protected with our included director service address." />
+            <Feature icon="🤖" title="AI Mail Sorting" text="Our smart system categorizes, tags, and summarizes your mail instantly." />
+            <Feature icon="💎" title="No Hidden Fees" text="All-inclusive pricing. No handling charges, no surprise add-ons." />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="bg-white py-20 text-gray-900">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold mb-12">What Our Clients Say</h2>
+          <div className="grid gap-8 md:grid-cols-3">
+            <TestimonialCard
+              name="Sarah, Founder of NomadWise"
+              quote="BetaOffice helped me register my UK company in minutes. The AI mail system is a lifesaver while I travel."
+            />
+            <TestimonialCard
+              name="David, E-commerce Consultant"
+              quote="Finally a virtual office without annoying hidden fees. Everything I need is included."
+            />
+            <TestimonialCard
+              name="Leila, Creative Agency Owner"
+              quote="I love how professional my business now looks. The director privacy option gave me real peace of mind."
+            />
           </div>
         </div>
       </section>
@@ -89,7 +123,7 @@ export default function HomePage() {
               benefits={[
                 "Prestigious London address",
                 "AI-sorted scanned mail",
-                "Email notifications",
+                "Director address privacy included",
                 "Cancel anytime",
               ]}
               color="blue"
@@ -105,13 +139,16 @@ export default function HomePage() {
                 "All monthly features",
                 "Save £48/year",
                 "Priority support",
-                "Physical mail forwarding (per item)",
+                "Mail forwarding in UK (for small fee)",
               ]}
               badge="Best Value"
               color="green"
               onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID!)}
             />
           </div>
+          <p className="text-sm text-gray-500 mt-4">
+            Physical mail is stored for 30 days and securely shredded if not forwarded.
+          </p>
         </div>
       </section>
     </>
@@ -191,3 +228,11 @@ function PlanCard({
   );
 }
 
+function TestimonialCard({ name, quote }: { name: string; quote: string }) {
+  return (
+    <div className="bg-gray-50 p-6 rounded-lg shadow text-left">
+      <p className="text-gray-700 italic mb-4">“{quote}”</p>
+      <p className="font-semibold text-gray-900">– {name}</p>
+    </div>
+  );
+}
