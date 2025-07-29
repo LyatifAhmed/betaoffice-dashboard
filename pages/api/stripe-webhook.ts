@@ -118,24 +118,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const external_id = session.metadata?.external_id;
         const isTopup = session.metadata?.topup === "true";
         const amount = session.amount_total ?? 0;
-        if (!external_id) break;
 
-        if (isTopup) {
+        if (!external_id || !isTopup) break;
+
+        try {
           await prisma.wallet.upsert({
             where: { external_id },
             update: { balance_pennies: { increment: amount } },
             create: { external_id, balance_pennies: amount },
           });
 
+          // Eğer dashboardda gösterilen bakiye decimal ise
           await prisma.subscription.updateMany({
             where: { external_id },
             data: { wallet_balance: { increment: amount / 100 } },
           });
 
           console.log(`💰 Top-up succeeded for ${external_id}: £${(amount / 100).toFixed(2)}`);
+        } catch (err) {
+          console.error(`❌ Wallet update failed for ${external_id}:`, err);
         }
         break;
       }
+
 
       default:
         console.log(`Unhandled event: ${event.type}`);
