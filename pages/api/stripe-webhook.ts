@@ -11,15 +11,13 @@ export const config = {
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-03-31.basil", // senin sürümün neyse onu kullan
+  apiVersion: "2025-03-31.basil",
 });
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).end("Method not allowed");
-  }
+  if (req.method !== "POST") return res.status(405).end("Method not allowed");
 
   let event: Stripe.Event;
 
@@ -34,30 +32,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const external_id = session.metadata?.external_id;
-        const isTopup = session.metadata?.topup === "true";
-        const amount = session.amount_total ?? 0;
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as any; // <== as any ile type genişletildi
+        const external_id = invoice.metadata?.external_id;
+        const customer = invoice.customer;
 
-        if (!external_id) {
-          console.warn("⚠️ Missing external_id in metadata");
-          return res.status(400).end("Missing external_id");
+        let customerEmail = "";
+        if (typeof customer === "object" && customer?.email) {
+          customerEmail = customer.email;
         }
 
-        if (isTopup) {
-          await prisma.wallet.upsert({
-            where: { external_id },
-            update: { balance_pennies: { increment: amount } },
-            create: {
-              external_id,
-              balance_pennies: amount,
-            },
-          });
-          console.log(`✅ Wallet updated: +£${amount / 100} for ${external_id}`);
-        } else {
-          console.log("ℹ️ Checkout completed, but not a top-up session.");
-        }
+        const paymentIntentId = invoice.payment_intent;
+        const lastError = invoice?.last_payment_error?.message || "Unknown failure";
+
+        console.warn(`⚠️ Payment failed for external_id: ${external_id}`);
+
+        await prisma.failedPaymentAttempt.create({
+          data: {
+            external_id: external_id || "unknown",
+            reason: lastError,
+            payment_intent_id: paymentIntentId || "",
+          },
+        });
+
+        await fetch(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/notify-failed-payment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.NEXT_PUBLIC_API_USER}:${process.env.NEXT_PUBLIC_API_PASS}`
+            ).toString("base64")}`,
+          },
+          body: JSON.stringify({ external_id, email: customerEmail }),
+        });
 
         break;
       }
@@ -66,41 +73,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         const external_id = invoice.metadata?.external_id;
-
-        if (!external_id) {
-          console.warn("⚠️ Missing external_id in invoice metadata");
-          break;
-        }
+        if (!external_id) break;
 
         await prisma.subscription.updateMany({
           where: { external_id },
-          data: { review_status: "ACTIVE" }, // Veya kendi kullandığın alan
+          data: { review_status: "ACTIVE" },
         });
 
-        console.log(`✅ Subscription payment succeeded — activated for ${external_id}`);
+        await prisma.failedPaymentAttempt.deleteMany({ where: { external_id } });
+
         break;
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const external_id = subscription.metadata?.external_id;
+        if (!external_id) break;
 
-        if (!external_id) {
-          console.warn("⚠️ Missing external_id in subscription metadata");
-          break;
-        }
-
-        await prisma.subscription.updateMany({
+        // retry count kontrolü
+        const attempts = await prisma.failedPaymentAttempt.findMany({
           where: { external_id },
-          data: { review_status: "CANCELLED" },
         });
 
-        console.log(`❌ Subscription cancelled for ${external_id}`);
+        if (attempts.length >= 3) {
+          await fetch(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/v2/subscription/${external_id}/stop/${new Date().toISOString()}/payment_failed`, {
+            method: "POST",
+            headers: {
+              Authorization: `Basic ${Buffer.from(
+                `${process.env.NEXT_PUBLIC_API_USER}:${process.env.NEXT_PUBLIC_API_PASS}`
+              ).toString("base64")}`,
+            },
+          });
+
+          await prisma.subscription.updateMany({
+            where: { external_id },
+            data: { review_status: "CANCELLED" },
+          });
+
+          console.log(`❌ Subscription force-stopped via Hoxton for ${external_id}`);
+        }
+        break;
+      }
+
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const external_id = session.metadata?.external_id;
+        const isTopup = session.metadata?.topup === "true";
+        const amount = session.amount_total ?? 0;
+        if (!external_id) break;
+
+        if (isTopup) {
+          await prisma.wallet.upsert({
+            where: { external_id },
+            update: { balance_pennies: { increment: amount } },
+            create: { external_id, balance_pennies: amount },
+          });
+        }
         break;
       }
 
       default:
-        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+        console.log(`Unhandled event: ${event.type}`);
     }
 
     res.status(200).json({ received: true });

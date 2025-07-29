@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Info, FileText, RefreshCw } from "lucide-react";
 import WalletSection from "@/components/WalletSection";
 import ForwardMailButton from "@/components/ForwardMailButton";
+import SubscriptionControls from "@/components/dashboard/SubscriptionControls";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -51,22 +52,6 @@ export default function Dashboard() {
     }, 10000);
     return () => clearInterval(interval);
   }, [lastMailId]);
-
-  const cancelSubscription = async () => {
-    const confirmed = window.confirm("Are you sure you want to cancel your subscription?");
-    if (!confirmed || !subscription?.external_id || !subscription?.stripe_subscription_id) return;
-
-    try {
-      await axios.post("/api/hoxton/cancel-subscription", {
-        external_id: subscription.external_id,
-        stripe_subscription_id: subscription.stripe_subscription_id,
-      });
-      alert("✅ Cancellation requested. Your subscription will end at the end of this billing period.");
-    } catch (err) {
-      console.error("Cancel error", err);
-      alert("❌ Failed to cancel. Please try again.");
-    }
-  };
 
   const handleGenerateCertificate = async () => {
     try {
@@ -147,6 +132,13 @@ export default function Dashboard() {
       </div>
 
       {renderStatusCard()}
+
+      <SubscriptionControls
+        stripeSubscriptionId={subscription.stripe_subscription_id}
+        externalId={subscription.external_id}
+        hoxtonStatus={subscription.review_status}
+        cancelAtPeriodEnd={subscription.cancel_at_period_end}
+      />
 
       {newMailAlert && (
         <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
@@ -273,9 +265,13 @@ export default function Dashboard() {
                   </span>
                 </span>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Button variant="destructive" onClick={cancelSubscription}>
-                    Cancel Subscription
-                  </Button>
+                  <SubscriptionControls
+                    stripeSubscriptionId={subscription.stripe_subscription_id}
+                    externalId={subscription.external_id}
+                    hoxtonStatus={subscription.hoxton_status}
+                    cancelAtPeriodEnd={subscription.cancel_at_period_end}
+                  />
+
                   <Button onClick={handleGenerateCertificate}>
                     Generate PDF Certificate
                   </Button>
