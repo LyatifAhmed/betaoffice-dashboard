@@ -2,7 +2,20 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
-type CompanyMemberWithSubscription = Awaited<ReturnType<typeof prisma.companyMember.findMany>>[number];
+type CompanyMemberWithSubscription = {
+  id: number;
+  email: string;
+  phone_number: string;
+  first_name: string;
+  last_name: string;
+  middle_name: string;
+  date_of_birth: Date;
+  subscription_id: string;
+  subscription: {
+    external_id: string;
+    company_name: string;
+  } | null;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).end("Method Not Allowed");
