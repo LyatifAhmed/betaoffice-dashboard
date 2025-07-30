@@ -24,6 +24,7 @@ interface Props {
 interface Owner {
   first_name: string;
   last_name: string;
+  date_of_birth: string;
   email: string;
 }
 
@@ -56,6 +57,7 @@ export default function KycForm({
     country: "GB",
     phone_number: "",
     customer_first_name: "",
+    customer_middle_name: "",
     customer_last_name: "",
     shipping_address_line_1: "",
     shipping_city: "",
@@ -66,7 +68,7 @@ export default function KycForm({
   const [useUkAddressLookup, setUseUkAddressLookup] = useState(formData.country === "GB");
   const [useCompanySearch, setUseCompanySearch] = useState(true);
   const [showShipping, setShowShipping] = useState(false);
-  const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "" }]);
+  const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "", date_of_birth: "" }]);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -120,12 +122,6 @@ export default function KycForm({
     setCompanySuggestions([]);
   };
 
-  const organisationTypeInfo = (
-    <p className="text-sm text-gray-500 mt-1">
-      ℹ️ If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
-    </p>
-  );
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -138,7 +134,7 @@ export default function KycForm({
     }
 
     for (const [i, owner] of owners.entries()) {
-      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim()) {
+      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim() || !owner.date_of_birth.trim()) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
         setLoading(false);
         return;
@@ -411,28 +407,51 @@ export default function KycForm({
 
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
-        <div key={i} className="border p-4 rounded mb-4 space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">First Name<span className="text-red-500">*</span>
-              <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-            <label className="block">Last Name<span className="text-red-500">*</span>
-              <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-            <label className="block md:col-span-2">Email Address<span className="text-red-500">*</span>
-              <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
-            </label>
-          </div>
-          {owners.length > 1 && (
-            <button type="button" onClick={() => setOwners(owners.filter((_, idx) => idx !== i))} className="text-red-500 text-sm">
-              Remove Owner
-            </button>
-          )}
-        </div>
-      ))}
-      <button type="button" onClick={() => setOwners([...owners, { first_name: '', last_name: '', email: '' }])} className="text-blue-600 underline mt-2">
+  <div key={i} className="border p-4 rounded mb-4 space-y-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <label className="block">First Name<span className="text-red-500">*</span>
+        <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
+      </label>
+
+      <label className="block">Last Name<span className="text-red-500">*</span>
+        <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
+      </label>
+
+      <label className="block md:col-span-2">Email Address<span className="text-red-500">*</span>
+        <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
+      </label>
+
+      <label className="block md:col-span-2">Date of Birth<span className="text-red-500">*</span>
+        <input
+          type="date"
+          required
+          value={owner.date_of_birth}
+          onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+      </label>
+    </div>
+
+    {owners.length > 1 && (
+      <button
+        type="button"
+        onClick={() => setOwners(owners.filter((_, idx) => idx !== i))}
+        className="text-red-500 text-sm"
+      >
+        Remove Owner
+      </button>
+    )}
+  </div>
+))}
+
+      <button
+        type="button"
+        onClick={() => setOwners([...owners, { first_name: '', last_name: '', email: '', date_of_birth: '' }])}
+        className="text-blue-600 underline mt-2"
+      >
         + Add Another Owner
       </button>
+
 
       <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
         <label className="inline-flex items-center gap-2">
