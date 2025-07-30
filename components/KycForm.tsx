@@ -44,11 +44,22 @@ export default function KycForm({
   couponId
 }: Props) {
   const [formData, setFormData] = useState({
-    company_name: "", trading_name: "", organisation_type: "",
-    limited_company_number: "", email: "", address_line_1: "",
-    address_line_2: "", city: "", postcode: "", country: "GB",
-    phone_number: "", customer_first_name: "", customer_last_name: "",
-    shipping_address_line_1: "", shipping_city: "", shipping_postcode: "",
+    company_name: "",
+    trading_name: "",
+    organisation_type: "",
+    limited_company_number: "",
+    email: "",
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    postcode: "",
+    country: "GB",
+    phone_number: "",
+    customer_first_name: "",
+    customer_last_name: "",
+    shipping_address_line_1: "",
+    shipping_city: "",
+    shipping_postcode: "",
     shipping_country: "GB"
   });
 
@@ -167,6 +178,7 @@ export default function KycForm({
       setLoading(false);
     }
   };
+
   const organisationTypeInfo = (
     <p className="text-sm text-gray-500 mt-1">
       ℹ️ If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
