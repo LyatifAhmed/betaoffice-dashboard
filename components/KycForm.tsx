@@ -196,9 +196,7 @@ export default function KycForm({
         })()}
       </div>
 
-      <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
-        Don’t have a company yet? No problem! You can use this address to register a UK company later.
-      </div>
+      
 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
@@ -240,7 +238,9 @@ export default function KycForm({
           </ul>
         </>
       )}
-
+      <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
+        Don’t have a company yet? No problem! You can use this address to register a UK company later.
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Company Name<span className="text-red-500">*</span>
           <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
