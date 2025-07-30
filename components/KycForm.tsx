@@ -1,4 +1,4 @@
-// Updated KYC Form component with conditional UK shipping address toggle and postcode lookup toggle
+// Updated KYC Form component with conditional UK shipping address toggle
 
 "use client";
 
@@ -52,7 +52,6 @@ export default function KycForm({
     shipping_country: "GB"
   });
 
-  const [useUkLookup, setUseUkLookup] = useState(true);
   const [useCompanySearch, setUseCompanySearch] = useState(true);
   const [showShipping, setShowShipping] = useState(false);
   const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "" }]);
@@ -157,30 +156,104 @@ export default function KycForm({
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
-      <label className="flex items-center gap-2">
-        <input type="checkbox" checked={useUkLookup} onChange={() => setUseUkLookup(!useUkLookup)} />
-        Use UK Postcode Lookup
+      <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
+        <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
+
+        {(() => {
+          const originalPrice = stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt" ? 20 : 200;
+          const finalPrice = originalPrice - discountedPrice;
+
+          return (
+            <>
+              {discountedPrice > 0 ? (
+                <div className="text-green-600">
+                  ✅ Discounted Price: £{finalPrice.toFixed(2)} <span className="line-through text-gray-400 ml-2">£{originalPrice.toFixed(2)}</span>
+                </div>
+              ) : (
+                <div className="text-gray-700">Price: £{originalPrice.toFixed(2)}</div>
+              )}
+              {couponId && (
+                <div className="text-green-500 text-sm">
+                  Coupon <strong>{couponId.toUpperCase()}</strong> applied!
+                </div>
+              )}
+            </>
+          );
+        })()}
+      </div>
+
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">First Name<span className="text-red-500">*</span>
+          <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Last Name<span className="text-red-500">*</span>
+          <input required name="customer_last_name" value={formData.customer_last_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Email Address<span className="text-red-500">*</span>
+          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Phone Number
+          <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+      </div>
+      {/* Company Search Toggle */}
+      <label>
+        <input type="checkbox" checked={useCompanySearch} onChange={() => setUseCompanySearch(!useCompanySearch)} />
+        Autofill UK Company Info
       </label>
 
-      {useUkLookup && (
-        <PostcodeAddressLookup
-          postcode={formData.postcode}
-          onPostcodeChange={(value) => setFormData((prev) => ({ ...prev, postcode: value }))}
-          onSelectAddress={(fullAddress) => {
-            const parts = fullAddress.split(",").map((p) => p.trim()).filter(Boolean);
-            const addressLine1 = parts.slice(0, parts.length - 2).join(", ");
-            const city = parts[parts.length - 2] || "";
-            const postcode = parts[parts.length - 1] || "";
+      {useCompanySearch && (
+        <>
+          <input
+            type="text"
+            placeholder="Search company name..."
+            className="border border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none p-2 rounded w-full bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm placeholder-gray-400"
+            value={companyQuery}
+            onChange={(e) => setCompanyQuery(e.target.value)}
+          />
 
-            setFormData((prev) => ({
-              ...prev,
-              address_line_1: addressLine1,
-              city,
-              postcode,
-            }));
-          }}
-        />
+          <ul>
+            {companySuggestions.map((c, i) => (
+              <li key={i} onClick={() => handleCompanySelect(c)}>
+                {c.name} ({c.companyNumber}) — {c.status}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">Company Name<span className="text-red-500">*</span>
+          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Trading Name
+          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+        <label className="block">Organisation Type<span className="text-red-500">*</span>
+          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
+        </label>
+        <label className="block">Company Number
+          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        </label>
+      </div>
+      {/* UK Postcode Lookup (getAddress.io) */}
+      <PostcodeAddressLookup
+        postcode={formData.postcode}
+        onPostcodeChange={(value) =>
+          setFormData((prev) => ({ ...prev, postcode: value }))
+        }
+        onSelectAddress={(fullAddress) => {
+          const parts = fullAddress.split(",");
+          const cleaned = parts.map((p) => p.trim()).filter(Boolean);
+          setFormData((prev) => ({
+            ...prev,
+            address_line_1: cleaned.slice(0, -2).join(", "),
+            city: cleaned[cleaned.length - 2] || "",
+            postcode: cleaned[cleaned.length - 1] || prev.postcode,
+          }));
+        }}
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
           <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
