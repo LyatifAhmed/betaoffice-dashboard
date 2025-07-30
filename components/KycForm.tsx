@@ -120,6 +120,12 @@ export default function KycForm({
     setCompanySuggestions([]);
   };
 
+  const organisationTypeInfo = (
+    <p className="text-sm text-gray-500 mt-1">
+      ℹ️ If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
+    </p>
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -178,12 +184,6 @@ export default function KycForm({
       setLoading(false);
     }
   };
-
-  const organisationTypeInfo = (
-    <p className="text-sm text-gray-500 mt-1">
-      ℹ️ If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
-    </p>
-  );
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
