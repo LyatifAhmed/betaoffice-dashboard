@@ -35,7 +35,7 @@ export default function HomePage() {
           alt="Premium Virtual Office Background"
           fill
           priority
-          style={{ objectFit: "cover", opacity: 0.9 }}
+          style={{ objectFit: "cover", opacity: 0.8 }}
           className="absolute z-0"
         />
         <div className="relative z-10 px-6 max-w-3xl w-full mx-4 animate-fade-in-up">
