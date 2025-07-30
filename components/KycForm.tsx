@@ -167,6 +167,11 @@ export default function KycForm({
       setLoading(false);
     }
   };
+  const organisationTypeInfo = (
+    <p className="text-sm text-gray-500 mt-1">
+      ℹ️ If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
+    </p>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
@@ -239,22 +244,49 @@ export default function KycForm({
         </>
       )}
       <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
-        Don’t have a company yet? No problem! You can use this address to register a UK company later.
+        Don’t have a company yet? No problem! You can use this address to register a UK company later. If you haven’t registered a company yet, select <strong>“Unincorporated / not yet registered”</strong> as the Organisation Type.
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Company Name<span className="text-red-500">*</span>
-          <input required name="company_name" value={formData.company_name} onChange={handleChange} className="border p-2 rounded w-full" />
+          <input
+            required
+            name="company_name"
+            placeholder="My Future Company Ltd"
+            value={formData.company_name}
+            onChange={handleChange}
+            className="border p-2 rounded w-full"
+          />
         </label>
+
         <label className="block">Trading Name
-          <input name="trading_name" value={formData.trading_name} onChange={handleChange} className="border p-2 rounded w-full" />
+          <input
+            name="trading_name"
+            value={formData.trading_name}
+            onChange={handleChange}
+            className="border p-2 rounded w-full"
+          />
         </label>
+
         <label className="block">Organisation Type<span className="text-red-500">*</span>
-          <Select options={businessTypes} value={businessTypes.find(opt => opt.value === formData.organisation_type)} onChange={(option) => handleSelectChange('organisation_type', option)} className="w-full" />
+          <Select
+            options={businessTypes}
+            value={businessTypes.find(opt => opt.value === formData.organisation_type)}
+            onChange={(option) => handleSelectChange('organisation_type', option)}
+            className="w-full"
+          />
         </label>
+
         <label className="block">Company Number
-          <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
+          <input
+            name="limited_company_number"
+            value={formData.limited_company_number}
+            onChange={handleChange}
+            className="border p-2 rounded w-full"
+          />
         </label>
       </div>
+
       {formData.country === "GB" && (
         <label className="mt-4 inline-flex items-center">
           <input
@@ -284,7 +316,6 @@ export default function KycForm({
             }));
           }}
         />
-
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <label className="block">Address Line 1<span className="text-red-500">*</span>
@@ -302,20 +333,14 @@ export default function KycForm({
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <label className="block">Address Line 1<span className="text-red-500">*</span>
-          <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Address Line 2
-          <input name="address_line_2" value={formData.address_line_2} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">City<span className="text-red-500">*</span>
-          <input required name="city" value={formData.city} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
-        <label className="block">Postcode<span className="text-red-500">*</span>
-          <input required name="postcode" value={formData.postcode} onChange={handleChange} className="border p-2 rounded w-full" />
-        </label>
         <label className="block">Country<span className="text-red-500">*</span>
-          <Select options={countries} value={countries.find(c => c.value === formData.country)} getOptionLabel={(e) => `${e.label} (${e.value})`} onChange={(option) => handleSelectChange('country', option)} className="w-full" />
+          <Select
+            options={countries}
+            value={countries.find(c => c.value === formData.country)}
+            getOptionLabel={(e) => `${e.label} (${e.value})`}
+            onChange={(option) => handleSelectChange('country', option)}
+            className="w-full"
+          />
         </label>
       </div>
       <label className="mt-4 inline-flex items-center">
