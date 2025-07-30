@@ -1,8 +1,7 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { ShoppingCart, CheckCircle2 } from "lucide-react";
 
 interface Props {
   onChange?: (plan: "monthly" | "annual", hoxtonProductId: number, stripePriceId: string) => void;
@@ -30,6 +29,7 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponId, setCouponId] = useState<string | null>(null);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("selected_plan");
@@ -66,9 +66,7 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
     if (!trimmedCode) return;
 
     try {
-      const res = await axios.post("/api/validate-coupon", {
-        couponCode: trimmedCode,
-      });
+      const res = await axios.post("/api/validate-coupon", { couponCode: trimmedCode });
 
       if (res.data.valid) {
         setDiscountAmount(res.data.discountAmount || 0);
@@ -90,72 +88,95 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
   const currentPlan = planMap[stripePriceId];
 
   return (
-    <div className="sticky top-0 z-50 bg-gray-50 border border-gray-300 shadow-lg px-6 py-6 rounded-md mx-4 sm:mx-auto max-w-4xl mt-4">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-        <div className="text-left">
-          <h3 className="text-lg font-semibold text-gray-800">Selected Plan:</h3>
-          <p className="text-blue-700 font-bold text-lg">{currentPlan?.label || "Loading..."}</p>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`fixed bottom-4 right-4 z-50 transition-all duration-300 ${
+        hovered ? "w-[90%] sm:w-[500px] p-4 shadow-xl" : "w-56 p-2"
+      } bg-white border rounded-xl shadow-sm overflow-hidden`}
+    >
+      {/* Compact view */}
+      {!hovered && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <ShoppingCart className="w-5 h-5 text-blue-600" />
+            <span className="text-sm font-medium text-gray-800">{currentPlan?.label}</span>
+          </div>
           {couponApplied && (
-            <p className="text-green-600 mt-1 text-sm">
+            <span className="text-xs text-green-600 font-semibold">
+              -£{discountAmount.toFixed(2)}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Expanded view */}
+      {hovered && (
+        <>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-bold text-gray-900">Your Plan</h3>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleChange("monthly")}
+                className={`text-sm px-3 py-1 rounded-md border ${
+                  stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt"
+                    ? "bg-blue-600 text-white"
+                    : "border-blue-600 text-blue-600"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => handleChange("annual")}
+                className={`text-sm px-3 py-1 rounded-md border ${
+                  stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v"
+                    ? "bg-green-600 text-white"
+                    : "border-green-600 text-green-600"
+                }`}
+              >
+                Annual
+              </button>
+            </div>
+          </div>
+
+          <p className="font-semibold text-blue-700">{currentPlan?.label}</p>
+          {couponApplied && (
+            <p className="text-green-600 text-sm mt-1">
               Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
             </p>
           )}
-        </div>
 
-        <div className="flex space-x-2 mt-4 sm:mt-0">
-          <button
-            onClick={() => handleChange("monthly")}
-            className={`px-4 py-2 rounded-md text-sm font-medium border transition-all duration-200 ${
-              stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-blue-600 border-blue-600"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => handleChange("annual")}
-            className={`px-4 py-2 rounded-md text-sm font-medium border transition-all duration-200 ${
-              stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v"
-                ? "bg-green-600 text-white"
-                : "bg-white text-green-600 border-green-600"
-            }`}
-          >
-            Annual
-          </button>
-        </div>
-      </div>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-sm">
+            {[
+              "AI Mail Sorting",
+              "Full Privacy (Director Address)",
+              "Fast Setup (under 10 min)",
+              "Transparent Pricing – No Hidden Fees",
+            ].map((feature, idx) => (
+              <li key={idx} className="flex items-center space-x-2 text-gray-700">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
-        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
-          <p><strong>✓ AI Mail Sorting</strong> – Organised inbox with smart summaries.</p>
-        </div>
-        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
-          <p><strong>✓ Full Privacy</strong> – Director address privacy included.</p>
-        </div>
-        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
-          <p><strong>✓ Fast Setup</strong> – Get started in under 10 minutes.</p>
-        </div>
-        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
-          <p><strong>✓ Transparent Pricing</strong> – No hidden handling or setup fees.</p>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-center sm:space-x-2">
-        <input
-          type="text"
-          placeholder="Coupon code"
-          value={couponCode}
-          onChange={(e) => setCouponCode(e.target.value)}
-          className="border p-2 rounded-md w-full sm:w-48 mb-2 sm:mb-0"
-        />
-        <button
-          onClick={handleApplyCoupon}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition"
-        >
-          Apply Coupon
-        </button>
-      </div>
+          <div className="flex mt-4 space-x-2">
+            <input
+              type="text"
+              placeholder="Coupon code"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              className="border p-2 rounded-md flex-1"
+            />
+            <button
+              onClick={handleApplyCoupon}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-md"
+            >
+              Apply
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
