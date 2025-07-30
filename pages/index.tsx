@@ -62,22 +62,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      
-      {/* Trusted By Section */}
-      <section className="bg-white py-12">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-gray-500 uppercase tracking-wide text-sm mb-6">
-            Used alongside tools trusted by modern entrepreneurs
-          </p>
-          <div className="flex flex-wrap justify-center gap-8 grayscale opacity-70">
-            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tide.svg" alt="Tide" width={100} height={40} />
-            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/wise.svg" alt="Wise" width={100} height={40} />
-            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/revolut.svg" alt="Revolut" width={100} height={40} />
-            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/xero.svg" alt="Xero" width={100} height={40} />
-            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/notion.svg" alt="Notion" width={100} height={40} />
-          </div>
-        </div>
-      </section>
 
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
@@ -108,6 +92,22 @@ export default function HomePage() {
               name="Leila, Creative Agency Owner"
               quote="I love how professional my business now looks. The director privacy option gave me real peace of mind."
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Trusted By Section */}
+      <section className="bg-white py-12">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="text-gray-500 uppercase tracking-wide text-sm mb-6">
+            Used alongside tools trusted by modern entrepreneurs
+          </p>
+          <div className="flex flex-wrap justify-center gap-8 grayscale opacity-70">
+            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tide.svg" alt="Tide" width={100} height={40} />
+            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/wise.svg" alt="Wise" width={100} height={40} />
+            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/revolut.svg" alt="Revolut" width={100} height={40} />
+            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/xero.svg" alt="Xero" width={100} height={40} />
+            <Image src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/notion.svg" alt="Notion" width={100} height={40} />
           </div>
         </div>
       </section>
