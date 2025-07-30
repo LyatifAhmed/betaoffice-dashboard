@@ -1,61 +1,101 @@
 // pages/admin/invites.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type OwnerData = {
+  id: number;
+  name: string;
+  email: string;
+  subscriptionId: string;
+  companyName: string;
+};
 
 export default function AdminInvites() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [link, setLink] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [owners, setOwners] = useState<OwnerData[]>([]);
+  const [inviteLinks, setInviteLinks] = useState<Record<number, string>>({});
+  const [status, setStatus] = useState<Record<number, string>>({});
 
-  const handleSend = async () => {
-    setStatus("sending");
+  useEffect(() => {
+    const isAuthed = localStorage.getItem("admin-authed");
+    if (isAuthed !== "true") {
+      window.location.href = "/admin/login";
+    } else {
+      fetch("/api/admin/owners")
+        .then((res) => res.json())
+        .then(setOwners);
+    }
+  }, []);
 
+  const handleSend = async (owner: OwnerData) => {
+    const link = inviteLinks[owner.id];
+    if (!link) return;
+
+    setStatus((prev) => ({ ...prev, [owner.id]: "sending" }));
     const res = await fetch("/api/send-invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: email, name, inviteLink: link }),
+      body: JSON.stringify({
+        to: owner.email,
+        name: owner.name,
+        inviteLink: link,
+      }),
     });
 
-    if (res.ok) {
-      setStatus("sent");
-    } else {
-      setStatus("error");
-    }
+    setStatus((prev) => ({
+      ...prev,
+      [owner.id]: res.ok ? "sent" : "error",
+    }));
   };
 
   return (
-    <div className="p-8 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Send KYC Invite</h1>
-
-      <input
-        className="border w-full mb-2 p-2"
-        placeholder="Owner Full Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <input
-        className="border w-full mb-2 p-2"
-        placeholder="Owner Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        className="border w-full mb-4 p-2"
-        placeholder="KYC Invite Link"
-        value={link}
-        onChange={(e) => setLink(e.target.value)}
-      />
-
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-        onClick={handleSend}
-        disabled={status === "sending"}
-      >
-        {status === "sending" ? "Sending..." : "Send Invite"}
-      </button>
-
-      {status === "sent" && <p className="text-green-600 mt-2">Invite sent ✅</p>}
-      {status === "error" && <p className="text-red-600 mt-2">Failed to send invite ❌</p>}
+    <div className="p-8 max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">KYC Invite Panel</h1>
+      <table className="w-full text-sm border border-gray-300">
+        <thead>
+          <tr className="bg-gray-100 text-left">
+            <th className="p-2 border">Owner</th>
+            <th className="p-2 border">Email</th>
+            <th className="p-2 border">Company</th>
+            <th className="p-2 border">Invite Link</th>
+            <th className="p-2 border">Send</th>
+          </tr>
+        </thead>
+        <tbody>
+          {owners.map((owner) => (
+            <tr key={owner.id}>
+              <td className="p-2 border">{owner.name}</td>
+              <td className="p-2 border">{owner.email}</td>
+              <td className="p-2 border">{owner.companyName}</td>
+              <td className="p-2 border">
+                <input
+                  className="border px-2 py-1 w-full"
+                  type="text"
+                  placeholder="Paste invite link"
+                  value={inviteLinks[owner.id] || ""}
+                  onChange={(e) =>
+                    setInviteLinks((prev) => ({
+                      ...prev,
+                      [owner.id]: e.target.value,
+                    }))
+                  }
+                />
+              </td>
+              <td className="p-2 border">
+                <button
+                  onClick={() => handleSend(owner)}
+                  disabled={status[owner.id] === "sending"}
+                  className="bg-black text-white px-3 py-1 rounded"
+                >
+                  {status[owner.id] === "sent"
+                    ? "✅ Sent"
+                    : status[owner.id] === "error"
+                    ? "❌ Error"
+                    : "Send"}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
