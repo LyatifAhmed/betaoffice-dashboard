@@ -31,10 +31,11 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
         <Image
-          src="/office4.png"
-          alt="Office Background"
+          src="/office4.png" // ✅ Yeni spotlight görseli
+          alt="Premium Virtual Office Background"
           fill
-          style={{ objectFit: "cover", opacity: 1 }}
+          priority
+          style={{ objectFit: "cover", opacity: 0.9 }}
           className="absolute z-0"
         />
         <div className="relative z-10 px-6 max-w-3xl w-full mx-4 animate-fade-in-up">
@@ -51,7 +52,6 @@ export default function HomePage() {
             View Plans
           </button>
 
-          {/* Login Link */}
           <div className="mt-4">
             <Link
               href="/login"
@@ -62,6 +62,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
 
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
