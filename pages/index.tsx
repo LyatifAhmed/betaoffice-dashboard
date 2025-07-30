@@ -53,16 +53,18 @@ export default function HomePage() {
 
           {/* Login Link */}
           <div className="mt-4">
-            <Link
-              href="/login"
-              className="text-blue-700 hover:text-blue-900 underline text-base font-medium transition-colors duration-200"
-            >
-              Already have an account? Log in
+            <Link href="/login">
+              <button className="mt-4 flex items-center gap-2 text-sm border border-gray-300 py-2 px-4 rounded-lg hover:bg-gray-100 transition">
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m0 0l4-4m-4 4l4 4" />
+                </svg>
+                Log in
+              </button>
             </Link>
           </div>
         </div>
       </section>
-      
+
       {/* Trusted By Section */}
       <section className="bg-white py-12">
         <div className="max-w-6xl mx-auto px-6 text-center">
