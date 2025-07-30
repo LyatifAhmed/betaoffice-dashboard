@@ -109,3 +109,12 @@ model ScannedMail {
   @@index([id])
   @@index([external_id])
 }
+
+model FailedPaymentAttempt {
+  id           Int      @id @default(autoincrement())
+  external_id  String
+  reason       String
+  created_at   DateTime @default(now())
+
+  @@index([external_id])
+}
