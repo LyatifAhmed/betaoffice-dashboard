@@ -1,4 +1,4 @@
-// Updated KYC Form component with conditional UK shipping address toggle
+// Updated KYC Form component with conditional UK shipping address toggle and dynamic UK vs non-UK address input
 
 "use client";
 
@@ -52,6 +52,7 @@ export default function KycForm({
     shipping_country: "GB"
   });
 
+  const [useUkAddressLookup, setUseUkAddressLookup] = useState(formData.country === "GB");
   const [useCompanySearch, setUseCompanySearch] = useState(true);
   const [showShipping, setShowShipping] = useState(false);
   const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "" }]);
@@ -79,6 +80,10 @@ export default function KycForm({
       setFormData(prev => ({ ...prev, shipping_country: "GB" }));
     }
   }, [showShipping]);
+
+  useEffect(() => {
+    setUseUkAddressLookup(formData.country === "GB");
+  }, [formData.country]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -237,23 +242,52 @@ export default function KycForm({
           <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
       </div>
-      {/* UK Postcode Lookup (getAddress.io) */}
-      <PostcodeAddressLookup
-        postcode={formData.postcode}
-        onPostcodeChange={(value) =>
-          setFormData((prev) => ({ ...prev, postcode: value }))
-        }
-        onSelectAddress={(fullAddress) => {
-          const parts = fullAddress.split(",");
-          const cleaned = parts.map((p) => p.trim()).filter(Boolean);
-          setFormData((prev) => ({
-            ...prev,
-            address_line_1: cleaned.slice(0, -2).join(", "),
-            city: cleaned[cleaned.length - 2] || "",
-            postcode: cleaned[cleaned.length - 1] || prev.postcode,
-          }));
-        }}
-      />
+      {formData.country === "GB" && (
+        <label className="mt-4 inline-flex items-center">
+          <input
+            type="checkbox"
+            checked={useUkAddressLookup}
+            onChange={() => setUseUkAddressLookup(!useUkAddressLookup)}
+            className="form-checkbox"
+          />
+          <span className="ml-2">Use UK Postcode Lookup</span>
+        </label>
+      )}
+      
+      {useUkAddressLookup && formData.country === "GB" ? (
+        <PostcodeAddressLookup
+          postcode={formData.postcode}
+          onPostcodeChange={(value) =>
+            setFormData((prev) => ({ ...prev, postcode: value }))
+          }
+          onSelectAddress={(fullAddress) => {
+            const parts = fullAddress.split(",");
+            const addressLine1 = parts.slice(0, -2).join(",").trim();
+            const city = parts.at(-2)?.trim() || "";
+            setFormData((prev) => ({
+              ...prev,
+              address_line_1: addressLine1,
+              city,
+            }));
+          }}
+        />
+
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <label className="block">Address Line 1<span className="text-red-500">*</span>
+            <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
+          </label>
+          <label className="block">Address Line 2
+            <input name="address_line_2" value={formData.address_line_2} onChange={handleChange} className="border p-2 rounded w-full" />
+          </label>
+          <label className="block">City<span className="text-red-500">*</span>
+            <input required name="city" value={formData.city} onChange={handleChange} className="border p-2 rounded w-full" />
+          </label>
+          <label className="block">Postcode<span className="text-red-500">*</span>
+            <input required name="postcode" value={formData.postcode} onChange={handleChange} className="border p-2 rounded w-full" />
+          </label>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
           <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
