@@ -172,10 +172,6 @@ export default function KycForm({
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
       <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
         <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
-        
-        <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
-        Don’t have a company yet? No problem! You can use this address to register a UK company later.
-      </div>
 
         {(() => {
           const originalPrice = stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt" ? 20 : 200;
@@ -198,6 +194,10 @@ export default function KycForm({
             </>
           );
         })()}
+      </div>
+
+      <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
+        Don’t have a company yet? No problem! You can use this address to register a UK company later.
       </div>
 
 
