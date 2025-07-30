@@ -56,24 +56,28 @@ export default function KycPage() {
   const currentPlan = planMap[selectedPlan];
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <StickyCart onChange={handleCartChange} onCoupon={handleCouponUpdate} />
 
-      <main className="py-10 px-4">
-        {planLoaded ? (
-          <KycForm
-            lockedProductId={currentPlan.hoxtonProductId}
-            selectedPlanLabel={currentPlan.label}
-            stripePriceId={currentPlan.stripePriceId}
-            discountedPrice={discountedPrice}
-            couponId={couponId} // ✅ matches KycForm props
-          />
-        ) : (
-          <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
-            Loading selected plan...
-          </div>
-        )}
+      <main className="max-w-4xl mx-auto mt-8 px-4">
+        <div className="bg-white rounded-xl shadow p-8 border border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Business Verification</h1>
+
+          {planLoaded ? (
+            <KycForm
+              lockedProductId={currentPlan.hoxtonProductId}
+              selectedPlanLabel={currentPlan.label}
+              stripePriceId={currentPlan.stripePriceId}
+              discountedPrice={discountedPrice}
+              couponId={couponId}
+            />
+          ) : (
+            <div className="text-center mt-20 text-gray-600 text-sm animate-pulse">
+              Loading selected plan...
+            </div>
+          )}
+        </div>
       </main>
-    </>
+    </div>
   );
 }

@@ -9,6 +9,7 @@ import Select from "react-select";
 import countryList from "react-select-country-list";
 import debounce from "lodash.debounce";
 import { loadStripe } from "@stripe/stripe-js";
+import PostcodeAddressLookup from "./PostcodeAddressLookup";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -236,7 +237,23 @@ export default function KycForm({
           <input name="limited_company_number" value={formData.limited_company_number} onChange={handleChange} className="border p-2 rounded w-full" />
         </label>
       </div>
-
+      {/* UK Postcode Lookup (getAddress.io) */}
+      <PostcodeAddressLookup
+        postcode={formData.postcode}
+        onPostcodeChange={(value) =>
+          setFormData((prev) => ({ ...prev, postcode: value }))
+        }
+        onSelectAddress={(fullAddress) => {
+          const parts = fullAddress.split(",");
+          const cleaned = parts.map((p) => p.trim()).filter(Boolean);
+          setFormData((prev) => ({
+            ...prev,
+            address_line_1: cleaned.slice(0, -2).join(", "),
+            city: cleaned[cleaned.length - 2] || "",
+            postcode: cleaned[cleaned.length - 1] || prev.postcode,
+          }));
+        }}
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         <label className="block">Address Line 1<span className="text-red-500">*</span>
           <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />

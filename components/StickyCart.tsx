@@ -67,7 +67,7 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
 
     try {
       const res = await axios.post("/api/validate-coupon", {
-        couponCode: trimmedCode, // ✅ must match backend
+        couponCode: trimmedCode,
       });
 
       if (res.data.valid) {
@@ -90,59 +90,72 @@ export default function StickyCart({ onChange, onCoupon }: Props) {
   const currentPlan = planMap[stripePriceId];
 
   return (
-    <div className="sticky top-0 z-50 bg-white shadow border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-sm md:text-base space-y-2 sm:space-y-0">
-      <div className="flex flex-col">
-        <strong>Selected Plan:</strong>{" "}
-        <span className="text-blue-600 font-medium">
-          {currentPlan?.label || "Loading..."}
-        </span>
+    <div className="sticky top-0 z-50 bg-gray-50 border border-gray-300 shadow-lg px-6 py-6 rounded-md mx-4 sm:mx-auto max-w-4xl mt-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+        <div className="text-left">
+          <h3 className="text-lg font-semibold text-gray-800">Selected Plan:</h3>
+          <p className="text-blue-700 font-bold text-lg">{currentPlan?.label || "Loading..."}</p>
+          {couponApplied && (
+            <p className="text-green-600 mt-1 text-sm">
+              Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
+            </p>
+          )}
+        </div>
 
-        {couponApplied && (
-          <span className="text-green-600 text-sm mt-1">
-            Discounted Price: £{(currentPlan.price - discountAmount).toFixed(2)}
-          </span>
-        )}
+        <div className="flex space-x-2 mt-4 sm:mt-0">
+          <button
+            onClick={() => handleChange("monthly")}
+            className={`px-4 py-2 rounded-md text-sm font-medium border transition-all duration-200 ${
+              stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-blue-600 border-blue-600"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => handleChange("annual")}
+            className={`px-4 py-2 rounded-md text-sm font-medium border transition-all duration-200 ${
+              stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v"
+                ? "bg-green-600 text-white"
+                : "bg-white text-green-600 border-green-600"
+            }`}
+          >
+            Annual
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-        <button
-          onClick={() => handleChange("monthly")}
-          className={`px-3 py-1 rounded border ${
-            stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt"
-              ? "bg-blue-600 text-white"
-              : "bg-white text-blue-600 border-blue-600"
-          } hover:opacity-90 transition`}
-        >
-          Monthly
-        </button>
-        <button
-          onClick={() => handleChange("annual")}
-          className={`px-3 py-1 rounded border ${
-            stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v"
-              ? "bg-green-600 text-white"
-              : "bg-white text-green-600 border-green-600"
-          } hover:opacity-90 transition`}
-        >
-          Annual
-        </button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700 mb-4">
+        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+          <p><strong>✓ AI Mail Sorting</strong> – Organised inbox with smart summaries.</p>
+        </div>
+        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+          <p><strong>✓ Full Privacy</strong> – Director address privacy included.</p>
+        </div>
+        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+          <p><strong>✓ Fast Setup</strong> – Get started in under 10 minutes.</p>
+        </div>
+        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+          <p><strong>✓ Transparent Pricing</strong> – No hidden handling or setup fees.</p>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mt-2 sm:mt-0">
+      <div className="flex flex-col sm:flex-row items-center sm:space-x-2">
         <input
           type="text"
           placeholder="Coupon code"
           value={couponCode}
           onChange={(e) => setCouponCode(e.target.value)}
-          className="border p-1 rounded w-32 sm:w-40"
+          className="border p-2 rounded-md w-full sm:w-48 mb-2 sm:mb-0"
         />
         <button
           onClick={handleApplyCoupon}
-          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mt-2 sm:mt-0"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition"
         >
-          Apply
+          Apply Coupon
         </button>
       </div>
     </div>
   );
 }
-
