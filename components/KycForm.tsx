@@ -311,38 +311,55 @@ export default function KycForm({
       </label>
 
       {showShipping && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="block">UK Shipping Address Line 1<span className="text-red-500">*</span>
-            <input
-              name="shipping_address_line_1"
-              value={formData.shipping_address_line_1}
-              onChange={handleChange}
-              className="border p-2 rounded w-full"
-              required={showShipping}
-            />
-          </label>
-          <label className="block">City<span className="text-red-500">*</span>
-            <input
-              name="shipping_city"
-              value={formData.shipping_city}
-              onChange={handleChange}
-              className="border p-2 rounded w-full"
-              required={showShipping}
-            />
-          </label>
-          <label className="block">Postcode<span className="text-red-500">*</span>
-            <input
-              name="shipping_postcode"
-              value={formData.shipping_postcode}
-              onChange={handleChange}
-              pattern="^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$"
-              title="Enter a valid UK postcode"
-              className="border p-2 rounded w-full"
-              required={showShipping}
-            />
-          </label>
-        </div>
+        <>
+          <PostcodeAddressLookup
+            postcode={formData.shipping_postcode}
+            onPostcodeChange={(value) =>
+              setFormData((prev) => ({ ...prev, shipping_postcode: value }))
+            }
+            onSelectAddress={(fullAddress) => {
+              const parts = fullAddress.split(",");
+              const addressLine1 = parts.slice(0, -2).join(",").trim();
+              const city = parts.at(-2)?.trim() || "";
+              const postcode = parts.at(-1)?.trim() || "";
+              setFormData((prev) => ({
+                ...prev,
+                shipping_address_line_1: addressLine1,
+                shipping_city: city,
+                shipping_postcode: postcode,
+              }));
+            }}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <label className="block">UK Shipping Address Line 1
+              <input
+                name="shipping_address_line_1"
+                value={formData.shipping_address_line_1}
+                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed"
+                readOnly
+              />
+            </label>
+            <label className="block">City
+              <input
+                name="shipping_city"
+                value={formData.shipping_city}
+                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed"
+                readOnly
+              />
+            </label>
+            <label className="block">Postcode
+              <input
+                name="shipping_postcode"
+                value={formData.shipping_postcode}
+                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed"
+                readOnly
+              />
+            </label>
+          </div>
+        </>
       )}
+
 
       <h3 className="font-medium mt-6">Business Owners</h3>
       {owners.map((owner, i) => (
