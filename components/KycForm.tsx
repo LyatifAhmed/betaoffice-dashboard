@@ -255,7 +255,6 @@ export default function KycForm({
       )}
       <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
       ℹ️If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
-        Don’t have a company yet? No problem! You can use this address to register a UK company later. If you haven’t registered a company yet, select <strong>“Unincorporated / not yet registered”</strong> as the Organisation Type.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
