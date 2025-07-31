@@ -2,21 +2,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
-type CompanyMemberWithSubscription = {
-  id: number;
-  email: string;
-  phone_number: string;
-  first_name: string;
-  last_name: string;
-  middle_name: string;
-  date_of_birth: Date;
-  subscription_id: string;
-  subscription: {
-    external_id: string;
-    company_name: string;
-  } | null;
-};
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).end("Method Not Allowed");
 
@@ -25,19 +10,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       include: {
         subscription: {
           select: {
-            external_id: true,
             company_name: true,
+            external_id: true,
+            customer_email: true,
           },
         },
       },
     });
 
-    const formatted = owners.map((member: CompanyMemberWithSubscription) => ({
+    const formatted = owners.map((member) => ({
       id: member.id,
       name: `${member.first_name} ${member.last_name}`,
       email: member.email,
-      subscriptionId: member.subscription_id,
-      companyName: member.subscription?.company_name ?? "N/A",
+      dob: member.date_of_birth?.toISOString().split("T")[0] ?? "N/A",
+      company: member.subscription?.company_name ?? "N/A",
+      externalId: member.subscription_id,
     }));
 
     res.status(200).json(formatted);
