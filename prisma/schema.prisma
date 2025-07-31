@@ -78,6 +78,7 @@ model CompanyMember {
   subscription    Subscription @relation(fields: [subscription_id], references: [external_id])
 
   @@index([id])
+  @@map("company_members") 
 }
 
 model ScannedMail {
