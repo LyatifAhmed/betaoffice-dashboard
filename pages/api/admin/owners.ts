@@ -6,30 +6,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "GET") return res.status(405).end("Method Not Allowed");
 
   try {
-    const owners = await prisma.companyMember.findMany({
-      include: {
-        subscription: {
-          select: {
-            company_name: true,
-            external_id: true,
-            customer_email: true,
-          },
-        },
-      },
-    });
-
-    const formatted = owners.map((member) => ({
-      id: member.id,
-      name: `${member.first_name} ${member.last_name}`,
-      email: member.email,
-      dob: member.date_of_birth?.toISOString().split("T")[0] ?? "N/A",
-      company: member.subscription?.company_name ?? "N/A",
-      externalId: member.subscription_id,
-    }));
-
-    res.status(200).json(formatted);
+    const owners = await prisma.companyMember.findMany(); // sadece raw veriler
+    res.status(200).json(owners);
   } catch (error) {
-    console.error("Failed to fetch owners:", error);
-    res.status(500).json({ error: "Failed to load owners" });
+    console.error("API Hatası:", error);
+    res.status(500).json({ error: "Beklenmedik hata oluştu" });
   }
 }
