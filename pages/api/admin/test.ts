@@ -1,11 +1,12 @@
+// pages/api/admin/test.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
-export default async function handler(_: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const dbName = await prisma.$queryRawUnsafe(`SELECT current_database()`);
-    res.status(200).json({ dbName });
-  } catch (error) {
-    res.status(500).json({ error: String(error) });
+    const test = await prisma.$queryRaw`SELECT current_database()`;
+    res.status(200).json({ dbName: test });
+  } catch (e) {
+    res.status(500).json({ error: "DB error", details: e });
   }
 }
