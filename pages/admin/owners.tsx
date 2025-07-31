@@ -1,49 +1,97 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "react-hot-toast";
 
-type Owner = {
+interface Owner {
   id: number;
   name: string;
   email: string;
-  dob: string;
-  company: string;
-  externalId: string;
-};
+  subscriptionId: string;
+  companyName: string;
+  reviewStatus: string;
+}
 
-export default function OwnersPage() {
+export default function OwnersPanel() {
   const [owners, setOwners] = useState<Owner[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/owners")
-      .then((res) => res.json())
-      .then((data) => setOwners(data))
-      .catch((err) => console.error("Failed to fetch owners:", err));
+    const fetchOwners = async () => {
+      try {
+        const res = await axios.get("/api/admin/owners");
+        setOwners(res.data);
+      } catch {
+        toast.error("Sahipler yüklenemedi");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOwners();
   }, []);
 
+  if (loading) return <p className="text-sm text-gray-600">Yükleniyor...</p>;
+
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Invited Owners</h1>
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border p-2">Name</th>
-            <th className="border p-2">Email</th>
-            <th className="border p-2">DOB</th>
-            <th className="border p-2">Company</th>
-            <th className="border p-2">Subscription ID</th>
-          </tr>
-        </thead>
-        <tbody>
-          {owners.map((owner) => (
-            <tr key={owner.id}>
-              <td className="border p-2">{owner.name}</td>
-              <td className="border p-2">{owner.email}</td>
-              <td className="border p-2">{owner.dob}</td>
-              <td className="border p-2">{owner.company}</td>
-              <td className="border p-2">{owner.externalId}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Card className="p-4">
+      <CardContent>
+        <h2 className="text-xl font-semibold mb-4">Şirket Üyeleri (Owners)</h2>
+        {owners.length === 0 ? (
+          <p className="text-gray-500">Hiç üye bulunamadı.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>İsim</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Şirket</TableHead>
+                <TableHead>KYC Durumu</TableHead>
+                <TableHead>Aksiyon</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {owners.map((owner) => (
+                <TableRow key={owner.id}>
+                  <TableCell>{owner.name}</TableCell>
+                  <TableCell>{owner.email}</TableCell>
+                  <TableCell>{owner.companyName}</TableCell>
+                  <TableCell>
+                    <Badge variant={owner.reviewStatus === "SUBMITTED" ? "default" : "secondary"}>
+                      {owner.reviewStatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {owner.reviewStatus === "NO_ID" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const kycUrl = `/kyc?email=${encodeURIComponent(owner.email)}`;
+                          navigator.clipboard.writeText(kycUrl);
+                          toast.success("KYC linki panoya kopyalandı");
+                        }}
+                      >
+                        Link Kopyala
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
