@@ -1,3 +1,4 @@
+// pages/api/admin/owners.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
@@ -10,24 +11,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         subscription: {
           select: {
             company_name: true,
-            external_id: true
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
-    const formatted = owners.map((member) => ({
-      id: member.id,
-      name: `${member.first_name} ${member.last_name}`,
-      email: member.email,
-      subscriptionId: member.subscription_id,
-      companyName: member.subscription?.company_name || "N/A",
+    console.log("📦 Owners from DB:", owners); // ← BURASI
+
+    const formatted = owners.map((m) => ({
+      name: `${m.first_name} ${m.last_name}`,
+      email: m.email,
+      company: m.subscription?.company_name || "N/A",
     }));
 
     res.status(200).json(formatted);
   } catch (error) {
     console.error("API Hatası:", error);
-    res.status(500).json({ error: "Beklenmedik hata oluştu" });
+    res.status(500).json({ error: "Internal server error" });
   }
 }
-
