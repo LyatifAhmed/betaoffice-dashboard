@@ -201,12 +201,16 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
         relative
         flex flex-col justify-between
         rounded-2xl p-6 max-w-sm w-full
-        bg-white/20 backdrop-blur-md border border-white/30
-        shadow-md transition-transform duration-300
+        bg-white/60 md:bg-white/70
+        backdrop-blur-sm md:backdrop-blur-md
+        border border-gray-200/50
+        shadow-xl shadow-gray-300/30
+        transition-transform duration-300
         hover:-translate-y-2 hover:scale-[1.03]
-        hover:shadow-xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
+        hover:shadow-2xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
       `}
     >
+
       {badge && (
         <span className={`absolute -top-3 -right-3 ${color === "blue" ? "bg-blue-500" : "bg-green-500"} text-white text-xs font-bold px-3 py-1 rounded-full shadow-md`}>
           {badge}
