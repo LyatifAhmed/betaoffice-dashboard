@@ -7,7 +7,7 @@ export const config = {
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-03-31.basil", // Stripe API versiyonu belirtmek iyi bir pratik
+  apiVersion: "2025-07-30.basil", // Stripe API versiyonu belirtmek iyi bir pratik
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
