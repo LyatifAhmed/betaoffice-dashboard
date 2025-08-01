@@ -50,7 +50,7 @@ export default function HomePage() {
           alt="Premium Virtual Office Background"
           fill
           priority
-          style={{ objectFit: "cover" }}
+          style={{ objectFit: "cover", opacity: 3 }}
           className="absolute z-0"
         />
 
