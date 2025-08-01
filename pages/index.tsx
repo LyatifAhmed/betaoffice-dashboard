@@ -19,10 +19,12 @@ export default function HomePage() {
     router.push("/kyc");
   };
 
-  <Navbar />
+  
 
   return (
     <>
+      <Navbar />
+      
       <Head>
         <title>BetaOffice – Digital Office for Global Creators</title>
         <meta
