@@ -43,28 +43,33 @@ export default function HomePage() {
       </Head>
 
       {/* Hero Section (Light + Futuristic) */}
-      <section className="relative pt-28 min-h-[90vh] flex items-center justify-center text-center overflow-hidden bg-white">
+      <section className="relative pt-28 min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
+        {/* Background Image */}
         <Image
           src="/office4.png"
           alt="Premium Virtual Office Background"
           fill
           priority
-          style={{ objectFit: "cover", opacity: 0.3 }}
+          style={{ objectFit: "cover", opacity: 1 }}
           className="absolute z-0"
         />
-        <div className="absolute w-[800px] h-[800px] bg-blue-200/20 blur-3xl rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
-        <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 backdrop-blur-md bg-white/40 border border-white/60 rounded-3xl shadow-xl animate-fade-in-up">
+        {/* Optional soft overlay for readability */}
+        <div className="absolute inset-0 bg-white/30 backdrop-blur-sm z-0" />
+
+        {/* Glass Card Content */}
+        <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/40 backdrop-blur-lg border border-white/50 rounded-3xl shadow-2xl animate-fade-in-up">
           <Image
             src="/logo.png"
             alt="BetaOffice Logo"
             width={80}
             height={80}
-            className="mx-auto mb-6"
+            className="mx-auto mb-6 opacity-90"
           />
 
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-blue-500 mb-6">
-            Your Global HQ. <br /> <span className="text-blue-700">From London.</span>
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-800 mb-6">
+            Your Global HQ. <br />
+            <span className="text-blue-600">From London.</span>
           </h1>
 
           <p className="text-lg md:text-xl mb-8 leading-relaxed text-gray-700">
@@ -74,20 +79,21 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <button
               onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 shadow-md hover:shadow-blue-400/30 transition duration-300"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition duration-300"
             >
               View Plans
             </button>
 
             <Link
               href="/login"
-              className="text-blue-800 hover:text-blue-900 underline text-base font-medium transition-colors duration-200 mt-2 md:mt-0"
+              className="text-blue-700 hover:text-blue-900 underline text-base font-medium transition-colors duration-200 mt-2 md:mt-0"
             >
               Already a member? Log in
             </Link>
           </div>
         </div>
       </section>
+
 
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
