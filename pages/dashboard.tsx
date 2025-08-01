@@ -5,10 +5,12 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Info, FileText, RefreshCw } from "lucide-react";
+import { Mail, Info, FileText, RefreshCw, Gift } from "lucide-react";
 import WalletSection from "@/components/WalletSection";
 import ForwardMailButton from "@/components/ForwardMailButton";
 import SubscriptionControls from "@/components/dashboard/SubscriptionControls";
+import ReferralSection from "@/components/ReferralSection";
+import AffiliateCards from "@/components/AffiliateCards";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -42,23 +44,6 @@ export default function Dashboard() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGenerateCertificate = async () => {
-    try {
-      const res = await fetch("/api/generate-certificate");
-      if (!res.ok) throw new Error("Failed to generate certificate");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "betaoffice-certificate.pdf";
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-      alert("❌ Could not generate certificate. Please try again.");
     }
   };
 
@@ -158,6 +143,7 @@ export default function Dashboard() {
         <TabsList className="mb-4">
           <TabsTrigger value="mail"><Mail className="w-4 h-4 mr-2" />Incoming Mail</TabsTrigger>
           <TabsTrigger value="details"><Info className="w-4 h-4 mr-2" />Details</TabsTrigger>
+          <TabsTrigger value="referral"><Gift className="w-4 h-4 mr-2" />Referral</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mail">
@@ -256,7 +242,14 @@ export default function Dashboard() {
                     : "N/A"}
                 </p>
               </div>
-
+              <TabsContent value="referral">
+                <Card>
+                  <CardContent className="space-y-6 p-6">
+                    <ReferralSection customerEmail={subscription.customer_email} referralCode={subscription.referral_code} />
+                    <AffiliateCards referralCode={subscription.referral_code} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
                 <p>
