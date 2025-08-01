@@ -10,7 +10,6 @@ import Navbar from "@/components/Navbar";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
-// ✅ PlanCardProps type tanımını üste aldık
 type PlanCardProps = {
   title: string;
   price: string;
@@ -43,14 +42,10 @@ export default function HomePage() {
         />
       </Head>
 
-      {/* Hero Section */}
-      {/* Premium Futuristic Hero Section */}
       <section className="relative pt-28 min-h-[90vh] flex items-center justify-center bg-black text-white text-center overflow-hidden">
-        {/* Background Glow Overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-black to-black opacity-90" />
         <div className="absolute w-[800px] h-[800px] bg-blue-600/20 blur-3xl rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
-        {/* Glass Content */}
         <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 backdrop-blur-md bg-white/10 border border-white/30 rounded-3xl shadow-xl animate-fade-in-up">
           <Image
             src="/logo.png"
@@ -86,9 +81,7 @@ export default function HomePage() {
         </div>
       </section>
 
-
-      {/* Features */}
-      <section id="features" className="py-20 bg-white text-gray-900">
+      <section id="features" className="py-20 bg-gradient-to-b from-black to-gray-900 text-white">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-12">What Makes BetaOffice Unique?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
@@ -99,8 +92,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="bg-white py-20 text-gray-900">
+      <section className="bg-gray-900 py-20 text-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-12">What Our Clients Say</h2>
           <div className="grid gap-8 md:grid-cols-3">
@@ -111,10 +103,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Trusted By Section */}
-      <section className="bg-white py-12">
+      <section className="bg-black py-12">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-gray-500 uppercase tracking-wide text-sm mb-6">
+          <p className="text-gray-400 uppercase tracking-wide text-sm mb-6">
             Used alongside tools trusted by modern entrepreneurs
           </p>
           <div className="flex flex-wrap justify-center gap-8 grayscale opacity-70">
@@ -127,8 +118,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      <section id="pricing" className="py-20 bg-gray-950 text-white">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-10">Transparent Pricing (excl. VAT)</h2>
           <div className="flex flex-col md:flex-row justify-center gap-10">
@@ -153,7 +143,7 @@ export default function HomePage() {
               onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID!)}
             />
           </div>
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-gray-400 mt-4">
             Physical mail is stored for 30 days and securely shredded if not forwarded.
           </p>
         </div>
@@ -164,10 +154,10 @@ export default function HomePage() {
 
 function Feature({ icon, title, text }: { icon: string; title: string; text: string }) {
   return (
-    <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-xl transition duration-300 transform hover:scale-105">
+    <div className="bg-white/10 p-6 rounded-lg shadow hover:shadow-xl transition duration-300 transform hover:scale-105 border border-white/20">
       <div className="text-4xl mb-3 transition-opacity duration-300 opacity-80 hover:opacity-100">{icon}</div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-gray-700">{text}</p>
+      <h3 className="text-xl font-semibold mb-2 text-white">{title}</h3>
+      <p className="text-gray-300">{text}</p>
     </div>
   );
 }
@@ -177,19 +167,15 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
   const buttonColor = color === "blue" ? "bg-blue-500 hover:bg-blue-600" : "bg-green-500 hover:bg-green-600";
 
   return (
-    <div
-      className={
-        `
-        relative
-        flex flex-col justify-between
-        rounded-2xl p-6 max-w-sm w-full
-        bg-white/20 backdrop-blur-md border border-white/30
-        shadow-md transition-transform duration-300
-        hover:-translate-y-2 hover:scale-[1.03]
-        hover:shadow-xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
-      `
-      }
-    >
+    <div className={`
+      relative
+      flex flex-col justify-between
+      rounded-2xl p-6 max-w-sm w-full
+      bg-white/10 backdrop-blur-md border border-white/30
+      shadow-md transition-transform duration-300
+      hover:-translate-y-2 hover:scale-[1.03]
+      hover:shadow-xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
+    `}>
       {badge && (
         <span className={`absolute -top-3 -right-3 ${color === "blue" ? "bg-blue-500" : "bg-green-500"} text-white text-xs font-bold px-3 py-1 rounded-full shadow-md`}>
           {badge}
@@ -197,16 +183,16 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
       )}
 
       <div>
-        <h3 className="text-xl font-bold mb-1 text-gray-900">{title}</h3>
-        <p className="text-3xl font-extrabold text-gray-900">
+        <h3 className="text-xl font-bold mb-1 text-white">{title}</h3>
+        <p className="text-3xl font-extrabold text-white">
           {price}
-          <span className="text-base font-medium text-gray-600">{billingCycle}</span>
+          <span className="text-base font-medium text-gray-300">{billingCycle}</span>
         </p>
-        {vatNote && <p className="text-sm text-gray-500 mt-1">{vatNote}</p>}
-        <ul className="text-sm text-gray-800 mt-4 space-y-2 text-left">
+        {vatNote && <p className="text-sm text-gray-400 mt-1">{vatNote}</p>}
+        <ul className="text-sm text-gray-200 mt-4 space-y-2 text-left">
           {benefits.map((b: string, i: number) => (
             <li key={i} className="flex items-start gap-2">
-              <span className="text-green-500 font-bold">✓</span>
+              <span className="text-green-400 font-bold">✓</span>
               {b}
             </li>
           ))}
@@ -227,9 +213,9 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
 
 function TestimonialCard({ name, quote }: { name: string; quote: string }) {
   return (
-    <div className="bg-gray-50 p-6 rounded-lg shadow text-left">
-      <p className="text-gray-700 italic mb-4">“{quote}”</p>
-      <p className="font-semibold text-gray-900">– {name}</p>
+    <div className="bg-white/5 p-6 rounded-lg shadow text-left border border-white/10">
+      <p className="text-gray-200 italic mb-4">“{quote}”</p>
+      <p className="font-semibold text-white">– {name}</p>
     </div>
   );
 }
