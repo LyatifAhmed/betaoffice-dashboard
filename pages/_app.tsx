@@ -5,7 +5,6 @@ import Head from "next/head";
 import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
 import Footer from "../components/Footer";
-import TopBanner from "../components/TopBanner";
 import { Toaster } from "react-hot-toast";
 
 export default function App({ Component, pageProps }: AppProps) {

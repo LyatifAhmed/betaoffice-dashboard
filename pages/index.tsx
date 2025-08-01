@@ -42,9 +42,8 @@ export default function HomePage() {
         />
       </Head>
 
-      {/* Hero Section (Light + Futuristic) */}
+      {/* Hero Section */}
       <section className="relative pt-28 min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
-        {/* Background Image */}
         <Image
           src="/office4.png"
           alt="Premium Virtual Office Background"
@@ -53,21 +52,9 @@ export default function HomePage() {
           style={{ objectFit: "cover" }}
           className="absolute z-0"
         />
-
-        {/* Optional soft overlay for readability */}
         <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] z-0" />
 
-
-        {/* Glass Card Content */}
-        <div
-          className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 
-                     bg-white/5 backdrop-blur-sm 
-                     border border-white/10 rounded-3xl 
-                     shadow-lg animate-fade-in-up 
-                     ring-1 ring-white/5 hover:ring-white/10 
-                     transition-all duration-500 group"
-        >
-          {/* 💫 Glow Border Effect */}
+        <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl shadow-lg animate-fade-in-up ring-1 ring-white/5 hover:ring-white/10 transition-all duration-500 group">
           <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
           <Image
@@ -103,9 +90,7 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-
       </section>
-
 
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
@@ -120,8 +105,8 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-white py-20 text-gray-900">
-        <div className="max-w-4xl mx-auto px-6 text-center">
+      <section id="testimonials" className="bg-white py-20 text-gray-900">
+        <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-12">What Our Clients Say</h2>
           <div className="grid gap-8 md:grid-cols-3">
             <TestimonialCard name="Sarah, Founder of NomadWise" quote="BetaOffice helped me register my UK company in minutes. The AI mail system is a lifesaver while I travel." />
@@ -198,7 +183,8 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
 
   return (
     <div
-      className={`
+      className={
+        `
         relative
         flex flex-col justify-between
         rounded-2xl p-6 max-w-sm w-full
@@ -209,7 +195,8 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
         transition-transform duration-300
         hover:-translate-y-2 hover:scale-[1.03]
         hover:shadow-2xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
-      `}
+      `
+      }
       style={{
         backgroundImage: "url('/textures/noise.png')",
         backgroundBlendMode: "overlay",
@@ -217,7 +204,6 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
         backgroundRepeat: "repeat",
       }}
     >
-
       {badge && (
         <span className={`absolute -top-3 -right-3 ${color === "blue" ? "bg-blue-500" : "bg-green-500"} text-white text-xs font-bold px-3 py-1 rounded-full shadow-md`}>
           {badge}
@@ -255,8 +241,8 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
 
 function TestimonialCard({ name, quote }: { name: string; quote: string }) {
   return (
-    <div className="bg-gray-50 p-6 rounded-lg shadow text-left">
-      <p className="text-gray-700 italic mb-4">“{quote}”</p>
+    <div className="bg-white/50 backdrop-blur-md p-6 rounded-xl shadow-md border border-gray-200 text-left hover:shadow-lg transition-all duration-300">
+      <p className="text-gray-800 italic mb-4">“{quote}”</p>
       <p className="font-semibold text-gray-900">– {name}</p>
     </div>
   );

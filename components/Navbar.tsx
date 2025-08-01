@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
@@ -11,15 +10,9 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 w-full z-30 bg-white/70 backdrop-blur border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* ✅ SADECE LOGO, büyütülmüş */}
-        <Link href="/">
-          <Image
-            src="/logo.png" // veya "https://betaoffice.uk/logo.png"
-            alt="BetaOffice Logo"
-            width={56}
-            height={56}
-            className="hover:opacity-80 transition-opacity"
-          />
+        {/* ✅ Sadece yazılı logo */}
+        <Link href="/" className="text-xl font-bold text-gray-800 hover:text-blue-600 transition">
+          BetaOffice
         </Link>
 
         {/* Masaüstü menü */}
