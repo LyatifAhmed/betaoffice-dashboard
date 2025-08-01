@@ -61,10 +61,11 @@ export default function HomePage() {
         {/* Glass Card Content */}
         <div
           className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 
-                    bg-white/15 backdrop-blur-lg border border-white/20 
-                    rounded-3xl shadow-2xl animate-fade-in-up 
-                    ring-1 ring-white/10 hover:ring-white/20 
-                    transition-all duration-500 group"
+                     bg-white/5 backdrop-blur-sm 
+                     border border-white/10 rounded-3xl 
+                     shadow-lg animate-fade-in-up 
+                     ring-1 ring-white/5 hover:ring-white/10 
+                     transition-all duration-500 group"
         >
           {/* 💫 Glow Border Effect */}
           <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
