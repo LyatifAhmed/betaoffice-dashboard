@@ -16,8 +16,8 @@ export default function Navbar() {
           <Image
             src="/logo.png" // veya "https://betaoffice.uk/logo.png"
             alt="BetaOffice Logo"
-            width={48}
-            height={48}
+            width={56}
+            height={56}
             className="hover:opacity-80 transition-opacity"
           />
         </Link>
