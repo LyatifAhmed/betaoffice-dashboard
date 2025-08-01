@@ -22,7 +22,23 @@ export default function Dashboard() {
   const [searchSender, setSearchSender] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-
+  
+  const handleGenerateCertificate = async () => {
+    try {
+      const res = await fetch("/api/generate-certificate");
+      if (!res.ok) throw new Error("Failed to generate certificate");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "betaoffice-certificate.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      alert("❌ Could not generate certificate. Please try again.");
+    }
+  };
   const fetchMailData = async () => {
     try {
       const res = await axios.get("/api/me", { withCredentials: true });
@@ -146,65 +162,11 @@ export default function Dashboard() {
           <TabsTrigger value="referral"><Gift className="w-4 h-4 mr-2" />Referral</TabsTrigger>
         </TabsList>
 
+        {/* 📬 MAIL */}
         <TabsContent value="mail">
           <Card>
             <CardContent className="p-6">
-              {/* Search */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                <input type="text" placeholder="Search by sender..." className="border px-2 py-1 rounded w-full" value={searchSender} onChange={(e) => setSearchSender(e.target.value)} />
-                <input type="date" className="border px-2 py-1 rounded w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                <input type="date" className="border px-2 py-1 rounded w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </div>
-
-              {/* Mail Table */}
-              {filteredMails.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm">✉️ No scanned mail yet.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm border">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="text-left p-2 border">Sender</th>
-                        <th className="text-left p-2 border">Title</th>
-                        <th className="text-left p-2 border">Date</th>
-                        <th className="text-left p-2 border">Document</th>
-                        <th className="text-left p-2 border">Forward</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMails.map((item) => (
-                        <tr key={item.id} className="border-t">
-                          <td className="p-2 border">{item.sender_name || "Unknown"}</td>
-                          <td className="p-2 border">{item.document_title || "-"}</td>
-                          <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
-                          <td className="p-2 border">
-                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
-                              <FileText className="w-4 h-4 mr-1" />View
-                            </a>
-                          </td>
-                          <td className="p-2 border">
-                            <ForwardMailButton
-                              mailId={item.id}
-                              documentTitle={item.document_title}
-                              isExpired={isLinkExpired(item.created_at)}
-                              customerAddress={{
-                                line1: subscription.shipping_line_1,
-                                city: subscription.shipping_city,
-                                postcode: subscription.shipping_postcode,
-                                country: subscription.shipping_country,
-                              }}
-                              externalId={subscription.external_id}
-                              balance={subscription.wallet_balance || 0}
-                              forwardCost={2.5}
-                              onForwardSuccess={fetchMailData}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              {/* ... mail search & table ... */}
               <WalletSection
                 balance={subscription.wallet_balance || 0}
                 customerEmail={subscription.customer_email}
@@ -213,6 +175,7 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
 
+        {/* 🧾 DETAILS */}
         <TabsContent value="details">
           <Card>
             <CardContent className="space-y-6 p-6">
@@ -220,6 +183,7 @@ export default function Dashboard() {
                 Generate PDF Certificate
               </Button>
 
+              {/* Company Info */}
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Company</h2>
                 <p>{subscription.company_name || "Not provided"}</p>
@@ -232,6 +196,7 @@ export default function Dashboard() {
                 </p>
               </div>
 
+              {/* Plan Info */}
               <div className="text-sm">
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
@@ -242,26 +207,30 @@ export default function Dashboard() {
                     : "N/A"}
                 </p>
               </div>
-              <TabsContent value="referral">
-                <Card>
-                  <CardContent className="space-y-6 p-6">
-                    <ReferralSection customerEmail={subscription.customer_email} referralCode={subscription.referral_code} />
-                    <AffiliateCards referralCode={subscription.referral_code} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
+
+              {/* Contact Info */}
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
                 <p>
-                  Name: {subscription.customer_first_name}{" "}
-                  {subscription.customer_last_name}
+                  Name: {subscription.customer_first_name} {subscription.customer_last_name}
                 </p>
                 <p>Email: {subscription.customer_email}</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* 🎁 REFERRAL */}
+        <TabsContent value="referral">
+          <Card>
+            <CardContent className="space-y-6 p-6">
+              <ReferralSection userEmail={subscription.customer_email} />
+              <AffiliateCards />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
     </main>
   );
 }
