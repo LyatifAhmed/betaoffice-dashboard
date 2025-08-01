@@ -209,6 +209,12 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
         hover:-translate-y-2 hover:scale-[1.03]
         hover:shadow-2xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
       `}
+      style={{
+        backgroundImage: "url('/textures/noise.png')",
+        backgroundBlendMode: "overlay",
+        backgroundSize: "cover",
+        backgroundRepeat: "repeat",
+      }}
     >
 
       {badge && (
