@@ -50,12 +50,13 @@ export default function HomePage() {
           alt="Premium Virtual Office Background"
           fill
           priority
-          style={{ objectFit: "cover", opacity: 3 }}
+          style={{ objectFit: "cover" }}
           className="absolute z-0"
         />
 
         {/* Optional soft overlay for readability */}
-        <div className="absolute inset-0 bg-white/30 backdrop-blur-sm z-0" />
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] z-0" />
+
 
         {/* Glass Card Content */}
         <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/40 backdrop-blur-lg border border-white/50 rounded-3xl shadow-2xl animate-fade-in-up">
