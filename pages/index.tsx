@@ -59,16 +59,25 @@ export default function HomePage() {
 
 
         {/* Glass Card Content */}
-        <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/40 backdrop-blur-lg border border-white/50 rounded-3xl shadow-2xl animate-fade-in-up">
+        <div
+          className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 
+                    bg-white/15 backdrop-blur-lg border border-white/20 
+                    rounded-3xl shadow-2xl animate-fade-in-up 
+                    ring-1 ring-white/10 hover:ring-white/20 
+                    transition-all duration-500 group"
+        >
+          {/* 💫 Glow Border Effect */}
+          <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
           <Image
             src="/logo.png"
             alt="BetaOffice Logo"
-            width={80}
-            height={80}
-            className="mx-auto mb-6 opacity-90"
+            width={120}
+            height={120}
+            className="mx-auto mb-6 opacity-90 drop-shadow-lg"
           />
 
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-800 mb-6">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-800 mb-6 drop-shadow-sm">
             Your Global HQ. <br />
             <span className="text-blue-600">From London.</span>
           </h1>
@@ -80,7 +89,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <button
               onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition duration-300"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-md hover:shadow-xl transition duration-300"
             >
               View Plans
             </button>
@@ -93,6 +102,7 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+
       </section>
 
 
