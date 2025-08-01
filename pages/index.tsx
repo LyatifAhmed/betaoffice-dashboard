@@ -73,8 +73,8 @@ export default function HomePage() {
           <Image
             src="/logo.png"
             alt="BetaOffice Logo"
-            width={120}
-            height={120}
+            width={200}
+            height={200}
             className="mx-auto mb-6 opacity-90 drop-shadow-lg"
           />
 
