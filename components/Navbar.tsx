@@ -10,7 +10,7 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 w-full z-30 bg-white/70 backdrop-blur border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* ✅ Sadece yazılı logo */}
+        {/* ✅ Logo */}
         <Link href="/" className="text-xl font-bold text-gray-800 hover:text-blue-600 transition">
           BetaOffice
         </Link>
@@ -20,6 +20,7 @@ export default function Navbar() {
           <Link href="#pricing" className="hover:text-blue-600">Plans</Link>
           <Link href="#features" className="hover:text-blue-600">Features</Link>
           <Link href="#testimonials" className="hover:text-blue-600">Testimonials</Link>
+          <Link href="/blog" className="hover:text-blue-600">Blog</Link> {/* ✅ Blog eklendi */}
           <Link
             href="/login"
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
@@ -40,6 +41,7 @@ export default function Navbar() {
           <Link href="#pricing" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Plans</Link>
           <Link href="#features" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Features</Link>
           <Link href="#testimonials" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Testimonials</Link>
+          <Link href="/blog" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Blog</Link> {/* ✅ Mobil menüye de eklendi */}
           <Link
             href="/login"
             onClick={() => setIsOpen(false)}
