@@ -5,12 +5,13 @@ import axios from "axios";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Info, FileText, RefreshCw, Gift } from "lucide-react";
+import { Mail, Info, FileText, RefreshCw, Gift, Sparkles } from "lucide-react";
 import WalletSection from "@/components/WalletSection";
 import ForwardMailButton from "@/components/ForwardMailButton";
 import SubscriptionControls from "@/components/dashboard/SubscriptionControls";
 import ReferralSection from "@/components/ReferralSection";
 import AffiliateCards from "@/components/AffiliateCards";
+import AISummaryButton from "@/components/AISummaryButton";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -88,7 +89,7 @@ export default function Dashboard() {
   const isLinkExpired = (createdAt: string): boolean => {
     const createdDate = new Date(createdAt);
     const now = new Date();
-    return (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24) > 30;
+    return (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24) > 1;
   };
 
   const renderStatusCard = () => {
@@ -128,6 +129,9 @@ export default function Dashboard() {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
 
+  const subscriptionStart = new Date(subscription?.start_date);
+  const isFirst7Days = (new Date().getTime() - subscriptionStart.getTime()) / (1000 * 60 * 60 * 24) <= 7;
+
   return (
     <main className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-semibold mb-4">
@@ -135,6 +139,12 @@ export default function Dashboard() {
       </h1>
 
       {renderStatusCard()}
+
+      {isFirst7Days && (
+        <div className="mb-4 p-4 bg-violet-100 text-violet-900 rounded border border-violet-300">
+          ✨ New: AI-sorted mail & AI summary for scanned documents!
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
@@ -191,6 +201,9 @@ export default function Dashboard() {
                                 <a href={item.url} target="_blank" rel="noopener noreferrer" className={`flex items-center ${isLinkExpired(item.created_at) ? "text-gray-400 line-through" : "text-blue-600 hover:underline"}`}>
                                   <FileText className="w-4 h-4 mr-1" />View
                                 </a>
+                                {!isLinkExpired(item.created_at) && item.url && (
+                                  <AISummaryButton pdfUrl={item.url} />
+                                )}
                               </td>
                               <td className="p-2 border">
                                 <ForwardMailButton
@@ -230,10 +243,8 @@ export default function Dashboard() {
                 <h2 className="text-md font-semibold">Company</h2>
                 <p>{subscription.company_name || "Not provided"}</p>
                 <p>
-                  {subscription.shipping_line_1}
-                  <br />
-                  {subscription.shipping_city}, {subscription.shipping_postcode}
-                  <br />
+                  {subscription.shipping_line_1}<br />
+                  {subscription.shipping_city}, {subscription.shipping_postcode}<br />
                   {subscription.shipping_country}
                 </p>
               </div>
