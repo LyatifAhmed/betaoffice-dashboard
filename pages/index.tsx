@@ -10,6 +10,18 @@ import Navbar from "@/components/Navbar";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
+// ✅ PlanCardProps type tanımını üste aldık
+type PlanCardProps = {
+  title: string;
+  price: string;
+  billingCycle: string;
+  vatNote?: string;
+  benefits: string[];
+  onClick: () => void;
+  color: "blue" | "green";
+  badge?: string;
+};
+
 export default function HomePage() {
   const router = useRouter();
   const [agree, setAgree] = useState(false);
@@ -19,12 +31,10 @@ export default function HomePage() {
     router.push("/kyc");
   };
 
-  
-
   return (
     <>
       <Navbar />
-      
+
       <Head>
         <title>BetaOffice – Digital Office for Global Creators</title>
         <meta
@@ -36,7 +46,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative pt-24 min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
         <Image
-          src="/office4.png" // ✅ Yeni spotlight görseli
+          src="/office4.png"
           alt="Premium Virtual Office Background"
           fill
           priority
@@ -68,7 +78,6 @@ export default function HomePage() {
         </div>
       </section>
 
-
       {/* Features */}
       <section id="features" className="py-20 bg-white text-gray-900">
         <div className="max-w-6xl mx-auto px-6 text-center">
@@ -86,18 +95,9 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-12">What Our Clients Say</h2>
           <div className="grid gap-8 md:grid-cols-3">
-            <TestimonialCard
-              name="Sarah, Founder of NomadWise"
-              quote="BetaOffice helped me register my UK company in minutes. The AI mail system is a lifesaver while I travel."
-            />
-            <TestimonialCard
-              name="David, E-commerce Consultant"
-              quote="Finally a virtual office without annoying hidden fees. Everything I need is included."
-            />
-            <TestimonialCard
-              name="Leila, Creative Agency Owner"
-              quote="I love how professional my business now looks. The director privacy option gave me real peace of mind."
-            />
+            <TestimonialCard name="Sarah, Founder of NomadWise" quote="BetaOffice helped me register my UK company in minutes. The AI mail system is a lifesaver while I travel." />
+            <TestimonialCard name="David, E-commerce Consultant" quote="Finally a virtual office without annoying hidden fees. Everything I need is included." />
+            <TestimonialCard name="Leila, Creative Agency Owner" quote="I love how professional my business now looks. The director privacy option gave me real peace of mind." />
           </div>
         </div>
       </section>
@@ -128,12 +128,7 @@ export default function HomePage() {
               price="£20"
               billingCycle="/month"
               vatNote="+ VAT (£24 total)"
-              benefits={[
-                "Prestigious London address",
-                "AI-sorted scanned mail",
-                "Director address privacy included",
-                "Cancel anytime",
-              ]}
+              benefits={["Prestigious London address", "AI-sorted scanned mail", "Director address privacy included", "Cancel anytime"]}
               color="blue"
               onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!)}
             />
@@ -143,12 +138,7 @@ export default function HomePage() {
               price="£200"
               billingCycle="/year"
               vatNote="+ VAT (£240 total)"
-              benefits={[
-                "All monthly features",
-                "Save £48/year",
-                "Priority support",
-                "Mail forwarding in UK (for small fee)",
-              ]}
+              benefits={["All monthly features", "Save £48/year", "Priority support", "Mail forwarding in UK (for small fee)"]}
               badge="Best Value"
               color="green"
               onClick={() => handlePlanSelect(process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID!)}
@@ -173,41 +163,30 @@ function Feature({ icon, title, text }: { icon: string; title: string; text: str
   );
 }
 
-type PlanCardProps = {
-  title: string;
-  price: string;
-  billingCycle: string;
-  vatNote?: string;
-  benefits: string[];
-  onClick: () => void;
-  color: "blue" | "green";
-  badge?: string;
-};
+function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, color, badge }: PlanCardProps) {
+  const ringColor = color === "blue" ? "hover:ring-blue-400/40" : "hover:ring-green-400/40";
+  const buttonColor = color === "blue" ? "bg-blue-500 hover:bg-blue-600" : "bg-green-500 hover:bg-green-600";
 
-function PlanCard({
-  title,
-  price,
-  billingCycle,
-  vatNote,
-  benefits,
-  onClick,
-  color,
-  badge,
-}: PlanCardProps) {
   return (
     <div
-      className={`
-        flex flex-col justify-between border-2 border-${color}-500 
-        rounded-2xl p-6 shadow-md max-w-sm w-full bg-white 
-        transition-transform duration-300 hover:shadow-2xl hover:-translate-y-1.5 hover:scale-[1.02]
+      className={
+        `
         relative
-      `}
+        flex flex-col justify-between
+        rounded-2xl p-6 max-w-sm w-full
+        bg-white/20 backdrop-blur-md border border-white/30
+        shadow-md transition-transform duration-300
+        hover:-translate-y-2 hover:scale-[1.03]
+        hover:shadow-xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
+      `
+      }
     >
       {badge && (
-        <span className={`absolute -top-3 -right-3 bg-${color}-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md`}>
+        <span className={`absolute -top-3 -right-3 ${color === "blue" ? "bg-blue-500" : "bg-green-500"} text-white text-xs font-bold px-3 py-1 rounded-full shadow-md`}>
           {badge}
         </span>
       )}
+
       <div>
         <h3 className="text-xl font-bold mb-1 text-gray-900">{title}</h3>
         <p className="text-3xl font-extrabold text-gray-900">
@@ -215,8 +194,8 @@ function PlanCard({
           <span className="text-base font-medium text-gray-600">{billingCycle}</span>
         </p>
         {vatNote && <p className="text-sm text-gray-500 mt-1">{vatNote}</p>}
-        <ul className="text-sm text-gray-700 mt-4 space-y-2 text-left">
-          {benefits.map((b, i) => (
+        <ul className="text-sm text-gray-800 mt-4 space-y-2 text-left">
+          {benefits.map((b: string, i: number) => (
             <li key={i} className="flex items-start gap-2">
               <span className="text-green-500 font-bold">✓</span>
               {b}
@@ -224,10 +203,11 @@ function PlanCard({
           ))}
         </ul>
       </div>
+
       <div className="mt-6">
         <button
           onClick={onClick}
-          className={`w-full py-2.5 px-4 rounded-lg font-semibold text-white bg-${color}-500 hover:bg-${color}-600 transition duration-300 shadow-sm hover:shadow-md`}
+          className={`w-full py-2.5 px-4 rounded-lg font-semibold text-white ${buttonColor} transition duration-300 shadow-sm hover:shadow-md`}
         >
           Choose {title.split(" ")[0]}
         </button>
