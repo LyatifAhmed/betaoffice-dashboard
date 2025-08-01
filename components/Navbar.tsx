@@ -15,7 +15,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link href="/">
             <Image
-              src="https://betaoffice.uk/logo.png"
+              src="/logo.png"
               alt="BetaOffice Logo"
               width={32}
               height={32}
