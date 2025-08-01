@@ -18,7 +18,7 @@ export default function HomePage() {
     localStorage.setItem("selected_plan", productId);
     router.push("/kyc");
   };
-  
+
   <Navbar />
 
   return (
@@ -32,7 +32,7 @@ export default function HomePage() {
       </Head>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
+      <section className="relative pt-24 min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
         <Image
           src="/office4.png" // ✅ Yeni spotlight görseli
           alt="Premium Virtual Office Background"
