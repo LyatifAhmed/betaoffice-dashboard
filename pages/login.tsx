@@ -73,7 +73,7 @@ export default function LoginPage() {
             />
             <h1 className="text-2xl font-bold text-gray-900 mt-4">Sign in to your Dashboard</h1>
             <p className="text-sm text-gray-600">
-              Enter your email and we'll send you a secure login link.
+              Enter your email and we&apos;ll send you a secure login link.
             </p>
           </div>
 
