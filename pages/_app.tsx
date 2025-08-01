@@ -13,7 +13,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      <TopBanner />
 
       <Head>
         <title>BetaOffice – Virtual Office KYC</title>
