@@ -22,7 +22,8 @@ export default function Dashboard() {
   const [searchSender, setSearchSender] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  
+  const [selectedCategory, setSelectedCategory] = useState("");
+
   const handleGenerateCertificate = async () => {
     try {
       const res = await fetch("/api/generate-certificate");
@@ -39,6 +40,7 @@ export default function Dashboard() {
       alert("❌ Could not generate certificate. Please try again.");
     }
   };
+
   const fetchMailData = async () => {
     try {
       const res = await axios.get("/api/me", { withCredentials: true });
@@ -79,7 +81,8 @@ export default function Dashboard() {
     const createdDate = new Date(item.created_at);
     const matchesStart = startDate ? createdDate >= new Date(startDate) : true;
     const matchesEnd = endDate ? createdDate <= new Date(endDate) : true;
-    return matchesSender && matchesStart && matchesEnd;
+    const matchesCategory = selectedCategory ? item.category === selectedCategory : true;
+    return matchesSender && matchesStart && matchesEnd && matchesCategory;
   });
 
   const isLinkExpired = (createdAt: string): boolean => {
@@ -133,28 +136,6 @@ export default function Dashboard() {
 
       {renderStatusCard()}
 
-      {activeTab === "details" && (
-        <SubscriptionControls
-          stripeSubscriptionId={subscription.stripe_subscription_id}
-          externalId={subscription.external_id}
-          hoxtonStatus={subscription.review_status}
-          cancelAtPeriodEnd={subscription.cancel_at_period_end}
-          reviewStatus={subscription.review_status}
-        />
-      )}
-
-      {newMailAlert && (
-        <div className="mb-4 p-4 rounded bg-blue-100 text-blue-800 border border-blue-300">
-          📬 New mail received
-          <button
-            onClick={() => setNewMailAlert(false)}
-            className="ml-4 underline text-sm text-blue-700"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="mail"><Mail className="w-4 h-4 mr-2" />Incoming Mail</TabsTrigger>
@@ -162,28 +143,89 @@ export default function Dashboard() {
           <TabsTrigger value="referral"><Gift className="w-4 h-4 mr-2" />Referral</TabsTrigger>
         </TabsList>
 
-        {/* 📬 MAIL */}
         <TabsContent value="mail">
           <Card>
             <CardContent className="p-6">
-              {/* ... mail search & table ... */}
-              <WalletSection
-                balance={subscription.wallet_balance || 0}
-                customerEmail={subscription.customer_email}
-              />
+              {subscription.review_status !== "ACTIVE" ? (
+                <div className="text-center text-gray-500 text-sm py-10">
+                  🛑 You must verify your identity to access scanned mail.
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                    <input type="text" placeholder="Search by sender..." className="border px-2 py-1 rounded w-full" value={searchSender} onChange={(e) => setSearchSender(e.target.value)} />
+                    <input type="date" className="border px-2 py-1 rounded w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <input type="date" className="border px-2 py-1 rounded w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    <select className="border px-2 py-1 rounded w-full" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                      <option value="">All Categories</option>
+                      <option value="Invoice">Invoice</option>
+                      <option value="Bank">Bank</option>
+                      <option value="Government">Government</option>
+                      <option value="Personal">Personal</option>
+                    </select>
+                  </div>
+
+                  {filteredMails.length === 0 ? (
+                    <div className="text-center text-gray-500 text-sm py-10">✉️ No scanned mail yet.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="text-left p-2 border">Sender</th>
+                            <th className="text-left p-2 border">Title</th>
+                            <th className="text-left p-2 border">Date</th>
+                            <th className="text-left p-2 border">Category</th>
+                            <th className="text-left p-2 border">Document</th>
+                            <th className="text-left p-2 border">Forward</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredMails.map((item) => (
+                            <tr key={item.id} className="border-t">
+                              <td className="p-2 border">{item.sender_name || "Unknown"}</td>
+                              <td className="p-2 border">{item.document_title || "-"}</td>
+                              <td className="p-2 border">{new Date(item.created_at).toLocaleDateString()}</td>
+                              <td className="p-2 border">{item.category || "Unclassified"}</td>
+                              <td className="p-2 border">
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className={`flex items-center ${isLinkExpired(item.created_at) ? "text-gray-400 line-through" : "text-blue-600 hover:underline"}`}>
+                                  <FileText className="w-4 h-4 mr-1" />View
+                                </a>
+                              </td>
+                              <td className="p-2 border">
+                                <ForwardMailButton
+                                  mailId={item.id}
+                                  documentTitle={item.document_title}
+                                  isExpired={isLinkExpired(item.created_at)}
+                                  customerAddress={{
+                                    line1: subscription.shipping_line_1,
+                                    city: subscription.shipping_city,
+                                    postcode: subscription.shipping_postcode,
+                                    country: subscription.shipping_country,
+                                  }}
+                                  externalId={subscription.external_id}
+                                  balance={subscription.wallet_balance || 0}
+                                  forwardCost={2.5}
+                                  onForwardSuccess={fetchMailData}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <WalletSection balance={subscription.wallet_balance || 0} customerEmail={subscription.customer_email} />
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* 🧾 DETAILS */}
         <TabsContent value="details">
           <Card>
             <CardContent className="space-y-6 p-6">
-              <Button onClick={handleGenerateCertificate}>
-                Generate PDF Certificate
-              </Button>
-
-              {/* Company Info */}
+              <Button onClick={handleGenerateCertificate}>Generate PDF Certificate</Button>
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Company</h2>
                 <p>{subscription.company_name || "Not provided"}</p>
@@ -195,32 +237,22 @@ export default function Dashboard() {
                   {subscription.shipping_country}
                 </p>
               </div>
-
-              {/* Plan Info */}
               <div className="text-sm">
                 <h2 className="text-md font-semibold">Plan</h2>
                 <p>{subscription.product_id || "Not set"}</p>
                 <p className="text-gray-500">
-                  Start Date:{" "}
-                  {subscription.start_date
-                    ? new Date(subscription.start_date).toLocaleDateString()
-                    : "N/A"}
+                  Start Date: {subscription.start_date ? new Date(subscription.start_date).toLocaleDateString() : "N/A"}
                 </p>
               </div>
-
-              {/* Contact Info */}
               <div className="text-sm break-words">
                 <h2 className="text-md font-semibold">Contact Info</h2>
-                <p>
-                  Name: {subscription.customer_first_name} {subscription.customer_last_name}
-                </p>
+                <p>Name: {subscription.customer_first_name} {subscription.customer_last_name}</p>
                 <p>Email: {subscription.customer_email}</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* 🎁 REFERRAL */}
         <TabsContent value="referral">
           <Card>
             <CardContent className="space-y-6 p-6">
@@ -230,7 +262,6 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import { parse } from "cookie";
+import { applyCategories } from "@/lib/applyCategories";
 
 export const config = {
   runtime: "nodejs",
@@ -28,21 +29,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Fetch subscription first
+    // Fetch subscription
     const subscriptionRes = await axios.get(`${backendUrl}/subscription?external_id=${externalId}`, {
       auth: { username: apiUser, password: apiPass },
     });
 
     const subscription = subscriptionRes.data;
 
-    // ❌ Block access if user cancelled before verifying ID
     if (subscription.review_status === "NO_ID" && subscription.cancel_at_period_end === true) {
       return res.status(403).json({
         error: "Your registration was cancelled before ID verification. Please reapply.",
       });
     }
 
-    // 📥 Fetch paginated mail items
+    // Fetch mail items
     let mailItems: any[] = [];
     let page = 1;
     let hasNext = true;
@@ -59,8 +59,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       page++;
     }
 
+    // AI kategorilendirme + expiration kontrolü
     const now = new Date();
-    const processedMailItems = mailItems.map((item: any) => {
+    const categorizedItems = await applyCategories(mailItems);
+
+    const processedMailItems = categorizedItems.map((item: any) => {
       const createdAt = new Date(item.created_at);
       const msSinceCreated = now.getTime() - createdAt.getTime();
 
@@ -71,7 +74,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     });
 
-    const reviewStatus = subscription?.review_status;
     const stripeId =
       subscription?.stripe_subscription_id ||
       subscription?.subscription?.stripe_subscription_id ||
@@ -85,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mailItems: processedMailItems,
       stripe_subscription_id: stripeId,
       _debug: {
-        review_status: reviewStatus,
+        review_status: subscription.review_status,
         stripe_id: stripeId,
       },
     });
