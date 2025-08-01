@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X } from "lucide-react"; // 👉 Eğer yüklü değilse: npm install lucide-react
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,23 +11,18 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 w-full z-30 bg-white/70 backdrop-blur border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <Image
-              src="/logo.png"
-              alt="BetaOffice Logo"
-              width={32}
-              height={32}
-              className="rounded-sm"
-            />
-          </Link>
-          <Link href="/" className="text-lg font-semibold text-gray-800 hover:text-blue-600 transition-colors">
-            BetaOffice
-          </Link>
-        </div>
+        {/* ✅ Sadece logo - yazı yok */}
+        <Link href="/">
+          <Image
+            src="/logo.png" // local kullanıyorsan
+            alt="BetaOffice Logo"
+            width={36}
+            height={36}
+            className="rounded-sm hover:opacity-80 transition-opacity"
+          />
+        </Link>
 
-        {/* Desktop Nav */}
+        {/* Masaüstü Menü */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700 font-medium">
           <Link href="#pricing" className="hover:text-blue-600">Plans</Link>
           <Link href="#features" className="hover:text-blue-600">Features</Link>
@@ -40,13 +35,13 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        {/* Mobile Menu Button */}
+        {/* Mobil Menü Butonu */}
         <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobil Menü İçeriği */}
       {isOpen && (
         <div className="md:hidden px-4 pb-4 pt-2 flex flex-col gap-3 text-gray-700 font-medium bg-white shadow-sm">
           <Link href="#pricing" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Plans</Link>
