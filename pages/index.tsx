@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -17,6 +18,8 @@ export default function HomePage() {
     localStorage.setItem("selected_plan", productId);
     router.push("/kyc");
   };
+  
+  <Navbar />
 
   return (
     <>
