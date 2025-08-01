@@ -43,7 +43,7 @@ export default function HomePage() {
       </Head>
 
       {/* Hero Section */}
-      <section className="relative pt-28 min-h-[90vh] flex items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
+      <section className="relative pt-28 min-h-[90vh] flex flex-col items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
         <Image
           src="/office4.png"
           alt="Premium Virtual Office Background"
@@ -88,6 +88,12 @@ export default function HomePage() {
             >
               Already a member? Log in
             </Link>
+          </div>
+        </div>
+
+        <div className="z-10 mt-12 text-center">
+          <div className="text-xl md:text-2xl font-semibold text-gray-800 animate-pulse">
+            🚀 AI-Powered Mail Dashboard &nbsp; | &nbsp; 📍 Director Address Privacy &nbsp; | &nbsp; 🛡️ GDPR-Compliant UK Service
           </div>
         </div>
       </section>
