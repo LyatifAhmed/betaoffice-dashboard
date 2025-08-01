@@ -12,6 +12,7 @@ import SubscriptionControls from "@/components/dashboard/SubscriptionControls";
 import ReferralSection from "@/components/ReferralSection";
 import AffiliateCards from "@/components/AffiliateCards";
 import AISummaryButton from "@/components/AISummaryButton";
+import { ShieldAlert, CheckCircle2, Loader2, MailWarning } from "lucide-react"; 
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("mail");
@@ -93,38 +94,56 @@ export default function Dashboard() {
   };
 
   const renderStatusCard = () => {
-    const status = subscription?.review_status;
-    let bgColor = "bg-gray-100 text-gray-800 border-gray-300";
-    let message = "Your subscription status is unknown.";
+  const status = subscription?.review_status;
 
-    if (status === "ACTIVE") {
-      bgColor = "bg-green-100 text-green-800 border-green-300";
-      message = "✅ Your identity is verified. You can now use all features.";
-    } else if (status === "PENDING") {
-      bgColor = "bg-yellow-100 text-yellow-800 border-yellow-300";
-      message = "⏳ Your identity verification is in progress.";
-    } else if (status === "NO_ID") {
-      bgColor = "bg-blue-100 text-blue-800 border-blue-300";
-      message = "📩 We are waiting for your identity verification. Please check your email.";
-    } else if (status === "CANCELLED") {
-      bgColor = "bg-red-100 text-red-800 border-red-300";
-      message = "❌ Your subscription has been cancelled.";
-    }
-
-    return (
-      <div className={`p-4 mb-6 rounded border ${bgColor} flex justify-between items-center`}>
-        <p className="text-sm font-medium">{message}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={fetchMailData}
-          className="text-sm flex items-center"
-        >
-          <RefreshCw className="w-4 h-4 mr-1" /> Refresh status
-        </Button>
-      </div>
-    );
+  const statusConfig: Record<string, { icon: JSX.Element; text: string; bg: string; textColor: string }> = {
+    ACTIVE: {
+      icon: <CheckCircle2 className="w-4 h-4 mr-2" />,
+      text: "Your ID is verified. All features unlocked.",
+      bg: "bg-green-100",
+      textColor: "text-green-800",
+    },
+    PENDING: {
+      icon: <Loader2 className="w-4 h-4 mr-2 animate-spin" />,
+      text: "ID verification in progress...",
+      bg: "bg-yellow-100",
+      textColor: "text-yellow-800",
+    },
+    NO_ID: {
+      icon: <MailWarning className="w-4 h-4 mr-2" />,
+      text: "Awaiting your ID verification. Check your inbox.",
+      bg: "bg-blue-100",
+      textColor: "text-blue-800",
+    },
+    CANCELLED: {
+      icon: <ShieldAlert className="w-4 h-4 mr-2" />,
+      text: "Your subscription has been cancelled.",
+      bg: "bg-red-100",
+      textColor: "text-red-800",
+    },
   };
+
+  const config = statusConfig[status] || {
+    icon: <Info className="w-4 h-4 mr-2" />,
+    text: "Your subscription status is unknown.",
+    bg: "bg-gray-100",
+    textColor: "text-gray-800",
+  };
+
+  return (
+    <div className={`rounded-lg border ${config.bg} ${config.textColor} border-opacity-40 flex justify-between items-center px-4 py-3 shadow-sm`}>
+      <div className="flex items-center font-medium text-sm">
+        {config.icon}
+        {config.text}
+      </div>
+      <Button variant="ghost" size="sm" onClick={fetchMailData} className="text-sm flex items-center">
+        <RefreshCw className="w-4 h-4 mr-1" />
+        Refresh
+      </Button>
+    </div>
+  );
+};
+
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!subscription) return <div className="p-6 text-red-500">No subscription found</div>;
