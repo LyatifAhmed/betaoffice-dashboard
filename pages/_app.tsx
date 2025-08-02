@@ -6,13 +6,13 @@ import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
 import Footer from "../components/Footer";
 import { Toaster } from "react-hot-toast";
+import MagicChatButton from "@/components/MagicChatButton"; // ✅ AI sihirli buton
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   return (
     <>
-
       <Head>
         <title>BetaOffice – Virtual Office KYC</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -37,6 +37,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
       <main>
         <Component {...pageProps} />
+        <MagicChatButton /> {/* ✅ SIHIRLI BUTON BURAYA */}
       </main>
 
       <Footer />
@@ -76,7 +77,7 @@ export default function App({ Component, pageProps }: AppProps) {
         </Link>
       </CookieConsent>
 
-      {/* ✅ Inserted Global Toast Notifications */}
+      {/* ✅ Toast Notifications */}
       <Toaster position="top-center" />
     </>
   );

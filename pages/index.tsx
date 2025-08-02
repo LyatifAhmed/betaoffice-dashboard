@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState, useRef } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -23,7 +23,14 @@ type PlanCardProps = {
 
 export default function HomePage() {
   const router = useRouter();
-  const [agree, setAgree] = useState(false);
+  const [heroLight, setHeroLight] = useState({ x: 0, y: 0 });
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  const handleHeroMouseMove = (e: React.MouseEvent) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    setHeroLight({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
 
   const handlePlanSelect = (productId: string) => {
     localStorage.setItem("selected_plan", productId);
@@ -54,8 +61,17 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] z-0" />
 
-        <div className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl shadow-lg animate-fade-in-up ring-1 ring-white/5 hover:ring-white/10 transition-all duration-500 group">
-          <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-blue-400/20 to-cyan-400/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+        <div
+          ref={heroRef}
+          onMouseMove={handleHeroMouseMove}
+          className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl shadow-lg animate-fade-in-up ring-1 ring-white/5 hover:ring-white/10 transition-all duration-500 group overflow-hidden"
+        >
+          <div
+            className="absolute inset-0 pointer-events-none z-0 opacity-100 transition-opacity duration-500"
+            style={{
+              background: `radial-gradient(circle 120px at ${heroLight.x}px ${heroLight.y}px, rgba(0, 255, 255, 0.12), transparent 60%)`,
+            }}
+          />
 
           <Image
             src="/logo.png"
@@ -90,10 +106,16 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
+      </section>
 
-        <div className="z-10 mt-12 text-center">
-          <div className="text-xl md:text-2xl font-semibold text-gray-800 animate-pulse">
-            🚀 AI-Powered Mail Dashboard &nbsp; | &nbsp; 📍 Director Address Privacy &nbsp; | &nbsp; 🛡️ GDPR-Compliant UK Service
+      {/* Features */}
+      <section id="features" className="py-20 bg-white text-gray-900">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold mb-12">What Makes BetaOffice Unique?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+            <Feature icon="📍" title="Director Address Privacy" text="Keep your personal details protected with our included director service address." />
+            <Feature icon="🤖" title="AI Mail Sorting" text="Our smart system categorizes, tags, and summarizes your mail instantly." />
+            <Feature icon="💎" title="No Hidden Fees" text="All-inclusive pricing. No handling charges, no surprise add-ons." />
           </div>
         </div>
       </section>
@@ -172,51 +194,101 @@ export default function HomePage() {
     </>
   );
 }
-
+// Feature component
 function Feature({ icon, title, text }: { icon: string; title: string; text: string }) {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
   return (
-    <div className="bg-gray-100 p-6 rounded-lg shadow hover:shadow-xl transition duration-300 transform hover:scale-105">
-      <div className="text-4xl mb-3 transition-opacity duration-300 opacity-80 hover:opacity-100">{icon}</div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-gray-700">{text}</p>
+    <div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      className="relative bg-gray-100 p-6 rounded-lg shadow hover:shadow-xl transition duration-300 transform hover:scale-[1.03] overflow-hidden group"
+    >
+      <div
+        className="absolute inset-0 pointer-events-none z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: `radial-gradient(circle 100px at ${pos.x}px ${pos.y}px, rgba(0, 255, 255, 0.2), transparent 60%)`,
+        }}
+      />
+      <div className="relative z-10">
+        <div className="text-4xl mb-3">{icon}</div>
+        <h3 className="text-xl font-semibold mb-2">{title}</h3>
+        <p className="text-gray-700">{text}</p>
+      </div>
     </div>
   );
 }
 
-function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, color, badge }: PlanCardProps) {
-  const ringColor = color === "blue" ? "hover:ring-blue-400/40" : "hover:ring-green-400/40";
-  const buttonColor = color === "blue" ? "bg-blue-500 hover:bg-blue-600" : "bg-green-500 hover:bg-green-600";
+// TestimonialCard component
+function TestimonialCard({ name, quote }: { name: string; quote: string }) {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
 
   return (
     <div
-      className={
-        `
-        relative
-        flex flex-col justify-between
-        rounded-2xl p-6 max-w-sm w-full
-        bg-white/60 md:bg-white/70
-        backdrop-blur-sm md:backdrop-blur-md
-        border border-gray-200/50
-        shadow-xl shadow-gray-300/30
-        transition-transform duration-300
-        hover:-translate-y-2 hover:scale-[1.03]
-        hover:shadow-2xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30
-      `
-      }
-      style={{
-        backgroundImage: "url('/textures/noise.png')",
-        backgroundBlendMode: "overlay",
-        backgroundSize: "cover",
-        backgroundRepeat: "repeat",
-      }}
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      className="relative bg-white/50 backdrop-blur-md p-6 rounded-xl shadow-md border border-gray-200 text-left hover:shadow-lg transition-all duration-300 overflow-hidden group"
+    >
+      <div
+        className="absolute w-full h-full pointer-events-none z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: `radial-gradient(circle 100px at ${pos.x}px ${pos.y}px, rgba(0, 255, 220, 0.12), transparent 60%)`,
+        }}
+      />
+      <div className="relative z-10">
+        <p className="text-gray-800 italic mb-4">“{quote}”</p>
+        <p className="font-semibold text-gray-900">– {name}</p>
+      </div>
+    </div>
+  );
+}
+
+// PlanCard component
+function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, color, badge }: PlanCardProps) {
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const ringColor = color === "blue" ? "hover:ring-blue-400/40" : "hover:ring-green-400/40";
+  const buttonColor = color === "blue" ? "bg-blue-500 hover:bg-blue-600" : "bg-green-500 hover:bg-green-600";
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      className={`relative flex flex-col justify-between rounded-2xl p-6 max-w-sm w-full bg-white/60 md:bg-white/70 backdrop-blur-sm md:backdrop-blur-md border border-gray-200/50 shadow-xl transition-transform duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl hover:ring-2 ${ringColor} ring-offset-2 ring-offset-white/30 overflow-hidden group`}
     >
       {badge && (
-        <span className={`absolute -top-3 -right-3 ${color === "blue" ? "bg-blue-500" : "bg-green-500"} text-white text-xs font-bold px-3 py-1 rounded-full shadow-md`}>
+        <span className={`absolute top-2 right-2 ${color === "blue" ? "bg-blue-500" : "bg-green-500"} text-white text-[10px] uppercase tracking-wide font-bold px-2.5 py-1 rounded-full shadow-md z-10 animate-pulse`}>
           {badge}
         </span>
       )}
-
-      <div>
+      <div
+        className="absolute w-full h-full pointer-events-none z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: `radial-gradient(circle 120px at ${pos.x}px ${pos.y}px, rgba(0, 195, 255, 0.15), transparent 60%)`,
+        }}
+      />
+      <div className="relative z-10">
         <h3 className="text-xl font-bold mb-1 text-gray-900">{title}</h3>
         <p className="text-3xl font-extrabold text-gray-900">
           {price}
@@ -224,32 +296,19 @@ function PlanCard({ title, price, billingCycle, vatNote, benefits, onClick, colo
         </p>
         {vatNote && <p className="text-sm text-gray-500 mt-1">{vatNote}</p>}
         <ul className="text-sm text-gray-800 mt-4 space-y-2 text-left">
-          {benefits.map((b: string, i: number) => (
+          {benefits.map((b, i) => (
             <li key={i} className="flex items-start gap-2">
               <span className="text-green-500 font-bold">✓</span>
               {b}
             </li>
           ))}
         </ul>
+        <div className="mt-6">
+          <button onClick={onClick} className={`w-full py-2.5 px-4 rounded-lg font-semibold text-white ${buttonColor} transition duration-300`}>
+            Choose {title.split(" ")[0]}
+          </button>
+        </div>
       </div>
-
-      <div className="mt-6">
-        <button
-          onClick={onClick}
-          className={`w-full py-2.5 px-4 rounded-lg font-semibold text-white ${buttonColor} transition duration-300 shadow-sm hover:shadow-md`}
-        >
-          Choose {title.split(" ")[0]}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function TestimonialCard({ name, quote }: { name: string; quote: string }) {
-  return (
-    <div className="bg-white/50 backdrop-blur-md p-6 rounded-xl shadow-md border border-gray-200 text-left hover:shadow-lg transition-all duration-300">
-      <p className="text-gray-800 italic mb-4">“{quote}”</p>
-      <p className="font-semibold text-gray-900">– {name}</p>
     </div>
   );
 }

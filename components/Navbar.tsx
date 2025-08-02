@@ -4,23 +4,29 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({
+  onHoverChange,
+}: {
+  onHoverChange?: (v: boolean) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 w-full z-30 bg-white/70 backdrop-blur border-b border-gray-200">
+    <header
+      className="fixed top-0 left-0 w-full z-30 bg-white/70 backdrop-blur border-b border-gray-200"
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+    >
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* ✅ Logo */}
         <Link href="/" className="text-xl font-bold text-gray-800 hover:text-blue-600 transition">
           BetaOffice
         </Link>
 
-        {/* Masaüstü menü */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700 font-medium">
           <Link href="#pricing" className="hover:text-blue-600">Plans</Link>
           <Link href="#features" className="hover:text-blue-600">Features</Link>
           <Link href="#testimonials" className="hover:text-blue-600">Testimonials</Link>
-          <Link href="/blog" className="hover:text-blue-600">Blog</Link> {/* ✅ Blog eklendi */}
+          <Link href="/blog" className="hover:text-blue-600">Blog</Link>
           <Link
             href="/login"
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
@@ -29,19 +35,17 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        {/* Mobil menü butonu */}
         <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Mobil menü dropdown */}
       {isOpen && (
         <div className="md:hidden px-4 pb-4 pt-2 flex flex-col gap-3 text-gray-700 font-medium bg-white shadow-sm">
           <Link href="#pricing" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Plans</Link>
           <Link href="#features" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Features</Link>
           <Link href="#testimonials" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Testimonials</Link>
-          <Link href="/blog" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Blog</Link> {/* ✅ Mobil menüye de eklendi */}
+          <Link href="/blog" onClick={() => setIsOpen(false)} className="hover:text-blue-600">Blog</Link>
           <Link
             href="/login"
             onClick={() => setIsOpen(false)}
