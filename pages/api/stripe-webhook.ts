@@ -128,20 +128,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             create: { external_id, balance_pennies: amount },
           });
 
-          // Eğer dashboardda gösterilen bakiye decimal ise
-          await prisma.wallet.update({
-            where: { external_id },
-            data: { balance_pennies: { increment: amount } }
-          });
-
-
           console.log(`💰 Top-up succeeded for ${external_id}: £${(amount / 100).toFixed(2)}`);
         } catch (err) {
           console.error(`❌ Wallet update failed for ${external_id}:`, err);
         }
         break;
       }
-
 
       default:
         console.log(`Unhandled event: ${event.type}`);

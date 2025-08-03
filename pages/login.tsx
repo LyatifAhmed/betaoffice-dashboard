@@ -43,8 +43,8 @@ export default function LoginPage() {
         <title>Login – BetaOffice</title>
       </Head>
 
-      {/* Background image */}
-      <div className="relative min-h-screen flex items-center justify-center bg-white text-gray-900 overflow-hidden">
+      <div className="relative min-h-screen flex items-center justify-center bg-[#f9fbff] text-gray-900 overflow-hidden">
+        {/* Background image */}
         <Image
           src="/office4.png"
           alt="Background"
@@ -53,15 +53,18 @@ export default function LoginPage() {
           style={{ objectFit: "cover" }}
           className="absolute z-0"
         />
-        <div className="absolute inset-0 bg-white/20 backdrop-blur-sm z-0" />
 
-        {/* Form Card */}
+        {/* Glow layer */}
+        <div className="absolute inset-0 bg-white/30 backdrop-blur-sm z-0" />
+        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-3xl animate-pulse-slow z-0" />
+
+        {/* Glass form card */}
         <form
           onSubmit={handleSubmit}
-          className="relative z-10 w-full max-w-md mx-4 p-8 
-            bg-white/10 backdrop-blur-md border border-white/20 
-            rounded-2xl shadow-2xl ring-1 ring-white/10
-            transition-all duration-300 animate-fade-in-up"
+          className="relative z-10 w-full max-w-md mx-4 p-8
+            bg-white/20 backdrop-blur-xl border border-white/30 
+            rounded-3xl shadow-2xl ring-1 ring-white/10
+            transition-all duration-300"
         >
           <div className="text-center mb-6">
             <Image
@@ -72,13 +75,13 @@ export default function LoginPage() {
               className="mx-auto opacity-90 drop-shadow"
             />
             <h1 className="text-2xl font-bold text-gray-900 mt-4">Sign in to your Dashboard</h1>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-700">
               Enter your email and we&apos;ll send you a secure login link.
             </p>
           </div>
 
           {warning && (
-            <div className="bg-yellow-100 text-yellow-800 text-sm p-3 rounded border border-yellow-300 mb-4">
+            <div className="bg-yellow-100/70 text-yellow-900 text-sm p-3 rounded border border-yellow-300 mb-4 shadow">
               {warning}
             </div>
           )}
@@ -87,9 +90,9 @@ export default function LoginPage() {
             type="email"
             required
             placeholder="you@example.com"
-            className="w-full border border-gray-300 rounded px-4 py-2 
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 
               focus:outline-none focus:ring-2 focus:ring-blue-500 
-              bg-white/80 placeholder-gray-500 text-gray-800"
+              bg-white/70 placeholder-gray-500 text-gray-800"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -97,14 +100,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white 
-              font-semibold py-2 rounded shadow-md transition duration-200"
+            className="mt-4 w-full bg-blue-600/90 hover:bg-blue-700 text-white 
+              font-semibold py-2 rounded-lg shadow-lg transition duration-200"
           >
             {loading ? "Sending link..." : "Send Login Link"}
           </button>
 
           {message && (
-            <div className="text-sm text-center mt-4 text-gray-700">{message}</div>
+            <div className="text-sm text-center mt-4 text-gray-800 font-medium">{message}</div>
           )}
         </form>
       </div>
