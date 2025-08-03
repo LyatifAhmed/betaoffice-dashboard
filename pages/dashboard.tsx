@@ -80,7 +80,12 @@ export default function Dashboard() {
 
   return (
     <main className="relative pt-[46px]">
-      <SmartStatusBar status={subscription?.review_status} newMail={newMailAlert} isFirstWeek={isFirst7Days} />
+      <SmartStatusBar
+        status={subscription?.review_status || "UNKNOWN"}
+        newMail={newMailAlert}
+        isFirstWeek={isFirst7Days}
+      />
+
       <div className="p-4 sm:p-6 max-w-5xl mx-auto">
         <h1 className="text-2xl font-semibold mb-6 text-center">Welcome, {subscription?.customer_first_name || "User"}</h1>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

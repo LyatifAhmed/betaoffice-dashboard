@@ -1,67 +1,99 @@
-import { useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Loader2, MailWarning, ShieldAlert, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-const statusConfig: Record<string, { icon: JSX.Element; color: string; message: string }> = {
-  ACTIVE: {
-    icon: <CheckCircle2 className="w-4 h-4 mr-2" />,
-    color: "bg-green-200 text-green-800",
-    message: "ID verified. All features unlocked.",
-  },
-  PENDING: {
-    icon: <Loader2 className="w-4 h-4 mr-2 animate-spin" />,
-    color: "bg-yellow-200 text-yellow-800",
-    message: "ID verification in progress...",
-  },
-  NO_ID: {
-    icon: <MailWarning className="w-4 h-4 mr-2" />,
-    color: "bg-blue-200 text-blue-800",
-    message: "Awaiting ID verification. Check your inbox.",
-  },
-  CANCELLED: {
-    icon: <ShieldAlert className="w-4 h-4 mr-2" />,
-    color: "bg-red-200 text-red-800",
-    message: "Subscription cancelled.",
-  },
-  UNKNOWN: {
-    icon: <Info className="w-4 h-4 mr-2" />,
-    color: "bg-gray-200 text-gray-800",
-    message: "Status unknown.",
-  },
-};
+const messages = [
+  "💌 Try Smart Inbox: Your letters sorted by AI.",
+  "⚡ Instant summaries of scanned documents!",
+  "🎁 Invite friends – earn rewards!",
+  "✨ BetaOffice: Your HQ from London."
+];
 
-type SmartStatusBarProps = {
+interface SmartStatusBarProps {
   status: "ACTIVE" | "PENDING" | "NO_ID" | "CANCELLED" | "UNKNOWN";
-  newMail: boolean;
-  isFirstWeek: boolean;
-};
+  newMail?: boolean;
+  isFirstWeek?: boolean;
+}
 
-const SmartStatusBar: React.FC<SmartStatusBarProps> = ({ status, newMail, isFirstWeek }) => {
-  const [expanded, setExpanded] = useState(false);
+export default function SmartStatusBar({ status, newMail = false, isFirstWeek = false }: SmartStatusBarProps) {
+  const [showTicker, setShowTicker] = useState(isFirstWeek);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const config = statusConfig[status] || statusConfig.UNKNOWN;
-  const dynamicMessage = newMail
-    ? "📬 New mail has arrived."
-    : isFirstWeek
-    ? "🎉 Welcome! Explore all BetaOffice features."
-    : config.message;
+  const statusMap = {
+    ACTIVE: {
+      bg: "bg-green-600",
+      text: "You're verified! All features unlocked.",
+      icon: <CheckCircle2 className="w-4 h-4 mr-2" />,
+    },
+    PENDING: {
+      bg: "bg-yellow-500",
+      text: "Verification in progress...",
+      icon: <Loader2 className="w-4 h-4 mr-2 animate-spin" />,
+    },
+    NO_ID: {
+      bg: "bg-blue-600",
+      text: "Check your inbox to complete verification.",
+      icon: <MailWarning className="w-4 h-4 mr-2" />,
+    },
+    CANCELLED: {
+      bg: "bg-red-600",
+      text: "Your subscription has been cancelled.",
+      icon: <ShieldAlert className="w-4 h-4 mr-2" />,
+    },
+    UNKNOWN: {
+      bg: "bg-gray-500",
+      text: "Status unknown. Please refresh.",
+      icon: <Info className="w-4 h-4 mr-2" />,
+    },
+  };
+
+  useEffect(() => {
+    if (showTicker) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % messages.length);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+  }, [showTicker]);
+
+  const config = statusMap[status] || statusMap.UNKNOWN;
 
   return (
     <div
-      className={cn(
-        "w-full z-50 px-4 py-2 flex items-center justify-between text-sm font-medium rounded-b-xl shadow-md backdrop-blur-md border border-white/10 transition-all duration-300 cursor-pointer",
-        config.color,
-        expanded ? "h-auto" : "h-[44px] overflow-hidden"
-      )}
-      onClick={() => setExpanded(!expanded)}
+      onClick={() => setShowTicker((prev) => !prev)}
+      className={`w-full z-50 top-0 sticky cursor-pointer flex items-center justify-center h-12 text-white ${
+        config.bg
+      } shadow-md transition-all duration-500 ${
+        newMail && !showTicker ? "animate-breath" : ""
+      }`}
     >
-      <div className="flex items-center">
-        {config.icon}
-        <span className="truncate max-w-[80vw]">{dynamicMessage}</span>
-      </div>
-      <div className="ml-2 text-xs opacity-60">{expanded ? "Close" : "Tap for details"}</div>
+      <AnimatePresence mode="wait">
+        {showTicker ? (
+          <motion.div
+            key={"ticker" + currentIndex}
+            className="text-sm text-center whitespace-nowrap"
+            initial={{ x: "100%" }}
+            animate={{ x: "-100%" }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 10, ease: "linear" }}
+          >
+            {messages[currentIndex]}
+          </motion.div>
+        ) : (
+          <motion.div
+            key={"status" + status}
+            className="flex items-center text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {config.icon}
+            {config.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-};
-
-export default SmartStatusBar;
+}
