@@ -39,7 +39,7 @@ export default function HomePage() {
 
   return (
     <>
-      <Navbar />
+      <Navbar/>
 
       <Head>
         <title>BetaOffice – Digital Office for Global Creators</title>
@@ -48,7 +48,7 @@ export default function HomePage() {
           content="BetaOffice: Premium London address with AI-powered mail dashboard, digital KYC, and multi-language support."
         />
       </Head>
-
+      
       {/* Hero Section */}
       <section className="relative pt-28 min-h-[90vh] flex flex-col items-center justify-center bg-white text-gray-900 text-center overflow-hidden">
         <Image
@@ -64,15 +64,20 @@ export default function HomePage() {
         <div
           ref={heroRef}
           onMouseMove={handleHeroMouseMove}
-          className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl shadow-lg animate-fade-in-up ring-1 ring-white/5 hover:ring-white/10 transition-all duration-500 group overflow-hidden"
+          className="relative z-10 px-6 py-12 max-w-3xl w-full mx-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl shadow-lg ring-1 ring-white/5 hover:ring-white/10 transition-all duration-500 group overflow-hidden animate-breath hover:animate-excite"
         >
+
+
+
+          {/* Mouse takip eden ışık efekti */}
           <div
-            className="absolute inset-0 pointer-events-none z-0 opacity-100 transition-opacity duration-500"
+            className="absolute inset-0 pointer-events-none z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
             style={{
               background: `radial-gradient(circle 120px at ${heroLight.x}px ${heroLight.y}px, rgba(0, 255, 255, 0.12), transparent 60%)`,
             }}
           />
 
+          {/* İçerik */}
           <Image
             src="/logo.png"
             alt="BetaOffice Logo"
@@ -92,7 +97,9 @@ export default function HomePage() {
 
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <button
-              onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() =>
+                document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })
+              }
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-md hover:shadow-xl transition duration-300"
             >
               View Plans
@@ -106,18 +113,7 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-      </section>
 
-      {/* Features */}
-      <section id="features" className="py-20 bg-white text-gray-900">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-12">What Makes BetaOffice Unique?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <Feature icon="📍" title="Director Address Privacy" text="Keep your personal details protected with our included director service address." />
-            <Feature icon="🤖" title="AI Mail Sorting" text="Our smart system categorizes, tags, and summarizes your mail instantly." />
-            <Feature icon="💎" title="No Hidden Fees" text="All-inclusive pricing. No handling charges, no surprise add-ons." />
-          </div>
-        </div>
       </section>
 
       {/* Features */}
