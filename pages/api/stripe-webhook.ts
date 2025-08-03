@@ -129,10 +129,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
 
           // Eğer dashboardda gösterilen bakiye decimal ise
-          await prisma.subscription.updateMany({
+          await prisma.wallet.update({
             where: { external_id },
-            data: { wallet_balance: { increment: amount / 100 } },
+            data: { balance_pennies: { increment: amount } }
           });
+
 
           console.log(`💰 Top-up succeeded for ${external_id}: £${(amount / 100).toFixed(2)}`);
         } catch (err) {
