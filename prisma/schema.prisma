@@ -2,8 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -15,6 +13,8 @@ model Wallet {
   balance_pennies Int
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  subscription Subscription @relation(fields: [external_id], references: [external_id])
 }
 
 model KycToken {
@@ -33,34 +33,33 @@ model KycToken {
 }
 
 model Subscription {
-  external_id           String   @id
-  product_id            Int
-  customer_first_name   String
-  customer_middle_name  String
-  customer_last_name    String
-  customer_email        String
-  review_status         String   @default("PENDING")
+  external_id          String @id
+  product_id           Int
+  customer_first_name  String
+  customer_middle_name String
+  customer_last_name   String
+  customer_email       String
+  review_status        String @default("PENDING")
 
-  shipping_line_1       String
-  shipping_line_2       String
-  shipping_line_3       String
-  shipping_city         String
-  shipping_postcode     String
-  shipping_state        String
-  shipping_country      String
+  shipping_line_1   String
+  shipping_line_2   String
+  shipping_line_3   String
+  shipping_city     String
+  shipping_postcode String
+  shipping_state    String
+  shipping_country  String
 
-  company_name          String
+  company_name         String
   company_trading_name String
-  company_number        String
-  organisation_type     Int
-  telephone_number      String
+  company_number       String
+  organisation_type    Int
+  telephone_number     String
 
   stripe_subscription_id String?
-  start_date             DateTime @default(now())
-  wallet_balance         Float    @default(0)
-
-  members               CompanyMember[]
-  scannedMails          ScannedMail[]
+  start_date             DateTime        @default(now())
+  wallet                 Wallet?
+  members                CompanyMember[]
+  scannedMails           ScannedMail[]
 
   @@index([customer_email])
 }
@@ -75,10 +74,10 @@ model CompanyMember {
   email           String
   date_of_birth   DateTime
 
-  subscription    Subscription @relation(fields: [subscription_id], references: [external_id])
+  subscription Subscription @relation(fields: [subscription_id], references: [external_id])
 
   @@index([id])
-  @@map("company_members") 
+  @@map("company_members")
 }
 
 model ScannedMail {
@@ -92,31 +91,41 @@ model ScannedMail {
   received_at        DateTime
   company_name       String
 
-  sender_name        String
-  document_title     String
-  reference_number   String?
-  summary            String
-  industry           String
+  sender_name      String
+  document_title   String
+  reference_number String?
+  summary          String
+  industry         String
 
-  categories         String
-  sub_categories     String
-  key_information    String?
+  categories      String
+  sub_categories  String
+  key_information String?
 
-  is_forwarded       Boolean   @default(false)
-  forwarded_at       DateTime?
+  is_forwarded Boolean   @default(false)
+  forwarded_at DateTime?
 
-  subscription       Subscription @relation(fields: [external_id], references: [external_id])
+  subscription Subscription @relation(fields: [external_id], references: [external_id])
 
   @@index([id])
   @@index([external_id])
 }
 
 model FailedPaymentAttempt {
-  id           Int      @id @default(autoincrement())
-  external_id  String
-  reason       String
+  id                Int      @id @default(autoincrement())
+  external_id       String
+  reason            String
   payment_intent_id String?
-  created_at   DateTime @default(now())
+  created_at        DateTime @default(now())
 
   @@index([external_id])
+}
+
+model ReferralEarning {
+  id             String    @id @default(cuid())
+  referrer_email String
+  referee_email  String
+  amount_pennies Int
+  status         String    @default("pending") // pending | paid
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
 }
