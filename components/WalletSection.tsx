@@ -103,7 +103,7 @@ export default function WalletSection({ balance, customerEmail, externalId }: Wa
       {/* Future Payout Placeholder */}
       <div className="mt-6 bg-white/40 backdrop-blur-sm border border-dashed border-gray-300 p-4 rounded-lg text-gray-700 flex items-center gap-2 text-sm">
         <ArrowDownCircle className="w-4 h-4 text-gray-500" />
-        Soon you'll be able to withdraw via Wise, Binance or Gift Cards. Stay tuned!
+        Soon you&apos;ll be able to withdraw via Wise, Binance or Gift Cards. Stay tuned!
       </div>
     </div>
   );

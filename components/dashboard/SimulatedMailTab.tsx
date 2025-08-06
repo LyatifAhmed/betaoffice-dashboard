@@ -32,6 +32,7 @@ const categories: Record<string, string> = {
 const categoryTabs = ["All", "Bank", "Government", "Invoice"];
 
 export default function SimulatedMailTab() {
+  const [letters, setLetters] = useState(simulatedLetters);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -40,7 +41,7 @@ export default function SimulatedMailTab() {
   const [toDate, setToDate] = useState("");
   const perPage = 10;
 
-  const filtered = simulatedLetters
+  const filtered = letters
     .filter((mail) => {
       const matchesSearch =
         mail.sender.toLowerCase().includes(search.toLowerCase()) ||
@@ -158,6 +159,20 @@ export default function SimulatedMailTab() {
                     Forwardable for {daysLeft > 0 ? daysLeft : 0} days
                   </motion.div>
                 </motion.div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const confirmDelete = window.confirm("Are you sure you want to delete this simulated letter?");
+                    if (confirmDelete) {
+                      setLetters((prev) => prev.filter((m) => m.id !== mail.id));
+                    }
+                  }}
+                  className="text-red-500 hover:underline text-xs"
+                >
+                  🗑️ Delete
+                </Button>
               </div>
             </CardContent>
           </Card>
