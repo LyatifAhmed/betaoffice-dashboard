@@ -1,87 +1,48 @@
 "use client";
 
+import { Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
-import axios from "axios";
+import { toast } from "react-hot-toast";
 
-interface Props {
-  pdfUrl: string;
-}
+type Props = {
+  mailId: number;
+  onComplete: (summary: string) => void;
+};
 
-export default function AISummaryButton({ pdfUrl }: Props) {
+export default function AISummaryButton({ mailId, onComplete }: Props) {
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [internalUrl, setInternalUrl] = useState(pdfUrl); // refresh için
 
-  const summarize = async (urlToUse: string): Promise<string | null> => {
-    try {
-      const res = await fetch("/api/ai-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: urlToUse }),
-      });
-
-      if (!res.ok) throw new Error("Summary failed");
-      const data = await res.json();
-      return data.summary;
-    } catch (err) {
-      return null;
-    }
-  };
-
-  const handleSummarize = async () => {
+  const generateSummary = async () => {
     setLoading(true);
-    setSummary(null);
-
-    // ⏳ İlk deneme
-    const result = await summarize(internalUrl);
-
-    if (result) {
-      setSummary(result);
-      setLoading(false);
-      return;
-    }
-
-    // 🔄 Eğer ilk deneme başarısızsa → link expired olabilir → yeni mail datalarını çek
     try {
-      const refreshed = await axios.get("/api/me", { withCredentials: true });
-      const refreshedItems = refreshed.data.mailItems;
-      const matched = refreshedItems.find((m: any) => m.url === pdfUrl || m.url_envelope_front === pdfUrl || m.url_envelope_back === pdfUrl);
-
-      if (matched?.url) {
-        setInternalUrl(matched.url);
-        const retryResult = await summarize(matched.url);
-
-        if (retryResult) {
-          setSummary(retryResult);
-        } else {
-          alert("❌ AI summary failed after retrying.");
-        }
+      const res = await fetch(`/api/ai-summary?mailId=${mailId}`);
+      const data = await res.json();
+      if (data.summary) {
+        onComplete(data.summary);
+        toast.success("🧠 AI summary generated!");
       } else {
-        alert("❌ Could not find document for AI summary.");
+        toast.error("❌ Could not generate summary");
       }
-    } catch (e) {
-      console.error("Retry summary failed:", e);
-      alert("❌ AI summary unavailable right now.");
+    } catch (err) {
+      toast.error("Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="mt-2">
-      <Button variant="outline" size="sm" onClick={handleSummarize} disabled={loading}>
-        <Sparkles className="w-4 h-4 mr-2" />
-        {loading ? "Summarizing..." : "AI Summary"}
-      </Button>
-
-      {summary && (
-        <div className="mt-3 text-sm bg-gray-100 p-3 rounded border">
-          <strong>📄 Summary:</strong>
-          <p className="mt-1 whitespace-pre-wrap">{summary}</p>
-        </div>
+    <button
+      onClick={generateSummary}
+      disabled={loading}
+      className="group relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-white bg-white/10 border border-white/20 backdrop-blur-md transition-all hover:scale-105 hover:shadow-xl hover:border-blue-400 hover:bg-white/20 disabled:opacity-60"
+    >
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Sparkles className="w-4 h-4 text-blue-300 group-hover:text-white" />
       )}
-    </div>
+      {loading ? "Summarizing..." : "Summarize with AI"}
+    </button>
   );
 }

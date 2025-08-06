@@ -17,23 +17,10 @@ model Wallet {
   subscription Subscription @relation(fields: [external_id], references: [external_id])
 }
 
-model KycToken {
-  token         String   @id
-  date_created  DateTime @default(now())
-  email         String
-  product_id    Int
-  plan_name     String
-  expires_at    DateTime
-  kyc_submitted Int      @default(0)
-  session_id    String?
-
-  @@index([email])
-  @@index([token])
-  @@index([session_id])
-}
 
 model Subscription {
   external_id          String @id
+  stripe_customer_id    String? 
   product_id           Int
   customer_first_name  String
   customer_middle_name String
@@ -70,7 +57,7 @@ model CompanyMember {
   first_name      String
   middle_name     String
   last_name       String
-  phone_number    String
+  phone_number    String?
   email           String
   date_of_birth   DateTime
 
@@ -91,24 +78,27 @@ model ScannedMail {
   received_at        DateTime
   company_name       String
 
-  sender_name      String
-  document_title   String
-  reference_number String?
-  summary          String
-  industry         String
+  sender_name        String
+  document_title     String
+  reference_number   String?
+  summary            String
+  industry           String
 
-  categories      String
-  sub_categories  String
-  key_information String?
+  categories         String
+  sub_categories     String
+  key_information    String?
 
-  is_forwarded Boolean   @default(false)
-  forwarded_at DateTime?
+  is_forwarded       Boolean   @default(false)
+  forwarded_at       DateTime?
 
-  subscription Subscription @relation(fields: [external_id], references: [external_id])
+  read Boolean @default(false) @map("read")
+
+  subscription       Subscription @relation(fields: [external_id], references: [external_id])
 
   @@index([id])
   @@index([external_id])
 }
+
 
 model FailedPaymentAttempt {
   id                Int      @id @default(autoincrement())
@@ -128,4 +118,15 @@ model ReferralEarning {
   status         String    @default("pending") // pending | paid
   createdAt      DateTime  @default(now())
   paidAt         DateTime?
+}
+
+model KycToken {
+  token         String   @id
+  date_created  DateTime @default(now())
+  email         String
+  product_id    Int
+  plan_name     String
+  expires_at    DateTime
+  kyc_submitted Int      @default(0)
+  session_id    String?
 }

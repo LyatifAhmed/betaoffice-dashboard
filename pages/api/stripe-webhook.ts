@@ -114,26 +114,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const external_id = session.metadata?.external_id;
-        const isTopup = session.metadata?.topup === "true";
-        const amount = session.amount_total ?? 0;
+  const session = event.data.object as Stripe.Checkout.Session;
+  const external_id = session.metadata?.external_id;
+  const isTopup = session.metadata?.topup === "true";
+  const amount = session.amount_total ?? 0;
 
-        if (!external_id || !isTopup) break;
+  if (!external_id) break;
 
-        try {
-          await prisma.wallet.upsert({
-            where: { external_id },
-            update: { balance_pennies: { increment: amount } },
-            create: { external_id, balance_pennies: amount },
-          });
+  if (isTopup) {
+    try {
+      await prisma.wallet.upsert({
+        where: { external_id },
+        update: { balance_pennies: { increment: amount } },
+        create: { external_id, balance_pennies: amount },
+      });
 
-          console.log(`💰 Top-up succeeded for ${external_id}: £${(amount / 100).toFixed(2)}`);
-        } catch (err) {
-          console.error(`❌ Wallet update failed for ${external_id}:`, err);
-        }
-        break;
-      }
+      console.log(`💰 Top-up succeeded for ${external_id}: £${(amount / 100).toFixed(2)}`);
+    } catch (err) {
+      console.error(`❌ Wallet update failed for ${external_id}:`, err);
+    }
+  } else {
+    const customerId = typeof session.customer === "string" ? session.customer : null;
+    const subscriptionId = typeof session.subscription === "string" ? session.subscription : null;
+    console.log(`🧾 Saving Stripe IDs for ${external_id}: customer=${customerId}, subscription=${subscriptionId}`);
+
+
+    try {
+      await prisma.subscription.update({
+        where: { external_id },
+        data: {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+        },
+      });
+
+      console.log(`✅ Stripe customer and subscription saved for ${external_id}`);
+    } catch (err) {
+      console.error(`❌ Failed to update subscription IDs for ${external_id}:`, err);
+    }
+  }
+
+  break;
+}
+
 
       default:
         console.log(`Unhandled event: ${event.type}`);

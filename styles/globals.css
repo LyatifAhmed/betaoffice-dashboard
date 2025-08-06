@@ -144,3 +144,7 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+.glass-box {
+  @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl transition hover:shadow-2xl hover:ring-1 hover:ring-blue-300/40;
+}

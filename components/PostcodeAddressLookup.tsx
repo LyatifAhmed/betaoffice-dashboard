@@ -16,20 +16,26 @@ export default function PostcodeAddressLookup({
   const [error, setError] = useState("");
 
   const fetchAddresses = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await axios.get(
-        `https://api.getAddress.io/find/${postcode}?api-key=${process.env.NEXT_PUBLIC_GETADDRESS_API_KEY}`
-      );
-      setAddresses(res.data.addresses);
-    } catch (err) {
-      setError("Postcode not found or invalid.");
-      setAddresses([]);
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  setError("");
+  try {
+    const res = await fetch(`/api/find-address?postcode=${encodeURIComponent(postcode)}`);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to fetch");
     }
-  };
+
+    const data = await res.json();
+    setAddresses(data.addresses || []);
+  } catch (err: any) {
+    console.error("Fetch failed:", err.message);
+    setError("Postcode not found or invalid.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="space-y-2">

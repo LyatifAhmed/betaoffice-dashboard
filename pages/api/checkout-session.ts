@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-07-30.basil", // ✅ Stable recommended
+  apiVersion: "2025-07-30.basil", // ✅ Stable
 });
 
 type CheckoutRequestBody = {
@@ -43,14 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     };
 
-    // ✅ Only include the discount if coupon_id is valid
     if (coupon_id && typeof coupon_id === "string" && coupon_id.trim() !== "") {
       sessionParams.discounts = [{ coupon: coupon_id }];
     }
 
-
     const session = await stripe.checkout.sessions.create(sessionParams);
 
+    // ✅ Dönüş artık direkt tıklanabilir URL olacak
     return res.status(200).json({ sessionId: session.id });
   } catch (err: any) {
     console.error("❌ Stripe Checkout Error:", err.message);
