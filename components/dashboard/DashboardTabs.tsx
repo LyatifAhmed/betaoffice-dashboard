@@ -1,5 +1,3 @@
-// components/dashboard/DashboardTabs.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -18,6 +16,9 @@ export default function DashboardTabs({
   wallet: any;
 }) {
   const [activeTab, setActiveTab] = useState("mail");
+
+  // ✅ Burada reviewStatus'u subscription'dan al
+  const reviewStatus = subscription?.review_status ?? "UNKNOWN";
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -39,7 +40,6 @@ export default function DashboardTabs({
           reviewStatus={reviewStatus}
           hoxtonStatus={subscription?.hoxton_status}
         />
-
       </TabsContent>
 
       <TabsContent value="details">
