@@ -3,13 +3,25 @@
 import { useState } from "react";
 import MailCard from "@/components/ui/MailCard";
 
+type MailCategory = "bank" | "government" | "urgent" | "other";
+
+type RawMailItem = {
+  id: string;
+  sender: string;
+  category: string; // raw gelen string
+  summary: string;
+  receivedAt: string;
+  expiresAt: string;
+  fileUrl: string | null;
+};
+
 type MailItem = {
   id: string;
   sender: string;
-  category: "bank" | "government" | "urgent" | "other";
+  category: MailCategory;
   summary: string;
-  receivedAt: string; // ISO string
-  expiresAt: string;  // ISO string
+  receivedAt: string;
+  expiresAt: string;
   fileUrl: string | null;
 };
 
@@ -18,17 +30,30 @@ const categoryLabels = {
   bank: "Bank",
   government: "Government",
   urgent: "Urgent",
+  other: "Other",
 };
 
-export default function MailArea({ mails }: { mails: MailItem[] }) {
+// ✅ Kategori normalize eden yardımcı fonksiyon
+const normalizeCategory = (cat: string): MailCategory => {
+  const lower = cat.toLowerCase();
+  if (["bank", "government", "urgent"].includes(lower)) return lower as MailCategory;
+  return "other";
+};
+
+export default function MailArea({ mails }: { mails: RawMailItem[] }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<keyof typeof categoryLabels>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  const filteredMails = mails.filter((mail) => {
-    const matchesCategory =
-      category === "all" || mail.category === category;
+  // ✅ Normalize edilen mail listesi
+  const normalizedMails: MailItem[] = mails.map((mail) => ({
+    ...mail,
+    category: normalizeCategory(mail.category),
+  }));
+
+  const filteredMails = normalizedMails.filter((mail) => {
+    const matchesCategory = category === "all" || mail.category === category;
 
     const matchesSearch =
       mail.sender.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,7 +69,6 @@ export default function MailArea({ mails }: { mails: MailItem[] }) {
   return (
     <div className="w-full flex justify-center px-1 sm:px-6 lg:px-3">
       <div className="w-full max-w-[92rem] space-y-6">
-
         {/* Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex gap-2 flex-wrap">
