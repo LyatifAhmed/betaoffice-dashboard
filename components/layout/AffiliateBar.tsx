@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import AffiliateCard from "@/components/layout/AffiliateCard";
+import Drawer from "@/components/ui/drawer";
+import { Menu } from "lucide-react";
 
 const affiliateLinks = [
   {
@@ -34,28 +37,46 @@ const affiliateLinks = [
 ];
 
 export default function AffiliateBar() {
-  return (
-    <aside
-      className="
-        hidden md:flex
-        w-[280px]
-        h-screen
-        flex-col
-        bg-gradient-to-b from-white/10 via-white/5 to-transparent
-        backdrop-blur-xl border-l border-white/20 shadow-[inset_0_0_0.5px_rgba(255,255,255,0.1)] z-10
-        px-4 pt-6 pb-4
-        rounded-l-3xl
-      "
-    >
-      <h2 className="text-white text-sm font-semibold mb-4 tracking-widest px-1 uppercase opacity-70">
-        Discover
-      </h2>
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-      <div className="flex-1 overflow-y-auto space-y-6 pr-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-        {affiliateLinks.map((link, index) => (
-          <AffiliateCard key={index} {...link} />
-        ))}
+  return (
+    <>
+      {/* Mobile Toggle Button */}
+      <div className="fixed bottom-4 right-4 z-50 md:hidden">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="p-3 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 shadow-md hover:shadow-xl transition"
+        >
+          <Menu className="text-white w-5 h-5" />
+        </button>
       </div>
-    </aside>
+
+      {/* Mobile Drawer */}
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        <div className="space-y-4 p-4">
+          <h2 className="text-white text-base font-semibold">🌐 Services</h2>
+          {affiliateLinks.map((link, index) => (
+            <AffiliateCard key={index} {...link} />
+          ))}
+        </div>
+      </Drawer>
+
+      {/* Desktop Sidebar */}
+      <aside
+        className="
+          hidden md:flex
+          w-[280px] h-screen flex-col
+          bg-white/10 backdrop-blur-lg border-l border-white/20 shadow-xl z-10
+          px-4 pt-6 pb-4
+        "
+      >
+        <h2 className="text-white text-sm font-semibold mb-4 tracking-wide px-1">🌐 Services</h2>
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+          {affiliateLinks.map((link, index) => (
+            <AffiliateCard key={index} {...link} />
+          ))}
+        </div>
+      </aside>
+    </>
   );
 }
