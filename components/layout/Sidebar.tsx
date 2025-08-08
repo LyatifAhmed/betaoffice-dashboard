@@ -25,24 +25,23 @@ export default function MainSidebar({ onClose }: { onClose?: () => void }) {
         "text-[#dbe7ff] flex flex-col"
       )}
     >
-      {/* Top */}
-<div className="flex items-center gap-3 px-4 py-5">
-  <img src="/logo.png" alt="BetaOffice" className="h-7 w-7 rounded-md" />
-  <span className="text-base font-semibold tracking-wide text-[#e7efff]">
-    BetaOffice
-  </span>
+      {/* Logo + Close Button */}
+      <div className="flex items-center gap-3 px-4 py-5">
+        <img src="/logo.png" alt="BetaOffice" className="h-7 w-7 rounded-md" />
+        <span className="text-base font-semibold tracking-wide text-[#e7efff]">
+          BetaOffice
+        </span>
 
-  {onClose && (
-    <button
-      onClick={onClose}
-      className="ml-auto md:hidden text-[#c5d6ff]/70 hover:text-white transition"
-      aria-label="Close menu"
-    >
-      ✕
-    </button>
-  )}
-</div>
-
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="ml-auto md:hidden text-[#c5d6ff]/70 hover:text-white transition"
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {/* Üst Menü */}
       <nav className="px-3 py-2 space-y-1 flex-1">
