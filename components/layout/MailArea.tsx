@@ -62,7 +62,7 @@ export default function MailArea({ mails }: { mails: RawMailItem[] }) {
   });
 
   return (
-    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3">
+    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3 pt-16">
       <div className="w-full max-w-[92rem] space-y-6">
         
         {/* Filters */}
