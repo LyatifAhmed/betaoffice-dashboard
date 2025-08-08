@@ -24,22 +24,23 @@ export default function AffiliateCard({
       className="
         group
         w-full
-        max-w-xs
-        p-0
-        rounded-3xl
+        min-w-[260px]
+        max-w-md
+        rounded-2xl
         overflow-hidden
-        border border-white/20
-        bg-gradient-to-br from-white/10 to-white/5
-        backdrop-blur-md
+        border border-white/10
+        bg-gradient-to-br from-white/5 to-white/10
+        backdrop-blur-lg
         hover:border-blue-400
+        hover:shadow-[0_0_20px_rgba(0,123,255,0.3)]
         transition-all duration-300 ease-in-out
-        shadow-[0_0_20px_1px_rgba(255,255,255,0.05)]
-        hover:shadow-[0_0_25px_2px_rgba(0,123,255,0.3)]
+        transform hover:scale-[1.02]
         cursor-pointer
+        flex flex-col
       "
     >
       {/* Image */}
-      <div className="relative w-full h-36 overflow-hidden">
+      <div className="relative w-full aspect-video">
         <Image
           src={image}
           alt={title}
@@ -49,15 +50,26 @@ export default function AffiliateCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-1 flex flex-col flex-1 justify-between">
         <h3 className="text-base font-semibold text-white">{title}</h3>
-        <p className="text-sm text-white/80 line-clamp-3">{description}</p>
+        <p className="text-xs text-white/70 line-clamp-2">{description}</p>
 
         <Button
           variant="ghost"
-          className="group flex items-center gap-1 mt-2 text-blue-400 hover:text-white p-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(href, "_blank");
+          }}
+          className="
+            group/btn flex items-center gap-1 mt-2
+            text-blue-400 hover:text-white
+            px-0 py-0 h-auto text-xs font-medium
+            transition-all duration-200
+            w-fit
+          "
         >
-          {cta} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          {cta}
+          <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
         </Button>
       </div>
     </Card>

@@ -35,10 +35,27 @@ const affiliateLinks = [
 
 export default function AffiliateBar() {
   return (
-    <aside className="w-[72px] md:w-[96px] lg:w-[132px] xl:w-[160px] bg-white/10 backdrop-blur-md border-l border-white/20 p-2 pt-6 space-y-4 flex flex-col items-center">
-      {affiliateLinks.map((link, index) => (
-        <AffiliateCard key={index} {...link} />
-      ))}
+    <aside
+      className="
+        hidden md:flex
+        w-[280px]
+        h-screen
+        flex-col
+        bg-gradient-to-b from-white/10 via-white/5 to-transparent
+        backdrop-blur-xl border-l border-white/20 shadow-[inset_0_0_0.5px_rgba(255,255,255,0.1)] z-10
+        px-4 pt-6 pb-4
+        rounded-l-3xl
+      "
+    >
+      <h2 className="text-white text-sm font-semibold mb-4 tracking-widest px-1 uppercase opacity-70">
+        Discover
+      </h2>
+
+      <div className="flex-1 overflow-y-auto space-y-6 pr-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        {affiliateLinks.map((link, index) => (
+          <AffiliateCard key={index} {...link} />
+        ))}
+      </div>
     </aside>
   );
 }

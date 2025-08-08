@@ -49,7 +49,7 @@ export default function MailCard({ mail }: { mail: any }) {
         backdrop-blur-md
         border border-white/30
         rounded-xl
-        px-6 py-4
+        px-4 sm:px-6 py-4
         transition-all duration-300
         overflow-hidden
         hover:bg-white/90
@@ -58,8 +58,8 @@ export default function MailCard({ mail }: { mail: any }) {
       "
     >
       {/* Header Row */}
-      <div className="flex justify-between items-center mb-2">
-        <div className="text-sm font-semibold text-gray-800 truncate max-w-[60%]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0 mb-2">
+        <div className="text-sm font-semibold text-gray-800 truncate max-w-full sm:max-w-[60%]">
           {mail.sender}
         </div>
         <div className="text-xs text-gray-500">
@@ -68,16 +68,16 @@ export default function MailCard({ mail }: { mail: any }) {
       </div>
 
       {/* Badge + Buttons Row */}
-      <div className="flex justify-between items-center">
-        <div className="text-[10px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+        <div className="text-[10px] w-fit bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
           {mail.category.toUpperCase()}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2">
           {/* Open Button */}
           <button
             onClick={handleOpenPDF}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-200 text-blue-900 hover:bg-blue-300 transition"
+            className="flex items-center gap-1 px-3 py-1 text-xs rounded-full bg-blue-200 text-blue-900 hover:bg-blue-300 transition"
           >
             <ReaderIcon className="w-3 h-3" /> Open
           </button>
@@ -90,21 +90,21 @@ export default function MailCard({ mail }: { mail: any }) {
           >
             <button
               onClick={() => setModalOpen(true)}
-              className="p-2 bg-indigo-200 text-indigo-800 rounded-full hover:bg-indigo-300 transition"
+              className="flex items-center gap-1 px-3 py-1 bg-indigo-200 text-indigo-800 text-xs rounded-full hover:bg-indigo-300 transition"
             >
-              <PaperPlaneIcon />
+              <PaperPlaneIcon className="w-3 h-3" /> Forward
             </button>
 
             <AnimatePresence>
               {hoverForward && (
                 <motion.div
                   initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1.1, opacity: 0.95 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1.05, opacity: 0.95 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute -top-8 right-0 bg-indigo-100 text-indigo-800 rounded-full px-3 py-1 text-xs shadow-md z-10"
+                  className="absolute -top-8 right-0 bg-white/90 text-gray-700 rounded-full px-3 py-1 text-xs shadow-md z-10"
                 >
-                  ⏳ {daysLeft} day{daysLeft !== 1 ? "s" : ""} left to forward
+                  ⏳ {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
                 </motion.div>
               )}
             </AnimatePresence>
@@ -116,20 +116,24 @@ export default function MailCard({ mail }: { mail: any }) {
             onMouseLeave={() => setHoverSummarize(false)}
             className="relative"
           >
-            <button className="flex items-center gap-1 px-3 py-1 bg-pink-200 text-pink-900 text-xs rounded-full hover:bg-pink-300 transition">
+            <button
+              onClick={handleSummarize}
+              disabled={loading}
+              className="flex items-center gap-1 px-3 py-1 bg-pink-200 text-pink-900 text-xs rounded-full hover:bg-pink-300 transition disabled:opacity-50"
+            >
               <RocketIcon className="w-3 h-3" /> AI Summary
             </button>
 
             <AnimatePresence>
-              {hoverSummarize && (
+              {hoverSummarize && loading && (
                 <motion.div
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1.1, opacity: 0.9 }}
                   exit={{ scale: 0.9, opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="absolute -top-8 left-2 bg-pink-100 text-pink-800 rounded-full px-3 py-1 text-xs shadow-md z-10"
+                  className="absolute -top-8 left-0 bg-white/90 text-gray-700 px-3 py-1 rounded-full text-xs shadow-md z-10"
                 >
-                  💬 Generating summary...
+                  💬 Generating...
                 </motion.div>
               )}
             </AnimatePresence>
@@ -137,7 +141,7 @@ export default function MailCard({ mail }: { mail: any }) {
         </div>
       </div>
 
-      {/* Summary text */}
+      {/* Summary */}
       <AnimatePresence>
         {summary && (
           <motion.p

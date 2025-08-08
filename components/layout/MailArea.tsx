@@ -8,7 +8,7 @@ type MailCategory = "bank" | "government" | "urgent" | "other";
 type RawMailItem = {
   id: string;
   sender: string;
-  category: string; // raw gelen string
+  category: string;
   summary: string;
   receivedAt: string;
   expiresAt: string;
@@ -33,7 +33,6 @@ const categoryLabels = {
   other: "Other",
 };
 
-// ✅ Kategori normalize eden yardımcı fonksiyon
 const normalizeCategory = (cat: string): MailCategory => {
   const lower = cat.toLowerCase();
   if (["bank", "government", "urgent"].includes(lower)) return lower as MailCategory;
@@ -46,7 +45,6 @@ export default function MailArea({ mails }: { mails: RawMailItem[] }) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  // ✅ Normalize edilen mail listesi
   const normalizedMails: MailItem[] = mails.map((mail) => ({
     ...mail,
     category: normalizeCategory(mail.category),
@@ -54,24 +52,23 @@ export default function MailArea({ mails }: { mails: RawMailItem[] }) {
 
   const filteredMails = normalizedMails.filter((mail) => {
     const matchesCategory = category === "all" || mail.category === category;
-
     const matchesSearch =
       mail.sender.toLowerCase().includes(search.toLowerCase()) ||
       mail.summary.toLowerCase().includes(search.toLowerCase());
-
     const mailDate = new Date(mail.receivedAt);
     const fromValid = fromDate ? mailDate >= new Date(fromDate) : true;
     const toValid = toDate ? mailDate <= new Date(toDate) : true;
-
     return matchesCategory && matchesSearch && fromValid && toValid;
   });
 
   return (
-    <div className="w-full flex justify-center px-1 sm:px-6 lg:px-3">
+    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3">
       <div className="w-full max-w-[92rem] space-y-6">
+        
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Category buttons */}
+          <div className="flex flex-wrap gap-2">
             {(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).map((cat) => (
               <button
                 key={cat}
@@ -87,11 +84,12 @@ export default function MailArea({ mails }: { mails: RawMailItem[] }) {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 items-center justify-end">
+          {/* Search + Date range */}
+          <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">
             <input
               type="text"
               placeholder="Search..."
-              className="px-4 py-2 w-40 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 w-full sm:w-40 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -99,13 +97,13 @@ export default function MailArea({ mails }: { mails: RawMailItem[] }) {
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300"
+              className="px-3 py-2 text-sm rounded-lg border border-gray-300 w-full sm:w-auto"
             />
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300"
+              className="px-3 py-2 text-sm rounded-lg border border-gray-300 w-full sm:w-auto"
             />
           </div>
         </div>
