@@ -44,7 +44,7 @@ export default function MailCard({ mail }: { mail: any }) {
   return (
     <div
       className="
-        w-full
+        w-full max-w-full
         bg-white/70
         backdrop-blur-md
         border border-white/30
@@ -59,10 +59,10 @@ export default function MailCard({ mail }: { mail: any }) {
     >
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0 mb-2">
-        <div className="text-sm font-semibold text-gray-800 truncate max-w-full sm:max-w-[60%]">
+        <div className="text-xs sm:text-sm font-semibold text-gray-800 truncate max-w-full sm:max-w-[60%]">
           {mail.sender}
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-[11px] sm:text-xs text-gray-500">
           {new Date(mail.receivedAt).toLocaleDateString()}
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function MailCard({ mail }: { mail: any }) {
           {mail.category.toUpperCase()}
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2 overflow-x-auto max-w-full">
           {/* Open Button */}
           <button
             onClick={handleOpenPDF}
@@ -102,7 +102,7 @@ export default function MailCard({ mail }: { mail: any }) {
                   animate={{ scale: 1.05, opacity: 0.95 }}
                   exit={{ scale: 0.9, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute -top-8 right-0 bg-white/90 text-gray-700 rounded-full px-3 py-1 text-xs shadow-md z-10"
+                  className="absolute bottom-full right-0 mb-1 bg-white/90 text-gray-700 rounded-full px-3 py-1 text-xs shadow-md z-10"
                 >
                   ⏳ {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
                 </motion.div>
@@ -131,7 +131,7 @@ export default function MailCard({ mail }: { mail: any }) {
                   animate={{ scale: 1.1, opacity: 0.9 }}
                   exit={{ scale: 0.9, opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="absolute -top-8 left-0 bg-white/90 text-gray-700 px-3 py-1 rounded-full text-xs shadow-md z-10"
+                  className="absolute bottom-full left-0 mb-1 bg-white/90 text-gray-700 px-3 py-1 rounded-full text-xs shadow-md z-10"
                 >
                   💬 Generating...
                 </motion.div>

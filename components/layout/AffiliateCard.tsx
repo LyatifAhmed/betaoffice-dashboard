@@ -24,17 +24,15 @@ export default function AffiliateCard({
       className="
         group
         w-full
-        min-w-[260px]
-        max-w-md
         rounded-2xl
         overflow-hidden
         border border-white/10
         bg-gradient-to-br from-white/5 to-white/10
-        backdrop-blur-lg
-        hover:border-blue-400
-        hover:shadow-[0_0_20px_rgba(0,123,255,0.3)]
+        backdrop-blur-xl
+        hover:border-fuchsia-400
+        hover:shadow-[0_0_24px_rgba(255,0,255,0.3)]
         transition-all duration-300 ease-in-out
-        transform hover:scale-[1.02]
+        transform hover:scale-[1.015]
         cursor-pointer
         flex flex-col
       "
@@ -50,9 +48,11 @@ export default function AffiliateCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-1 flex flex-col flex-1 justify-between">
-        <h3 className="text-base font-semibold text-white">{title}</h3>
-        <p className="text-xs text-white/70 line-clamp-2">{description}</p>
+      <div className="p-4 flex flex-col justify-between flex-1 space-y-1">
+        <div>
+          <h3 className="text-base font-semibold text-white">{title}</h3>
+          <p className="text-xs text-white/70 line-clamp-2">{description}</p>
+        </div>
 
         <Button
           variant="ghost"
