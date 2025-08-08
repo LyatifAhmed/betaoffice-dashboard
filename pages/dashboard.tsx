@@ -6,7 +6,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 
 // Dummy mail verileri
-const dummyMails: RawMailItem[] = Array.from({ length: 120 }, (_, i) => {
+const dummyMails = Array.from({ length: 120 }, (_, i) => {
   const daysAgo = i + 1;
   return {
     id: `${i + 1}`,
@@ -18,6 +18,7 @@ const dummyMails: RawMailItem[] = Array.from({ length: 120 }, (_, i) => {
     fileUrl: i % 4 === 0 ? null : "https://example.com/fake.pdf",
   };
 });
+
 
 export default function DashboardPage() {
   const [page, setPage] = useState(1);
