@@ -1,11 +1,11 @@
 "use client";
 
 type Props = {
-  selectedCount: number;               // 0 ise görünmez
-  onDeleteMarked: () => void;          // Trash'te ise restore için de kullanılabilir
+  selectedCount: number;
+  onDeleteMarked: () => void;
   onSelectAll: () => void;
   onClear: () => void;
-  isTrashView?: boolean;               // trash görünümünde mi?
+  isTrashView?: boolean;
 };
 
 export default function SelectionBar({
@@ -18,54 +18,58 @@ export default function SelectionBar({
   const visible = selectedCount > 0;
 
   return (
-    <div className="relative h-10">
-      <div
-        className={[
-          "absolute inset-0 z-20 flex items-center justify-between gap-2",
-          "rounded-full border border-white/30 backdrop-blur-xl bg-white/15",
-          "shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-2 py-1",
-          // Aura rengi modlara göre değişiyor
-          "before:absolute before:-inset-0.5 before:rounded-full before:blur-xl",
-          isTrashView
-            ? "before:bg-gradient-to-r before:from-emerald-400/25 before:via-green-400/25 before:to-emerald-400/25"
-            : "before:bg-gradient-to-r before:from-fuchsia-400/25 before:via-rose-400/25 before:to-fuchsia-400/25",
-          "transition-opacity duration-200",
-          visible ? "opacity-100 pointer-events-auto animate-pulse" : "opacity-0 pointer-events-none",
-        ].join(" ")}
-      >
-        {/* Sol taraf: Delete/Restore butonu */}
-        <div className="flex items-center gap-2">
+    <div
+      className={[
+        "flex items-center gap-2",
+        "border border-white/30 rounded-full px-2 py-1 shadow-sm",
+        "bg-white/60 backdrop-blur-md", // Şeffaf + cam efekti
+        "transition-opacity duration-200",
+        visible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+      ].join(" ")}
+    >
+      {/* Delete / Restore butonu */}
+      {!isTrashView ? (
+        <>
           <button
             onClick={onDeleteMarked}
-            className={`px-3 py-1.5 text-xs sm:text-sm rounded-full ${
-              isTrashView
-                ? "bg-emerald-400/90 text-white hover:bg-emerald-500"
-                : "bg-rose-400/90 text-white hover:bg-rose-500"
-            } active:scale-[0.98] transition`}
+            className="px-3 py-1 text-xs rounded-full bg-rose-200 text-rose-900 hover:bg-rose-300 transition"
           >
-            {isTrashView ? "Restore marked" : "Delete marked"}
+            Delete marked
           </button>
-          <span className="text-[11px] sm:text-xs text-white/80 hidden sm:inline">
+          <span className="text-xs text-gray-600 hidden sm:inline">
             ({selectedCount} selected)
           </span>
-        </div>
+        </>
+      ) : (
+        <>
+          <button
+            onClick={onDeleteMarked}
+            className="px-3 py-1 text-xs rounded-full bg-emerald-200 text-emerald-900 hover:bg-emerald-300 transition"
+          >
+            Restore marked
+          </button>
+          <span className="text-xs text-gray-600 hidden sm:inline">
+            ({selectedCount} selected)
+          </span>
+        </>
+      )}
 
-        {/* Sağ taraf: Select all / Clear */}
-        <div className="flex items-center gap-2 text-xs">
-          <button
-            onClick={onSelectAll}
-            className="px-3 py-1.5 rounded-full bg-white/70 hover:bg-white text-gray-800"
-          >
-            Select all (page)
-          </button>
-          <button
-            onClick={onClear}
-            className="px-3 py-1.5 rounded-full bg-white/40 hover:bg-white/70 text-gray-800"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
+      {/* Ayraç */}
+      <div className="w-px h-5 bg-gray-300/60" />
+
+      {/* Select all / Clear */}
+      <button
+        onClick={onSelectAll}
+        className="px-2 py-1 text-xs rounded-md hover:bg-white/60"
+      >
+        Select all (page)
+      </button>
+      <button
+        onClick={onClear}
+        className="px-2 py-1 text-xs rounded-md hover:bg-white/60"
+      >
+        Clear
+      </button>
     </div>
   );
 }

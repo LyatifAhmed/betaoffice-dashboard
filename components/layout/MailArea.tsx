@@ -1,4 +1,3 @@
-// components/layout/MailArea.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -42,6 +41,7 @@ export default function MailArea({
     onDeleteMarked: () => void;
     onSelectAll: () => void;
     onClear: () => void;
+    isTrashView: boolean;
   }) => void;
 }) {
   const [items, setItems] = useState<MailItem[]>([]);
@@ -70,11 +70,9 @@ export default function MailArea({
     return base.filter((mail) => {
       const matchesCategory =
         category === "all" || category === "trash" || mail.category === category;
-      const q = search.trim().toLowerCase();
       const matchesSearch =
-        !q ||
-        mail.sender.toLowerCase().includes(q) ||
-        mail.summary.toLowerCase().includes(q);
+        mail.sender.toLowerCase().includes(search.toLowerCase()) ||
+        mail.summary.toLowerCase().includes(search.toLowerCase());
       const mailDate = new Date(mail.receivedAt);
       const fromValid = fromDate ? mailDate >= new Date(fromDate) : true;
       const toValid = toDate ? mailDate <= new Date(toDate) : true;
@@ -117,21 +115,20 @@ export default function MailArea({
     setSelected(next);
   };
 
-  // Selection meta'yı üst componente gönder
+  // Seçim meta'sını yukarı gönder
   useEffect(() => {
-    if (onSelectionMetaChange) {
-      onSelectionMetaChange({
-        selectedCount: anySelected && inSelectionOnScreen ? selected.size : 0,
-        onDeleteMarked: isTrashView ? restoreSelected : moveSelectedToTrash,
-        onSelectAll: selectAllOnScreen,
-        onClear: clearSelection,
-      });
-    }
+    onSelectionMetaChange?.({
+      selectedCount: anySelected && inSelectionOnScreen ? selected.size : 0,
+      onDeleteMarked: isTrashView ? restoreSelected : moveSelectedToTrash,
+      onSelectAll: selectAllOnScreen,
+      onClear: clearSelection,
+      isTrashView,
+    });
   }, [anySelected, inSelectionOnScreen, selected.size, isTrashView]);
 
   return (
-    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3">
-      <div className="w-full max-w-[92rem] space-y-4">
+    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3 pt-16">
+      <div className="w-full max-w-[92rem] space-y-6">
         {/* Başlık */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
@@ -139,9 +136,9 @@ export default function MailArea({
           </h2>
         </div>
 
-        {/* Kategori + arama/tarih (daha dar yükseklik) */}
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 overflow-x-auto whitespace-nowrap -mx-1 px-1">
+        {/* Kategori / Arama / Tarih */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
             {(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).map((cat) => (
               <button
                 key={cat}
@@ -149,7 +146,7 @@ export default function MailArea({
                   setCategory(cat);
                   clearSelection();
                 }}
-                className={`px-3 py-1 text-sm font-medium rounded-full border transition-colors ${
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   category === cat
                     ? "bg-blue-600 text-white"
                     : "bg-white/70 hover:bg-blue-100 text-gray-700"
@@ -160,11 +157,11 @@ export default function MailArea({
             ))}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">
             <input
               type="text"
               placeholder="Search..."
-              className="px-2 py-1.5 w-36 sm:w-48 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="px-4 py-2 w-full sm:w-40 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -172,18 +169,18 @@ export default function MailArea({
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="px-2 py-1.5 text-sm rounded-md border border-gray-300 w-24"
+              className="px-3 py-2 text-sm rounded-lg border border-gray-300 w-full sm:w-auto"
             />
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="px-2 py-1.5 text-sm rounded-md border border-gray-300 w-24"
+              className="px-3 py-2 text-sm rounded-lg border border-gray-300 w-full sm:w-auto"
             />
             {isTrashView && (
               <button
                 onClick={clearTrash}
-                className="ml-1 px-2 py-1.5 text-sm rounded-md border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                className="ml-1 px-3 py-2 text-sm rounded-lg border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100"
                 title="Permanently delete everything in trash"
               >
                 Clear trash
@@ -192,7 +189,7 @@ export default function MailArea({
           </div>
         </div>
 
-        {/* Mail listesi */}
+        {/* Liste */}
         <div className="grid gap-3 max-h-[72vh] overflow-y-auto pr-1 pb-2">
           {visibleItems.length > 0 ? (
             visibleItems.map((mail) => {
