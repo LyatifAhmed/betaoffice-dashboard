@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PropsWithChildren } from "react";
+import { mutate } from "swr"; // ⬅️ eklendi
 
 import MainSidebar, { DashboardTab } from "@/components/layout/Sidebar";
 import SmartStatusBar from "@/components/layout/SmartStatusBar";
@@ -35,6 +36,19 @@ export default function DashboardLayout({
     isTrashView: false,
   });
 
+  // SmartStatusBar → yeni mail bildirimi geldiğinde SWR cache'ini tazele
+  const handleNewMail = () => {
+    try {
+      // SWR v2: matcher ile /api/mail ile başlayan tüm key'leri revalidate et
+      // (örn: /api/mail?external_id=xxx)
+      // Versiyon eskiyse istersen mutate("/api/mail") da yeterli olabilir.
+      // @ts-ignore - matcher SWR v2'de mevcut
+      mutate((key: string) => typeof key === "string" && key.startsWith("/api/mail"));
+    } catch {
+      // sessiz geç
+    }
+  };
+
   return (
     <div className="flex w-full flex-col md:flex-row bg-white text-black min-h-[100svh]">
       {/* Desktop sidebar */}
@@ -55,14 +69,19 @@ export default function DashboardLayout({
       </MobileSidebarOverlay>
 
       <div className="flex-1 flex min-w-0 flex-col overflow-hidden">
-        <SmartStatusBar onMenuClick={() => setSidebarOpen(true)} />
+        <SmartStatusBar
+          onMenuClick={() => setSidebarOpen(true)}
+          // ⬇️ WS'den "new_mail" gelince listeyi yenile
+          // (MailArea SWR ile /api/mail* key'lerini dinliyor)
+          onNewMail={handleNewMail}
+        />
 
         {/* Sabit SelectionBar */}
         <div
           className={[
             "fixed z-50",
             "left-1/2 -translate-x-1/2", // Ortala
-            "top-[60px]", // SmartStatusBar (88px) + 8px boşluk
+            "top-[60px]", // SmartStatusBar + az boşluk
             selectionMeta.selectedCount > 0
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none",

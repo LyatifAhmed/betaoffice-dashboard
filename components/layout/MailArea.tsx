@@ -1,5 +1,9 @@
 "use client";
 
+// SWR
+import useSWR from "swr";
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
 import { useEffect, useMemo, useState } from "react";
 import MailCard from "@/components/ui/MailCard";
 
@@ -45,15 +49,34 @@ export default function MailArea({
   }) => void;
 }) {
   const [items, setItems] = useState<MailItem[]>([]);
+  const [externalId, setExternalId] = useState<string | null>(null);
+
+  // localStorage'dan external_id'yi bir kere oku
   useEffect(() => {
+    const id = typeof window !== "undefined" ? localStorage.getItem("external_id") : null;
+    setExternalId(id);
+  }, []);
+
+  // external_id varsa SWR ile çek
+  const swrKey = externalId ? `/api/mail?external_id=${externalId}` : null;
+  const { data, error, isLoading, mutate } = useSWR(swrKey, fetcher);
+
+  // API'den geleni items'a yaz
+  useEffect(() => {
+    if (!data) return;
     setItems(
-      (mails || []).map((m) => ({
-        ...m,
-        category: normalizeCategory(m.category),
+      (data || []).map((m: any) => ({
+        id: m.id,
+        sender: m.sender_name || "Unknown sender",
+        category: normalizeCategory(m.category || "other"),
+        summary: m.summary || "",
+        receivedAt: m.received_at,
+        expiresAt: m.expires_at || "",
+        fileUrl: m.url || null,
         _status: "active",
       }))
     );
-  }, [mails]);
+  }, [data]);
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<keyof typeof categoryLabels>("all");
@@ -191,7 +214,13 @@ export default function MailArea({
 
         {/* Liste */}
         <div className="grid gap-3 max-h-[72vh] overflow-y-auto pr-1 pb-2">
-          {visibleItems.length > 0 ? (
+          {error ? (
+            <div className="text-rose-600 text-center py-10">
+              Failed to load mail.
+            </div>
+          ) : isLoading && !data ? (
+            <div className="text-gray-500 text-center py-10">Loading scanned mail...</div>
+          ) : visibleItems.length > 0 ? (
             visibleItems.map((mail) => {
               const checked = selected.has(mail.id);
               return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -50,16 +50,37 @@ const statusConfig: Record<
 
 type SmartStatusBarProps = {
   status: keyof typeof statusConfig;
+  /** Dışarıdan unread sayısı gelirse onu gösterir; gelmezse WS ile içerde artar */
   unreadCount?: number;
+  /** Yeni mail event'i geldiğinde parent'ı bilgilendirmek istersen */
+  onNewMail?: (evt: {
+    sender?: string;
+    company?: string;
+    title?: string;
+    received_at?: string | null;
+  }) => void;
 };
 
 export default function SmartStatusBar({
   status = "UNKNOWN",
-  unreadCount = 0,
+  unreadCount,
+  onNewMail,
 }: SmartStatusBarProps) {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [hidden, setHidden] = useState(false);
+
+  // 🔔 WS ile lokal okunmamış sayacı (prop gelmezse bunu kullanırız)
+  const [liveUnread, setLiveUnread] = useState(0);
+  const displayUnread = typeof unreadCount === "number" ? unreadCount : liveUnread;
+
+  // WS bildirimi geldiğinde kısa süre parlatmak için mevcut hover/parıltı stilini kullan
+  const flashTimer = useRef<number | null>(null);
+  const flash = () => {
+    setHovered(true);
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setHovered(false), 2000);
+  };
 
   const config = statusConfig[status] || statusConfig.UNKNOWN;
 
@@ -72,11 +93,9 @@ export default function SmartStatusBar({
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
   };
-
   const handleTouchMove = (e: React.TouchEvent) => {
     touchEndY.current = e.touches[0].clientY;
   };
-
   const handleTouchEnd = () => {
     if (
       touchStartY.current !== null &&
@@ -88,6 +107,47 @@ export default function SmartStatusBar({
     touchStartY.current = null;
     touchEndY.current = null;
   };
+
+  // 🌐 WebSocket: yeni mail gelince unread artır + parent'a haber ver + kısa parlat
+  useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_HOXTON_WS_URL;
+    if (!base) return; // env yoksa WS kurma, estetik bozulmadan devam
+
+    const url = `${base.replace(/\/$/, "")}/ws/mail`;
+    const ws = new WebSocket(url);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.type === "new_mail") {
+          setLiveUnread((u) => u + 1);
+          onNewMail?.({
+            sender: data.sender,
+            company: data.company,
+            title: data.title,
+            received_at: data.received_at,
+          });
+          flash();
+        }
+      } catch {
+        // yut
+      }
+    };
+
+    ws.onerror = () => {
+      // sessizce kapat (UI değişimi yok)
+      try {
+        ws.close();
+      } catch {}
+    };
+
+    return () => {
+      try {
+        ws.close();
+      } catch {}
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    };
+  }, [onNewMail]);
 
   return (
     <>
@@ -129,8 +189,8 @@ export default function SmartStatusBar({
           >
             {config.icon}
             <span className="whitespace-nowrap truncate max-w-[60vw]">
-              {unreadCount > 0
-                ? `📬 You have ${unreadCount} unread letter${unreadCount > 1 ? "s" : ""}`
+              {displayUnread > 0
+                ? `📬 You have ${displayUnread} unread letter${displayUnread > 1 ? "s" : ""}`
                 : config.message}
             </span>
           </motion.div>
@@ -146,8 +206,6 @@ export default function SmartStatusBar({
           <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
         </div>
       )}
-
-
 
       {expanded && !hidden && (
         <motion.div
@@ -176,4 +234,3 @@ export default function SmartStatusBar({
     </>
   );
 }
-
