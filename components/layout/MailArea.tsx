@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import MailCard from "@/components/ui/MailCard";
-import SelectionBar from "@/components/layout/SelectionBar";
 
 export type MailCategory = "bank" | "government" | "urgent" | "other";
 export type RawMailItem = {
@@ -33,7 +32,18 @@ const normalizeCategory = (cat: string): MailCategory => {
   return "other";
 };
 
-export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawMailItem[] }) {
+export default function MailArea({
+  mails = [],
+  onSelectionMetaChange,
+}: {
+  mails?: RawMailItem[];
+  onSelectionMetaChange?: (meta: {
+    selectedCount: number;
+    onDeleteMarked: () => void;
+    onSelectAll: () => void;
+    onClear: () => void;
+  }) => void;
+}) {
   const [items, setItems] = useState<MailItem[]>([]);
   useEffect(() => {
     setItems(
@@ -45,7 +55,6 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
     );
   }, [mails]);
 
-  // Filtre/Arama/Seleksiyon
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<keyof typeof categoryLabels>("all");
   const [fromDate, setFromDate] = useState("");
@@ -73,7 +82,6 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
     });
   }, [items, category, isTrashView, search, fromDate, toDate]);
 
-  // Bulk aksiyonlar
   const anySelected = selected.size > 0;
   const inSelectionOnScreen = visibleItems.some((m) => selected.has(m.id));
 
@@ -109,9 +117,21 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
     setSelected(next);
   };
 
+  // Selection meta'yı üst componente gönder
+  useEffect(() => {
+    if (onSelectionMetaChange) {
+      onSelectionMetaChange({
+        selectedCount: anySelected && inSelectionOnScreen ? selected.size : 0,
+        onDeleteMarked: isTrashView ? restoreSelected : moveSelectedToTrash,
+        onSelectAll: selectAllOnScreen,
+        onClear: clearSelection,
+      });
+    }
+  }, [anySelected, inSelectionOnScreen, selected.size, isTrashView]);
+
   return (
-    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3 pt-16">
-      <div className="w-full max-w-[92rem] space-y-6">
+    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3">
+      <div className="w-full max-w-[92rem] space-y-4">
         {/* Başlık */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
@@ -119,21 +139,9 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
           </h2>
         </div>
 
-        {/* Sabit/şeffaf SelectionBar: layout’u itmez */}
-        <div className="relative h-10">
-          <div className="absolute inset-0">
-            <SelectionBar
-              selectedCount={anySelected && inSelectionOnScreen ? selected.size : 0}
-              onDeleteMarked={isTrashView ? restoreSelected : moveSelectedToTrash}
-              onSelectAll={selectAllOnScreen}
-              onClear={clearSelection}
-            />
-          </div>
-        </div>
-
-        {/* Kategori + Arama + Kısa tarih satırı */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2 overflow-x-auto whitespace-nowrap -mx-1 px-1">
+        {/* Kategori + arama/tarih (daha dar yükseklik) */}
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-1 overflow-x-auto whitespace-nowrap -mx-1 px-1">
             {(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).map((cat) => (
               <button
                 key={cat}
@@ -141,7 +149,7 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
                   setCategory(cat);
                   clearSelection();
                 }}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                className={`px-3 py-1 text-sm font-medium rounded-full border transition-colors ${
                   category === cat
                     ? "bg-blue-600 text-white"
                     : "bg-white/70 hover:bg-blue-100 text-gray-700"
@@ -152,33 +160,30 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <input
               type="text"
               placeholder="Search..."
-              className="px-3 py-2 w-40 sm:w-56 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-2 py-1.5 w-36 sm:w-48 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            {/* Kısa From/To – mobil dostu */}
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              placeholder="Date"
-              className="px-2 py-2 text-sm rounded-lg border border-gray-300 w-28"
+              className="px-2 py-1.5 text-sm rounded-md border border-gray-300 w-24"
             />
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              placeholder="Date"
-              className="px-2 py-2 text-sm rounded-lg border border-gray-300 w-28"
+              className="px-2 py-1.5 text-sm rounded-md border border-gray-300 w-24"
             />
             {isTrashView && (
               <button
                 onClick={clearTrash}
-                className="ml-1 px-3 py-2 text-sm rounded-lg border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                className="ml-1 px-2 py-1.5 text-sm rounded-md border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100"
                 title="Permanently delete everything in trash"
               >
                 Clear trash
@@ -187,7 +192,7 @@ export default function MailArea({ mails = [] as RawMailItem[] }: { mails?: RawM
           </div>
         </div>
 
-        {/* Liste */}
+        {/* Mail listesi */}
         <div className="grid gap-3 max-h-[72vh] overflow-y-auto pr-1 pb-2">
           {visibleItems.length > 0 ? (
             visibleItems.map((mail) => {

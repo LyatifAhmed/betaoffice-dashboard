@@ -5,6 +5,7 @@ type Props = {
   onDeleteMarked: () => void;          // Trash'te ise restore için de kullanılabilir
   onSelectAll: () => void;
   onClear: () => void;
+  isTrashView?: boolean;               // trash görünümünde mi?
 };
 
 export default function SelectionBar({
@@ -12,41 +13,44 @@ export default function SelectionBar({
   onDeleteMarked,
   onSelectAll,
   onClear,
+  isTrashView = false,
 }: Props) {
   const visible = selectedCount > 0;
 
   return (
-    // Bar’ın kapladığı alan sabit; görünmezken pointer kapalı
     <div className="relative h-10">
       <div
         className={[
-          "absolute inset-0 z-20 mx-auto max-w-screen-sm", // ortala
-          "flex items-center justify-between gap-2",
-          "rounded-full border border-white/30 backdrop-blur-xl",
-          "bg-white/15 shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
-          "px-2 py-1",
-          // hafif pembe-mavi aura
+          "absolute inset-0 z-20 flex items-center justify-between gap-2",
+          "rounded-full border border-white/30 backdrop-blur-xl bg-white/15",
+          "shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-2 py-1",
+          // Aura rengi modlara göre değişiyor
           "before:absolute before:-inset-0.5 before:rounded-full before:blur-xl",
-          "before:bg-gradient-to-r before:from-fuchsia-400/20 before:via-blue-400/20 before:to-fuchsia-400/20",
+          isTrashView
+            ? "before:bg-gradient-to-r before:from-emerald-400/25 before:via-green-400/25 before:to-emerald-400/25"
+            : "before:bg-gradient-to-r before:from-fuchsia-400/25 before:via-rose-400/25 before:to-fuchsia-400/25",
           "transition-opacity duration-200",
-          visible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-          // yumuşak nefes alma
-          visible ? "animate-pulse" : "",
+          visible ? "opacity-100 pointer-events-auto animate-pulse" : "opacity-0 pointer-events-none",
         ].join(" ")}
-        aria-live="polite"
       >
+        {/* Sol taraf: Delete/Restore butonu */}
         <div className="flex items-center gap-2">
           <button
             onClick={onDeleteMarked}
-            className="px-3 py-1.5 text-xs sm:text-sm rounded-full bg-rose-400/90 text-white hover:bg-rose-500 active:scale-[0.98] transition"
+            className={`px-3 py-1.5 text-xs sm:text-sm rounded-full ${
+              isTrashView
+                ? "bg-emerald-400/90 text-white hover:bg-emerald-500"
+                : "bg-rose-400/90 text-white hover:bg-rose-500"
+            } active:scale-[0.98] transition`}
           >
-            Delete marked
+            {isTrashView ? "Restore marked" : "Delete marked"}
           </button>
           <span className="text-[11px] sm:text-xs text-white/80 hidden sm:inline">
             ({selectedCount} selected)
           </span>
         </div>
 
+        {/* Sağ taraf: Select all / Clear */}
         <div className="flex items-center gap-2 text-xs">
           <button
             onClick={onSelectAll}
