@@ -194,9 +194,10 @@ export default function DetailsArea() {
 
           {!externalId && (
             <p className="text-sm text-amber-200/90">
-              external_id bulunamadı. Giriş/bağlantı akışında localStorage'a
-              <code className="mx-1 px-1 rounded bg-black/30">external_id</code> yazıldığından emin ol.
+              external_id not found. Make sure
+              <code className="mx-1 px-1 rounded bg-black/30">external_id</code> is stored in localStorage during the login/connection flow.
             </p>
+
           )}
 
           {isLoading && <p className="text-sm text-white/80">Loading company details…</p>}
