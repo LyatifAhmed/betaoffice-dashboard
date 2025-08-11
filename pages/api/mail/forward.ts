@@ -1,51 +1,52 @@
+// pages/api/mail/forward.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-
-const HOXTON_API_KEY = process.env.HOXTON_API_KEY!;
-const HOXTON_API_URL = process.env.HOXTON_API_URL!;
+import { getBackendUrl, withBasicAuth } from "@/lib/server-backend";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
 
-  const { mailId, externalId, customerAddress } = req.body;
-
+  const { mailId, externalId, customerAddress } = req.body || {};
   if (!mailId || !externalId || !customerAddress) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return res.status(400).json({ error: "Missing mailId, externalId or customerAddress" });
   }
-
-  const payload = {
-    forwarding_address: {
-      shipping_address_line_1: customerAddress.line1,
-      shipping_address_city: customerAddress.city,
-      shipping_address_postcode: customerAddress.postcode,
-      shipping_address_country: customerAddress.country,
-    },
-  };
 
   try {
-    const response = await fetch(
-      `${HOXTON_API_URL}/subscription/${externalId}/mail/${mailId}/forward`,
-      {
+    const backend = getBackendUrl();
+
+    // Backend: POST /mail/forward?external_id=...&item_id=...
+    const url = `${backend}/mail/forward?external_id=${encodeURIComponent(
+      externalId
+    )}&item_id=${encodeURIComponent(mailId)}`;
+
+    const address = {
+      shipping_address_line_1: customerAddress.line1,
+      ...(customerAddress.line2 ? { shipping_address_line_2: customerAddress.line2 } : {}),
+      ...(customerAddress.line3 ? { shipping_address_line_3: customerAddress.line3 } : {}),
+      shipping_address_city: customerAddress.city,
+      shipping_address_postcode: customerAddress.postcode,
+      ...(customerAddress.state ? { shipping_address_state: customerAddress.state } : {}),
+      shipping_address_country: customerAddress.country,
+    };
+
+    const r = await fetch(
+      url,
+      withBasicAuth({
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Basic " + Buffer.from(`${HOXTON_API_KEY}:`).toString("base64"),
-        },
-        body: JSON.stringify(payload),
-      }
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ address }),
+      })
     );
 
-    if (response.ok) {
-      return res.status(200).json({ success: true });
-    } else {
-      const errorText = await response.text();
-      console.error("❌ Hoxton API Error:", errorText);
-      return res.status(response.status).json({ success: false, error: errorText });
+    const text = await r.text();
+    if (!r.ok) {
+      console.error("❌ Backend forward error:", r.status, text);
+      return res.status(r.status).send(text || "backend error");
     }
-  } catch (err) {
-    console.error("❌ Unexpected error:", err);
+
+    res.setHeader("content-type", "application/json");
+    return res.status(200).send(text);
+  } catch (err: any) {
+    console.error("❌ Unexpected error:", err?.message || err);
     return res.status(500).json({ success: false, error: "Server error" });
   }
 }

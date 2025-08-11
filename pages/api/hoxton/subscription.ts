@@ -1,32 +1,27 @@
+// pages/api/hoxton/subscription.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import axios from "axios";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
+import { getBackendUrl, withBasicAuth } from "@/lib/server-backend";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).end("Method Not Allowed");
 
-  const { external_id } = req.query;
-
-  if (!external_id || typeof external_id !== "string") {
-    return res.status(400).json({ error: "Missing or invalid external_id" });
-  }
-
-  if (!API_BASE_URL) {
-    return res.status(500).json({ error: "Backend API base URL not configured" });
-  }
+  const external_id = req.query.external_id as string | undefined;
+  if (!external_id) return res.status(400).json({ error: "Missing external_id" });
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/subscription/${external_id}`, {
-      auth: {
-        username: process.env.HOXTON_API_KEY!,
-        password: "",
-      },
-    });
+    const backend = getBackendUrl();
+    const r = await fetch(
+      `${backend}/subscription/${encodeURIComponent(external_id)}`,
+      withBasicAuth({ headers: { accept: "application/json" } })
+    );
 
-    return res.status(200).json(response.data);
+    const text = await r.text();
+    if (!r.ok) return res.status(r.status).send(text || "backend error");
+
+    res.setHeader("content-type", "application/json");
+    return res.status(200).send(text);
   } catch (err: any) {
-    console.error("Subscription fetch error:", err.response?.data || err.message);
+    console.error("Subscription fetch error:", err?.message || err);
     return res.status(500).json({ error: "Failed to fetch subscription data" });
   }
 }

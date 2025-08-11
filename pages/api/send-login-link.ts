@@ -1,77 +1,71 @@
+// pages/api/send-login-link.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { generateToken } from "../../lib/auth";
+import { parse } from "cookie";
 import nodemailer from "nodemailer";
-import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { getBackendUrl, withBasicAuth } from "@/lib/server-backend";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
 
-  const { email } = req.body;
+  const { email } = req.body as { email?: string };
 
-  if (
-    !email ||
-    typeof email !== "string" ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  ) {
+  if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Invalid email address" });
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
-  const HOXTON_USER = process.env.BASIC_AUTH_USER!;
-  const HOXTON_PASS = process.env.BASIC_AUTH_PASS!;
-  if (!backendUrl || !HOXTON_USER || !HOXTON_PASS) {
-    console.error("❌ Missing env variables:", { backendUrl, HOXTON_USER, HOXTON_PASS });
-    return res.status(500).json({ error: "Missing Hoxton config" });
-  }
-
-  let customer;
   try {
-    const { data } = await axios.get(`${backendUrl}/customer?email=${email}`, {
-      auth: {
-        username: HOXTON_USER,
-        password: HOXTON_PASS,
-      },
-    });
+    const backendUrl = getBackendUrl();
 
-    customer = data;
+    // Backend: GET /customer?email=...
+    const r = await fetch(
+      `${backendUrl}/customer?email=${encodeURIComponent(email)}`,
+      withBasicAuth({ headers: { accept: "application/json" } })
+    );
 
-    if (!customer?.external_id) {
-      console.warn("⚠️ Email not found:", email);
+    if (r.status === 404) {
       return res.status(404).json({ error: "Email not found in our system" });
     }
+    if (!r.ok) {
+      const text = await r.text();
+      console.error("❌ API fetch failed:", r.status, text);
+      return res.status(500).json({ error: "Failed to verify email." });
+    }
 
+    const customer = await r.json();
     if (customer?.subscription?.status === "CANCELLED") {
       return res.status(403).json({ error: "Your subscription has been cancelled." });
     }
 
-    console.log("✅ Customer verified:", customer.external_id);
-  } catch (err: any) {
-    console.error("❌ API fetch failed:", JSON.stringify(err.response?.data || err.message));
-    return res.status(500).json({ error: "Failed to verify email." });
-  }
+    console.log("✅ Customer verified:", customer?.external_id);
 
-  // 🔐 Token & URL
-  const token = generateToken(email);
-  const loginUrl = `${process.env.BASE_URL}/magic-login?token=${token}`;
+    // 🔐 Token & URL
+    const token = generateToken(email);
+    const baseUrl = (
+      process.env.BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+      req.headers.origin ||
+      "http://localhost:3000"
+    ).replace(/\/$/, "");
+    const loginUrl = `${baseUrl}/magic-login?token=${encodeURIComponent(token)}`;
 
-  // 📩 Load & inject template
-  const templatePath = path.join(process.cwd(), "emails", "magic_link_email.html");
+    // 📩 Load & inject template
+    const templatePath = path.join(process.cwd(), "emails", "magic_link_email.html");
+    let htmlTemplate: string;
+    try {
+      htmlTemplate = fs.readFileSync(templatePath, "utf8");
+    } catch (readErr) {
+      console.error("❌ Failed to read email template:", readErr);
+      return res.status(500).json({ error: "Email template not found" });
+    }
 
-  let htmlTemplate: string;
-  try {
-    htmlTemplate = fs.readFileSync(templatePath, "utf8");
-  } catch (readErr) {
-    console.error("❌ Failed to read email template:", readErr);
-    return res.status(500).json({ error: "Email template not found" });
-  }
+    htmlTemplate = htmlTemplate
+      .replace(/{{MAGIC_LINK}}/g, loginUrl)
+      .replace(/{{FIRST_NAME}}/g, customer.customer_first_name || "there");
 
-  htmlTemplate = htmlTemplate
-    .replace(/{{MAGIC_LINK}}/g, loginUrl)
-    .replace(/{{FIRST_NAME}}/g, customer.customer_first_name || "there");
-
-  try {
+    // ✉️ Send email
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
@@ -99,10 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("✅ Login email sent to:", email);
     return res.status(200).json({ success: true });
   } catch (err: any) {
-    console.error(
-      "❌ Email sending failed:",
-      JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
-    );
+    console.error("❌ Email sending flow failed:", err?.message || err);
     return res.status(500).json({ error: "Failed to send login email" });
   }
 }

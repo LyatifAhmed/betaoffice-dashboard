@@ -217,10 +217,7 @@ export default function KycForm({
         wants_uk_forwarding: showShipping,
       };
 
-      const saveRes = await axios.post(
-        `${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/save-kyc-temp`,
-        payload
-      );
+      const saveRes = await axios.post("/api/backend/save-kyc-temp", payload);
       const external_id = saveRes.data.external_id as string;
 
       const stripe = await stripePromise;

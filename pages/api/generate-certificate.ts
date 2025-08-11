@@ -1,77 +1,77 @@
-import { NextApiRequest, NextApiResponse } from "next";
+// pages/api/generate-certificate.ts
+import type { NextApiRequest, NextApiResponse } from "next";
 import { parse } from "cookie";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { getBackendUrl, withBasicAuth } from "@/lib/server-backend";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const parsed = parse(req.headers.cookie || "");
-  const externalId = parsed.external_id;
-
-  if (!externalId) {
-    return res.status(401).json({ error: "Missing external_id cookie." });
-  }
-
-  const backendUrl = process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL;
-  if (!backendUrl) {
-    return res.status(500).json({ error: "Missing backend URL" });
-  }
-
   try {
-    // 📨 Abonelik bilgilerini çek
-    const subRes = await axios.get(`${backendUrl}/subscription?external_id=${externalId}`);
-    const subscription = subRes.data;
+    const externalId = parse(req.headers.cookie || "").external_id;
+    if (!externalId) return res.status(401).json({ error: "Missing external_id cookie." });
 
-    const companyName = subscription?.company_name || "Your Company";
+    const backendUrl = getBackendUrl();
+
+    // Backend: GET /subscription/{external_id}
+    const subRes = await fetch(
+      `${backendUrl}/subscription/${encodeURIComponent(externalId)}`,
+      withBasicAuth()
+    );
+    if (!subRes.ok) {
+      const msg = await subRes.text();
+      throw new Error(`Backend subscription fetch failed: ${subRes.status} ${msg}`);
+    }
+    const subscription = await subRes.json();
+
+    const companyName: string = subscription?.company_name || "Your Company";
     const fullName = `${subscription?.customer_first_name || ""} ${subscription?.customer_last_name || ""}`.trim();
 
-    // 📄 Yeni PDF belgesi oluştur
+    // Create PDF (A4)
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4
+    const page = pdfDoc.addPage([595, 842]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // 🖼️ Logo yükle (Base64 txt dosyasından)
+    // Load logo from public/base64/logo.txt (raw base64, no data URL prefix inside the file)
     const logoPath = path.join(process.cwd(), "public", "base64", "logo.txt");
-    const base64Data = fs.readFileSync(logoPath, "utf8");
-    const imageBase64 = `data:image/png;base64,${base64Data}`;
-    const pngImage = await pdfDoc.embedPng(imageBase64);
+    const base64Data = fs.readFileSync(logoPath, "utf8").trim();
+    const pngImage = await pdfDoc.embedPng(Buffer.from(base64Data, "base64"));
 
     const pngDims = pngImage.scale(0.3);
-    page.drawImage(pngImage, {
-      x: 450,
-      y: 760,
-      width: pngDims.width,
-      height: pngDims.height,
-    });
+    page.drawImage(pngImage, { x: 450, y: 760, width: pngDims.width, height: pngDims.height });
 
-    // 📝 Metin içeriği
-    page.drawText("Letter of Certification", { x: 50, y: 780, size: 18, font });
-    page.drawText(new Date().toDateString(), { x: 50, y: 760, size: 12, font });
-    page.drawText("To Whom It May Concern,", { x: 50, y: 720, size: 12, font });
+    // Text
+    const draw = (text: string, x: number, y: number, size = 12) =>
+      page.drawText(text, { x, y, size, font });
 
-    page.drawText(`This letter confirms that the following company is registered at`, { x: 50, y: 700, size: 12, font });
-    page.drawText(`86-90 Paul Street, London, EC2A 4NE.`, { x: 50, y: 685, size: 12, font });
-    page.drawText(`Under the terms of a virtual office subscription with`, { x: 50, y: 670, size: 12, font });
-    page.drawText(`Generation Beta Digital Ltd, they are entitled to use this address`, { x: 50, y: 655, size: 12, font });
-    page.drawText(`as its registered office address.`, { x: 50, y: 640, size: 12, font });
+    draw("Letter of Certification", 50, 780, 18);
+    draw(new Date().toDateString(), 50, 760);
 
-    page.drawText("Account holder:", { x: 50, y: 610, size: 12, font });
-    page.drawText(companyName, { x: 150, y: 610, size: 12, font });
+    draw("To Whom It May Concern,", 50, 720);
+    draw("This letter confirms that the following company is registered at", 50, 700);
+    draw("86-90 Paul Street, London, EC2A 4NE.", 50, 685);
+    draw("Under the terms of a virtual office subscription with", 50, 670);
+    draw("Generation Beta Digital Ltd, they are entitled to use this address", 50, 655);
+    draw("as its registered office address.", 50, 640);
 
-    page.drawText("Contact Name:", { x: 50, y: 595, size: 12, font });
-    page.drawText(fullName, { x: 150, y: 595, size: 12, font });
+    draw("Account holder:", 50, 610);
+    draw(companyName, 150, 610);
 
-    page.drawText("Sincerely,", { x: 50, y: 560, size: 12, font });
-    page.drawText("BetaOffice Customer Support", { x: 50, y: 545, size: 12, font });
+    draw("Contact Name:", 50, 595);
+    draw(fullName || "—", 150, 595);
+
+    draw("Sincerely,", 50, 560);
+    draw("BetaOffice Customer Support", 50, 545);
 
     const pdfBytes = await pdfDoc.save();
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "attachment; filename=betaoffice-certificate.pdf");
+    res.setHeader("Content-Disposition", 'attachment; filename="betaoffice-certificate.pdf"');
+    // Optional: prevent caching
+    res.setHeader("Cache-Control", "no-store");
     res.status(200).send(Buffer.from(pdfBytes));
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Failed to generate certificate:", error);
-    res.status(500).json({ error: "Failed to generate certificate." });
+    res.status(500).json({ error: error?.message || "Failed to generate certificate." });
   }
 }
