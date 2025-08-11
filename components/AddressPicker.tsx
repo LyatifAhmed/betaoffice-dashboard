@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Suggestion = { address: string; id: string };
 type GetByIdResponse = {
@@ -8,8 +8,6 @@ type GetByIdResponse = {
   country?: string;
   town_or_city?: string;
   line_1?: string; line_2?: string; line_3?: string; line_4?: string;
-  // getAddress dönen alanlar esnek; lines dizisi de olabilir.
-  // Bu nedenle korumacı parse edeceğiz.
   lines?: string[];
 };
 
@@ -40,7 +38,7 @@ export default function AddressPicker(props: {
         acAbort.current?.abort();
         acAbort.current = new AbortController();
         setLoading(true);
-        const r = await fetch(`/api/autocomplete?term=${encodeURIComponent(query)}`, {
+        const r = await fetch(`/api/autocomplete?term=${encodeURIComponent(query)}&top=6&showPostcode=true`, {
           signal: acAbort.current.signal,
         });
         if (!r.ok) throw new Error("ac failed");
@@ -61,7 +59,6 @@ export default function AddressPicker(props: {
   }, [query]);
 
   const parseGetById = useCallback((data: any): GetByIdResponse => {
-    // getAddress “get by id” bazen { address: { line_1, line_2, ... } } şeklinde döner.
     const a = data?.address ?? data ?? {};
     return {
       line_1: a.line_1 ?? a.lines?.[0] ?? "",
@@ -107,10 +104,9 @@ export default function AddressPicker(props: {
         return;
       }
       const data = await r.json();
-      // data.addresses: ["line1, line2, city, county, postcode"]
       const list: Suggestion[] = (data?.addresses ?? []).map((addr: string, i: number) => ({
         address: addr,
-        id: `${postcode}#${i}`, // show only, no detail id; user seçince parçalarız
+        id: `${postcode}#${i}`,
       }));
       setSuggestions(list);
       setOpen(true);
@@ -120,16 +116,12 @@ export default function AddressPicker(props: {
   }, [postcode]);
 
   const selectFromPostcodeList = useCallback((s: Suggestion) => {
-    // basit parçalama
     const parts = s.address.split(",").map(p => p.trim()).filter(Boolean);
-    // Heuristics
     const pc = parts.find(p => /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i.test(p)) || postcode;
     const city = parts.at(-2) || "";
     const line_1 = parts[0] || "";
     const line_2 = parts[1] || "";
-    const normalized = {
-      line_1, line_2, city, postcode: pc || "", country: "GB"
-    };
+    const normalized = { line_1, line_2, city, postcode: pc || "", country: "GB" };
     props.onChange?.(normalized);
     setQuery(s.address);
     setOpen(false);
@@ -137,42 +129,58 @@ export default function AddressPicker(props: {
 
   return (
     <div className="w-full max-w-xl space-y-3">
-      <label className="block text-sm text-white/90">Address (type to search)</label>
+      <label className="block text-sm text-gray-700 dark:text-white/90">
+        Address (type to search)
+      </label>
+
       <div className="relative">
         <input
-          className="w-full rounded-lg px-3 py-2 bg-white/10 text-white placeholder:text-white/60 outline-none"
+          className="w-full rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-500 outline-none border border-gray-300
+                     dark:bg-white/10 dark:text-white dark:placeholder:text-white/60 dark:border-white/20"
           placeholder="Start typing your address…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => suggestions.length && setOpen(true)}
         />
+
         {open && (
-          <div className="absolute z-20 mt-1 w-full rounded-lg border border-white/10 bg-[#0b1220] shadow-lg max-h-64 overflow-auto">
-            {loading && <div className="px-3 py-2 text-white/70 text-sm">Loading…</div>}
-            {!loading && suggestions.length === 0 && (
-              <div className="px-3 py-2 text-white/70 text-sm">No suggestions</div>
+          <div
+            className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white text-gray-900 shadow-lg
+                       max-h-64 overflow-auto
+                       dark:border-white/20 dark:bg-[#0b1220] dark:text-white"
+          >
+            {loading && (
+              <div className="px-3 py-2 text-gray-600 dark:text-white/70 text-sm">Loading…</div>
             )}
-            {!loading && suggestions.map((s, i) => (
-              <button
-                key={`${s.id}-${i}`}
-                onClick={() => (s.id.includes("#") ? selectFromPostcodeList(s) : selectSuggestion(s))}
-                className="block w-full text-left px-3 py-2 hover:bg-white/10 text-white text-sm"
-              >
-                {s.address}
-              </button>
-            ))}
+            {!loading && suggestions.length === 0 && (
+              <div className="px-3 py-2 text-gray-600 dark:text-white/70 text-sm">No suggestions</div>
+            )}
+            {!loading &&
+              suggestions.map((s, i) => (
+                <button
+                  key={`${s.id}-${i}`}
+                  onClick={() => (s.id.includes("#") ? selectFromPostcodeList(s) : selectSuggestion(s))}
+                  className="block w-full text-left px-3 py-2 text-sm
+                             hover:bg-gray-50 text-gray-900
+                             dark:hover:bg-white/10 dark:text-white"
+                >
+                  {s.address}
+                </button>
+              ))}
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-[1fr_auto] gap-2">
         <input
-          className="rounded-lg px-3 py-2 bg-white/10 text-white placeholder:text-white/60 outline-none"
+          className="rounded-lg px-3 py-2 bg-white text-gray-900 placeholder:text-gray-500 outline-none border border-gray-300
+                     dark:bg-white/10 dark:text-white dark:placeholder:text-white/60 dark:border-white/20"
           placeholder="Postcode (e.g. SE16NR)"
           value={postcode}
           onChange={(e) => setPostcode(e.target.value.toUpperCase())}
         />
         <button
+          type="button"
           onClick={findByPostcode}
           className="rounded-lg px-4 py-2 bg-emerald-600 text-white disabled:opacity-50"
           disabled={!postcode || loading}

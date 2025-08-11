@@ -1,15 +1,13 @@
-// Updated KYC Form component with conditional UK shipping address toggle and dynamic UK vs non-UK address input
-
+// components/KycForm.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/router";
-import Select from "react-select";
+import Select, { SingleValue } from "react-select";
 import countryList from "react-select-country-list";
 import debounce from "lodash.debounce";
 import { loadStripe } from "@stripe/stripe-js";
-import PostcodeAddressLookup from "./PostcodeAddressLookup";
+import AddressPicker from "./AddressPicker";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -28,13 +26,24 @@ interface Owner {
   email: string;
 }
 
-const businessTypes = [
-  { value: '1', label: 'Limited company (LTD, LP, LLP, LLC, Corp)' },
-  { value: '13', label: 'Association, club or society' },
-  { value: '10', label: 'Charity / non-profit' },
-  { value: '3', label: 'Individual / sole trader' },
-  { value: '12', label: 'Trust, foundation or fund' },
-  { value: '9', label: 'Unincorporated / not yet registered' },
+interface CountryOption {
+  value: string;
+  label: string;
+}
+
+interface CompanySuggestion {
+  name: string;
+  companyNumber: string;
+  status?: string;
+}
+
+const businessTypes: CountryOption[] = [
+  { value: "1", label: "Limited company (LTD, LP, LLP, LLC, Corp)" },
+  { value: "13", label: "Association, club or society" },
+  { value: "10", label: "Charity / non-profit" },
+  { value: "3", label: "Individual / sole trader" },
+  { value: "12", label: "Trust, foundation or fund" },
+  { value: "9", label: "Unincorporated / not yet registered" },
 ];
 
 export default function KycForm({
@@ -42,7 +51,7 @@ export default function KycForm({
   selectedPlanLabel,
   discountedPrice,
   stripePriceId,
-  couponId
+  couponId,
 }: Props) {
   const [formData, setFormData] = useState({
     company_name: "",
@@ -62,35 +71,42 @@ export default function KycForm({
     shipping_address_line_1: "",
     shipping_city: "",
     shipping_postcode: "",
-    shipping_country: "GB"
+    shipping_country: "GB",
   });
 
   const [useUkAddressLookup, setUseUkAddressLookup] = useState(formData.country === "GB");
   const [useCompanySearch, setUseCompanySearch] = useState(true);
   const [showShipping, setShowShipping] = useState(false);
-  const [owners, setOwners] = useState<Owner[]>([{ first_name: "", last_name: "", email: "", date_of_birth: "" }]);
+  const [owners, setOwners] = useState<Owner[]>([
+    { first_name: "", last_name: "", email: "", date_of_birth: "" },
+  ]);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [companyQuery, setCompanyQuery] = useState("");
-  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
+  const [companySuggestions, setCompanySuggestions] = useState<CompanySuggestion[]>([]);
 
-  const countries = countryList().getData();
-  const router = useRouter();
+  const countries = useMemo(() => countryList().getData() as CountryOption[], []);
 
+  // Companies House like search (expects /api/companies in your app)
   useEffect(() => {
-    const debounced = debounce(async () => {
-      if (!companyQuery.trim()) return;
-      const res = await axios.get(`/api/companies?query=${companyQuery}`);
-      setCompanySuggestions(res.data.companies);
+    const run = debounce(async (q: string) => {
+      if (!q.trim()) return setCompanySuggestions([]);
+      try {
+        const res = await axios.get(`/api/companies?query=${encodeURIComponent(q)}`);
+        setCompanySuggestions((res.data?.companies as CompanySuggestion[]) || []);
+      } catch {
+        setCompanySuggestions([]);
+      }
     }, 500);
-    debounced();
-    return () => debounced.cancel();
+
+    run(companyQuery);
+    return () => run.cancel();
   }, [companyQuery]);
 
   useEffect(() => {
     if (showShipping) {
-      setFormData(prev => ({ ...prev, shipping_country: "GB" }));
+      setFormData((prev) => ({ ...prev, shipping_country: "GB" }));
     }
   }, [showShipping]);
 
@@ -98,22 +114,60 @@ export default function KycForm({
     setUseUkAddressLookup(formData.country === "GB");
   }, [formData.country]);
 
+  const applyAddressToForm = (a: {
+    line_1: string;
+    line_2?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  }) => {
+    setFormData((prev) => ({
+      ...prev,
+      address_line_1: a.line_1 || "",
+      address_line_2: a.line_2 || "",
+      city: a.city || "",
+      postcode: a.postcode || "",
+      country: a.country || prev.country,
+    }));
+  };
+
+  const applyShippingToForm = (a: {
+    line_1: string;
+    line_2?: string;
+    city?: string;
+    postcode?: string;
+    country?: string;
+  }) => {
+    setFormData((prev) => ({
+      ...prev,
+      shipping_address_line_1: a.line_1 || "",
+      shipping_city: a.city || "",
+      shipping_postcode: a.postcode || "",
+      shipping_country: "GB",
+    }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (field: string, value: { value: string } | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value?.value || "" }));
+  const handleSelectChange = (
+    field: keyof typeof formData,
+    option: SingleValue<CountryOption>
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: option?.value || "" }));
   };
 
   const updateOwner = (index: number, field: keyof Owner, value: string) => {
-    const updated = [...owners];
-    updated[index] = { ...updated[index], [field]: value };
-    setOwners(updated);
+    setOwners((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
-  const handleCompanySelect = (company: any) => {
+  const handleCompanySelect = (company: CompanySuggestion) => {
     setFormData((prev) => ({
       ...prev,
       company_name: company.name,
@@ -134,7 +188,12 @@ export default function KycForm({
     }
 
     for (const [i, owner] of owners.entries()) {
-      if (!owner.first_name.trim() || !owner.last_name.trim() || !owner.email.trim() || !owner.date_of_birth.trim()) {
+      if (
+        !owner.first_name.trim() ||
+        !owner.last_name.trim() ||
+        !owner.email.trim() ||
+        !owner.date_of_birth.trim()
+      ) {
         setMessage(`❌ All required fields must be filled for owner ${i + 1}`);
         setLoading(false);
         return;
@@ -151,28 +210,36 @@ export default function KycForm({
     }
 
     try {
-      const data = {
+      const payload = {
         ...formData,
         product_id: lockedProductId,
         members: owners,
-        wants_uk_forwarding: showShipping
+        wants_uk_forwarding: showShipping,
       };
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/save-kyc-temp`, data);
-      const external_id = res.data.external_id;
+
+      const saveRes = await axios.post(
+        `${process.env.NEXT_PUBLIC_HOXTON_API_BACKEND_URL}/api/save-kyc-temp`,
+        payload
+      );
+      const external_id = saveRes.data.external_id as string;
 
       const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe failed to initialize");
+
       const checkoutRes = await axios.post("/api/checkout-session", {
         email: formData.email,
         price_id: stripePriceId,
         external_id,
-        coupon_id: couponId || undefined
+        coupon_id: couponId || undefined,
       });
 
-      await stripe?.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
-    } catch (err) {
+      await stripe.redirectToCheckout({ sessionId: checkoutRes.data.sessionId });
+    } catch (err: unknown) {
       console.error(err);
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setMessage("❌ This email is already linked to another business. Please use a different email.");
+        setMessage(
+          "❌ This email is already linked to another business. Please use a different email."
+        );
       } else {
         setMessage("❌ An error occurred. Please try again.");
       }
@@ -181,52 +248,92 @@ export default function KycForm({
     }
   };
 
+  const isUnincorporated = formData.organisation_type === "9";
+
+  // Simple original price map; adjust as you add more Stripe price IDs
+  const originalPrice =
+    stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt" ? 20 : 200;
+  const finalPrice = Math.max(0, originalPrice - discountedPrice);
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6">
-      <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded">
-        <div><strong>Selected Plan:</strong> {selectedPlanLabel}</div>
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-900 shadow rounded space-y-6"
+    >
+      <div className="text-sm bg-blue-50 border border-blue-200 px-4 py-3 rounded dark:bg-blue-900/20 dark:border-blue-900/30 dark:text-blue-100">
+        <div>
+          <strong>Selected Plan:</strong> {selectedPlanLabel}
+        </div>
+        {discountedPrice > 0 ? (
+          <div className="text-green-600 dark:text-green-300">
+            ✅ Discounted Price: £{finalPrice.toFixed(2)}{" "}
+            <span className="line-through text-gray-400 ml-2">
+              £{originalPrice.toFixed(2)}
+            </span>
+          </div>
+        ) : (
+          <div className="text-gray-700 dark:text-gray-200">
+            Price: £{originalPrice.toFixed(2)}
+          </div>
+        )}
+        {couponId && (
+          <div className="text-green-600 dark:text-green-300 text-sm">
+            Coupon <strong>{couponId.toUpperCase()}</strong> applied!
+          </div>
+        )}
+      </div>
 
-        {(() => {
-          const originalPrice = stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt" ? 20 : 200;
-          const finalPrice = originalPrice - discountedPrice;
-
-          return (
-            <>
-              {discountedPrice > 0 ? (
-                <div className="text-green-600">
-                  ✅ Discounted Price: £{finalPrice.toFixed(2)} <span className="line-through text-gray-400 ml-2">£{originalPrice.toFixed(2)}</span>
-                </div>
-              ) : (
-                <div className="text-gray-700">Price: £{originalPrice.toFixed(2)}</div>
-              )}
-              {couponId && (
-                <div className="text-green-500 text-sm">
-                  Coupon <strong>{couponId.toUpperCase()}</strong> applied!
-                </div>
-              )}
-            </>
-          );
-        })()}
-      </div>      
-
-
-     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <label className="block">First Name<span className="text-red-500">*</span>
-          <input required name="customer_first_name" value={formData.customer_first_name} onChange={handleChange} className="border p-2 rounded w-full" />
+      {/* Customer */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <label className="block">
+          First Name<span className="text-red-500">*</span>
+          <input
+            required
+            name="customer_first_name"
+            value={formData.customer_first_name}
+            onChange={handleChange}
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+          />
         </label>
-        <label className="block">Last Name<span className="text-red-500">*</span>
-          <input required name="customer_last_name" value={formData.customer_last_name} onChange={handleChange} className="border p-2 rounded w-full" />
+        <label className="block">
+          Last Name<span className="text-red-500">*</span>
+          <input
+            required
+            name="customer_last_name"
+            value={formData.customer_last_name}
+            onChange={handleChange}
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+          />
         </label>
-        <label className="block">Email Address<span className="text-red-500">*</span>
-          <input required type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 rounded w-full" />
+        <label className="block">
+          Email Address<span className="text-red-500">*</span>
+          <input
+            required
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+          />
         </label>
-        <label className="block">Phone Number
-          <input name="phone_number" value={formData.phone_number} onChange={handleChange} className="border p-2 rounded w-full" />
+        <label className="block">
+          Phone Number
+          <input
+            name="phone_number"
+            value={formData.phone_number}
+            onChange={handleChange}
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+          />
         </label>
       </div>
-      {/* Company Search Toggle */}
-      <label>
-        <input type="checkbox" checked={useCompanySearch} onChange={() => setUseCompanySearch(!useCompanySearch)} />
+
+      {/* Company Search */}
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={useCompanySearch}
+          onChange={() => setUseCompanySearch(!useCompanySearch)}
+        />
         Autofill UK Company Info
       </label>
 
@@ -240,59 +347,77 @@ export default function KycForm({
             onChange={(e) => setCompanyQuery(e.target.value)}
           />
 
-          <ul>
+          <ul className="text-sm">
             {companySuggestions.map((c, i) => (
-              <li key={i} onClick={() => handleCompanySelect(c)}>
+              <li
+                key={`${c.companyNumber}-${i}`}
+                onClick={() => handleCompanySelect(c)}
+                className="cursor-pointer hover:underline"
+              >
                 {c.name} ({c.companyNumber}) — {c.status}
               </li>
             ))}
           </ul>
         </>
       )}
-      <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
-      ℹ️If your company is not yet registered at Companies House, select <strong>Unincorporated / not yet registered</strong>. You can still use our service and update your company details later.
+
+      <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 dark:text-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30">
+        ℹ️If your company is not yet registered at Companies House, select
+        <strong> Unincorporated / not yet registered</strong>. You can still use our
+        service and update your company details later.
       </div>
 
+      {/* Company fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <label className="block">Company Name<span className="text-red-500">*</span>
+        <label className="block">
+          Company Name<span className="text-red-500">*</span>
           <input
-            required
+            required={!isUnincorporated}
             name="company_name"
             placeholder="My Future Company Ltd"
             value={formData.company_name}
             onChange={handleChange}
-            className="border p-2 rounded w-full"
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
           />
         </label>
 
-        <label className="block">Trading Name
+        <label className="block">
+          Trading Name
           <input
             name="trading_name"
             value={formData.trading_name}
             onChange={handleChange}
-            className="border p-2 rounded w-full"
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
           />
         </label>
 
-        <label className="block">Organisation Type<span className="text-red-500">*</span>
-          <Select
+        <label className="block">
+          Organisation Type<span className="text-red-500">*</span>
+          <Select<CountryOption, false>
             options={businessTypes}
-            value={businessTypes.find(opt => opt.value === formData.organisation_type)}
-            onChange={(option) => handleSelectChange('organisation_type', option)}
-            className="w-full"
+            value={businessTypes.find((opt) => opt.value === formData.organisation_type) || null}
+            onChange={(option) => handleSelectChange("organisation_type", option)}
+            className="w-full text-black dark:text-white"
+            styles={{
+              control: (base) => ({ ...base, backgroundColor: "transparent", borderColor: "rgb(229 231 235)" }),
+              menu: (base) => ({ ...base, zIndex: 50 }),
+            }}
           />
         </label>
 
-        <label className="block">Company Number
+        <label className="block">
+          Company Number
           <input
             name="limited_company_number"
             value={formData.limited_company_number}
             onChange={handleChange}
-            className="border p-2 rounded w-full"
+            required={!isUnincorporated}
+            className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
           />
         </label>
       </div>
 
+      {/* Address */}
       {formData.country === "GB" && (
         <label className="mt-4 inline-flex items-center">
           <input
@@ -304,155 +429,208 @@ export default function KycForm({
           <span className="ml-2">Use UK Postcode Lookup</span>
         </label>
       )}
-      
+
       {useUkAddressLookup && formData.country === "GB" ? (
-        <PostcodeAddressLookup
-          postcode={formData.postcode}
-          onPostcodeChange={(value) =>
-            setFormData((prev) => ({ ...prev, postcode: value }))
-          }
-          onSelectAddress={(fullAddress) => {
-            const parts = fullAddress.split(",");
-            const addressLine1 = parts.slice(0, -2).join(",").trim();
-            const city = parts.at(-2)?.trim() || "";
-            setFormData((prev) => ({
-              ...prev,
-              address_line_1: addressLine1,
-              city,
-            }));
-          }}
-        />
+        <div className="mt-4">
+          <AddressPicker
+            defaultPostcode={formData.postcode}
+            onChange={(addr) => applyAddressToForm(addr)}
+          />
+          {(formData.address_line_1 || formData.city || formData.postcode) && (
+            <p className="mt-2 text-sm text-gray-600 dark:text-white/80">
+              {[
+                formData.address_line_1,
+                formData.address_line_2,
+                formData.city,
+                formData.postcode,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <label className="block">Address Line 1<span className="text-red-500">*</span>
-            <input required name="address_line_1" value={formData.address_line_1} onChange={handleChange} className="border p-2 rounded w-full" />
+          <label className="block">
+            Address Line 1<span className="text-red-500">*</span>
+            <input
+              required
+              name="address_line_1"
+              value={formData.address_line_1}
+              onChange={handleChange}
+              className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+            />
           </label>
-          <label className="block">Address Line 2
-            <input name="address_line_2" value={formData.address_line_2} onChange={handleChange} className="border p-2 rounded w-full" />
+          <label className="block">
+            Address Line 2
+            <input
+              name="address_line_2"
+              value={formData.address_line_2}
+              onChange={handleChange}
+              className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+            />
           </label>
-          <label className="block">City<span className="text-red-500">*</span>
-            <input required name="city" value={formData.city} onChange={handleChange} className="border p-2 rounded w-full" />
+          <label className="block">
+            City<span className="text-red-500">*</span>
+            <input
+              required
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+            />
           </label>
-          <label className="block">Postcode<span className="text-red-500">*</span>
-            <input required name="postcode" value={formData.postcode} onChange={handleChange} className="border p-2 rounded w-full" />
+          <label className="block">
+            Postcode<span className="text-red-500">*</span>
+            <input
+              required
+              name="postcode"
+              value={formData.postcode}
+              onChange={handleChange}
+              className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+            />
           </label>
         </div>
       )}
+
+      {/* Country */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <label className="block">Country<span className="text-red-500">*</span>
-          <Select
+        <label className="block">
+          Country<span className="text-red-500">*</span>
+          <Select<CountryOption, false>
             options={countries}
-            value={countries.find(c => c.value === formData.country)}
-            getOptionLabel={(e) => `${e.label} (${e.value})`}
-            onChange={(option) => handleSelectChange('country', option)}
-            className="w-full"
+            value={countries.find((c) => c.value === formData.country) || null}
+            getOptionLabel={(opt) => `${opt.label} (${opt.value})`}
+            onChange={(option) => handleSelectChange("country", option)}
+            className="w-full text-black dark:text-white"
+            styles={{
+              control: (base) => ({ ...base, backgroundColor: "transparent", borderColor: "rgb(229 231 235)" }),
+              menu: (base) => ({ ...base, zIndex: 50 }),
+            }}
           />
         </label>
       </div>
+
+      {/* Shipping */}
       <label className="mt-4 inline-flex items-center">
-        <input type="checkbox" checked={showShipping} onChange={() => setShowShipping(!showShipping)} className="form-checkbox" />
+        <input
+          type="checkbox"
+          checked={showShipping}
+          onChange={() => setShowShipping(!showShipping)}
+          className="form-checkbox"
+        />
         <span className="ml-2">I want my post forwarded to a UK address</span>
       </label>
 
       {showShipping && (
-        <>
-          <PostcodeAddressLookup
-            postcode={formData.shipping_postcode}
-            onPostcodeChange={(value) =>
-              setFormData((prev) => ({ ...prev, shipping_postcode: value }))
-            }
-            onSelectAddress={(fullAddress) => {
-              const parts = fullAddress.split(",");
-              const addressLine1 = parts.slice(0, -2).join(",").trim();
-              const city = parts.at(-2)?.trim() || "";
-              const postcode = parts.at(-1)?.trim() || "";
-              setFormData((prev) => ({
-                ...prev,
-                shipping_address_line_1: addressLine1,
-                shipping_city: city,
-                shipping_postcode: postcode,
-              }));
-            }}
+        <div className="mt-4">
+          <AddressPicker
+            defaultPostcode={formData.shipping_postcode}
+            onChange={(addr) => applyShippingToForm(addr)}
           />
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <label className="block">UK Shipping Address Line 1
+            <label className="block">
+              UK Shipping Address Line 1
               <input
                 name="shipping_address_line_1"
                 value={formData.shipping_address_line_1}
-                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed"
+                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed dark:bg-white/10 dark:text-white dark:border-white/20"
                 readOnly
               />
             </label>
-            <label className="block">City
+            <label className="block">
+              City
               <input
                 name="shipping_city"
                 value={formData.shipping_city}
-                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed"
+                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed dark:bg-white/10 dark:text-white dark:border-white/20"
                 readOnly
               />
             </label>
-            <label className="block">Postcode
+            <label className="block">
+              Postcode
               <input
                 name="shipping_postcode"
                 value={formData.shipping_postcode}
-                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed"
+                className="border p-2 rounded w-full bg-gray-100 cursor-not-allowed dark:bg-white/10 dark:text-white dark:border-white/20"
                 readOnly
               />
             </label>
           </div>
-        </>
+        </div>
       )}
 
-
-      <h3 className="font-medium mt-6">Business Owners</h3>
+      {/* Owners */}
+      <h3 className="font-medium mt-6 dark:text-white">Business Owners</h3>
       {owners.map((owner, i) => (
-  <div key={i} className="border p-4 rounded mb-4 space-y-2">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <label className="block">First Name<span className="text-red-500">*</span>
-        <input required value={owner.first_name} onChange={(e) => updateOwner(i, 'first_name', e.target.value)} className="border p-2 rounded w-full" />
-      </label>
+        <div key={i} className="border p-4 rounded mb-4 space-y-2 dark:border-white/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              First Name<span className="text-red-500">*</span>
+              <input
+                required
+                value={owner.first_name}
+                onChange={(e) => updateOwner(i, "first_name", e.target.value)}
+                className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+              />
+            </label>
 
-      <label className="block">Last Name<span className="text-red-500">*</span>
-        <input required value={owner.last_name} onChange={(e) => updateOwner(i, 'last_name', e.target.value)} className="border p-2 rounded w-full" />
-      </label>
+            <label className="block">
+              Last Name<span className="text-red-500">*</span>
+              <input
+                required
+                value={owner.last_name}
+                onChange={(e) => updateOwner(i, "last_name", e.target.value)}
+                className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+              />
+            </label>
 
-      <label className="block md:col-span-2">Email Address<span className="text-red-500">*</span>
-        <input type="email" required value={owner.email} onChange={(e) => updateOwner(i, 'email', e.target.value)} className="border p-2 rounded w-full" />
-      </label>
+            <label className="block md:col-span-2">
+              Email Address<span className="text-red-500">*</span>
+              <input
+                type="email"
+                required
+                value={owner.email}
+                onChange={(e) => updateOwner(i, "email", e.target.value)}
+                className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+              />
+            </label>
 
-      <label className="block md:col-span-2">Date of Birth<span className="text-red-500">*</span>
-        <input
-          type="date"
-          required
-          value={owner.date_of_birth}
-          onChange={(e) => updateOwner(i, 'date_of_birth', e.target.value)}
-          className="border p-2 rounded w-full"
-        />
-      </label>
-    </div>
+            <label className="block md:col-span-2">
+              Date of Birth<span className="text-red-500">*</span>
+              <input
+                type="date"
+                required
+                value={owner.date_of_birth}
+                onChange={(e) => updateOwner(i, "date_of_birth", e.target.value)}
+                className="border p-2 rounded w-full dark:bg-white/10 dark:text-white dark:border-white/20"
+              />
+            </label>
+          </div>
 
-    {owners.length > 1 && (
+          {owners.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setOwners(owners.filter((_, idx) => idx !== i))}
+              className="text-red-500 text-sm"
+            >
+              Remove Owner
+            </button>
+          )}
+        </div>
+      ))}
+
       <button
         type="button"
-        onClick={() => setOwners(owners.filter((_, idx) => idx !== i))}
-        className="text-red-500 text-sm"
-      >
-        Remove Owner
-      </button>
-    )}
-  </div>
-))}
-
-      <button
-        type="button"
-        onClick={() => setOwners([...owners, { first_name: '', last_name: '', email: '', date_of_birth: '' }])}
+        onClick={() =>
+          setOwners([...owners, { first_name: "", last_name: "", email: "", date_of_birth: "" }])
+        }
         className="text-blue-600 underline mt-2"
       >
         + Add Another Owner
       </button>
 
-
+      {/* Agreements */}
       <div className="mt-6 text-sm text-gray-700 dark:text-gray-300">
         <label className="inline-flex items-center gap-2">
           <input
@@ -461,22 +639,32 @@ export default function KycForm({
             onChange={(e) => setAgree(e.target.checked)}
             className="form-checkbox"
           />
-          I agree to the {" "}
-          <a href="/terms-of-service" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+          I agree to the{" "}
+          <a
+            href="/terms-of-service"
+            target="_blank"
+            className="underline text-blue-600 dark:text-blue-400"
+          >
             Terms of Service
           </a>{" "}
-          and {" "}
-          <a href="/privacy-policy" target="_blank" className="underline text-blue-600 dark:text-blue-400">
+          and{" "}
+          <a
+            href="/privacy-policy"
+            target="_blank"
+            className="underline text-blue-600 dark:text-blue-400"
+          >
             Privacy Policy
-          </a>.
+          </a>
+          .
         </label>
       </div>
 
+      {/* Submit */}
       <div>
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -509,9 +697,7 @@ export default function KycForm({
       </div>
 
       {message && (
-        <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">
-          {message}
-        </p>
+        <p className="text-center mt-4 text-sm text-red-600 dark:text-red-400">{message}</p>
       )}
     </form>
   );
