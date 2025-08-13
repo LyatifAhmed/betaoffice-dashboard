@@ -165,3 +165,21 @@ html {
 .animate-soft-glow {
   animation: soft-glow 2s ease-in-out infinite;
 }
+
+/* --- SmartStatusBar şerit animasyonları --- */
+@keyframes liquid-drift {
+  0%   { background-position: 0% 0; transform: translate3d(0,0,0); }
+  100% { background-position: 200% 0; transform: translate3d(0,0,0); }
+}
+
+@keyframes shine-pan {
+  0%   { background-position: 0% 0; }
+  50%  { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@layer utilities {
+  .animate-liquid { animation: liquid-drift 16s linear infinite; }
+  .animate-shine  { animation: shine-pan 18s ease-in-out infinite; }
+}
+

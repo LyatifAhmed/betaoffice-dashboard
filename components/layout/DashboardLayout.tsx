@@ -12,7 +12,7 @@ import MailArea from "@/components/layout/MailArea";
 import DetailsTab from "@/components/layout/DetailsArea";
 import ReferralTab from "@/components/layout/ReferralArea";
 import SelectionBar from "@/components/layout/SelectionBar";
-import WalletFab from "@/components/ui/WalletFab"; // ⬅️ FAB
+import WalletFab from "@/components/ui/WalletFab";
 
 type SelectionMeta = {
   selectedCount: number;
@@ -22,12 +22,15 @@ type SelectionMeta = {
   isTrashView: boolean;
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+function readExternalIdFromBrowser(): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|; )external_id=([^;]+)/);
+  const fromCookie = m ? decodeURIComponent(m[1]) : null;
+  const fromLS = typeof window !== "undefined" ? localStorage.getItem("external_id") : null;
+  return fromCookie || fromLS;
+}
 
-export default function DashboardLayout({
-  children,
-  mailItems = [],
-}: PropsWithChildren<{ mailItems?: any[] }>) {
+export default function DashboardLayout({ children }: PropsWithChildren) {
   const [activeTab, setActiveTab] = useState<DashboardTab>("mail");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const barRef = useRef<SmartStatusBarHandle>(null);
@@ -43,36 +46,32 @@ export default function DashboardLayout({
   const [urgentFlash, setUrgentFlash] = useState(false);
   const urgentTimer = useRef<number | null>(null);
 
-  // ---- WALLET BALANCE (FAB için) ----
+  // ---- Wallet balance (for FAB) ----
   const [externalId, setExternalId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setExternalId(localStorage.getItem("external_id"));
-    }
+    setExternalId(readExternalIdFromBrowser());
   }, []);
 
   const fetchBalance = async (ext: string) => {
-    // company endpoint'inde wallet_balance bekliyoruz; yoksa 0.
     const tryUrls = [
-      `${API}/company?external_id=${encodeURIComponent(ext)}`,
-      `${API}/account/details?external_id=${encodeURIComponent(ext)}`,
-      `${API}/customer?external_id=${encodeURIComponent(ext)}`,
+      `/api/backend/company?external_id=${encodeURIComponent(ext)}`,
+      `/api/backend/account/details?external_id=${encodeURIComponent(ext)}`,
+      `/api/backend/customer?external_id=${encodeURIComponent(ext)}`,
     ];
     for (const u of tryUrls) {
       try {
         const r = await fetch(u, { cache: "no-store" });
         if (!r.ok) continue;
         const d = await r.json();
-        const bal =
-          Number(d?.wallet_balance ?? d?.balance ?? d?.wallet?.balance ?? 0);
+        const bal = Number(d?.wallet_balance ?? d?.balance ?? d?.wallet?.balance ?? 0);
         if (!Number.isNaN(bal)) {
           setWalletBalance(bal);
           return;
         }
       } catch {
-        // diğer URL'yi dene
+        // try next URL
       }
     }
   };
@@ -81,23 +80,24 @@ export default function DashboardLayout({
     if (externalId) fetchBalance(externalId);
   }, [externalId]);
 
-  // Yeni mail geldiğinde tetiklenir
+  // Yeni mail geldiğinde MailArea’yı ve ilgili kaynakları revalidate et
   const handleNewMail = (evt?: { urgent?: boolean }) => {
     try {
-      // 1) /mail içeren tüm SWR key’lerini yenile
-      mutate((key: string) => typeof key === "string" && key.includes("/mail"));
+      mutate(
+        (key: string) => typeof key === "string" && key.startsWith("/api/hoxton/mail"),
+        undefined,
+        { revalidate: true }
+      );
 
-      // 2) external_id ile nokta atışı revalidate (hem relative hem absolute)
-      if (typeof window !== "undefined") {
-        const ext = localStorage.getItem("external_id");
-        if (ext) {
-          mutate(`/mail?external_id=${ext}`);
-          if (API) mutate(`${API}/mail?external_id=${ext}`);
-        }
+      const ext = readExternalIdFromBrowser();
+      if (ext) {
+        mutate(`/api/hoxton/mail?external_id=${encodeURIComponent(ext)}&source=remote`, undefined, { revalidate: true });
+        mutate(`/api/hoxton/mail?external_id=${encodeURIComponent(ext)}&source=db`, undefined, { revalidate: true });
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
 
-    // 3) Urgent görsel tepkisi
     if (evt?.urgent) {
       barRef.current?.show?.();
       barRef.current?.pulse?.(1800);
@@ -107,13 +107,12 @@ export default function DashboardLayout({
     }
   };
 
-  // Global WS event’ini dinle (SmartStatusBar bunu yayıyor)
+  // Global custom event dinle
   useEffect(() => {
     const onNewMailGlobal = (e: Event) => {
       const { detail } = e as CustomEvent<{ urgent?: boolean }>;
       handleNewMail(detail);
     };
-
     window.addEventListener("betaoffice:new-mail", onNewMailGlobal as EventListener);
     return () => {
       window.removeEventListener("betaoffice:new-mail", onNewMailGlobal as EventListener);
@@ -121,27 +120,22 @@ export default function DashboardLayout({
     };
   }, []);
 
-  // Top-up sonrası yapılacaklar
   const handleTopUp = async (amount: number) => {
-    if (!externalId) return alert("external_id bulunamadı.");
+    if (!externalId) return alert("Could not detect your account (external_id).");
     try {
-      const res = await fetch(`${API}/wallet/topup`, {
+      const res = await fetch(`/api/backend/wallet/topup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ external_id: externalId, amount }),
       });
-      if (!res.ok) throw new Error(`Top-up failed ${res.status}`);
-      // bakiye yenile
+      if (!res.ok) throw new Error(`Top-up failed with status ${res.status}`);
       await fetchBalance(externalId);
-      // company ilgili SWR key’lerini yenile
-      mutate((key: string) => typeof key === "string" && key.includes("/company"));
-      // ufak görsel feedback
+      mutate((key: string) => typeof key === "string" && key.includes("/company"), undefined, { revalidate: true });
       barRef.current?.pulse?.(1200);
-      // global event
       window.dispatchEvent(new CustomEvent("betaoffice:wallet:changed"));
     } catch (e) {
       console.error(e);
-      alert("Top-up başarısız.");
+      alert("Top-up failed. Please try again.");
     }
   };
 
@@ -156,6 +150,13 @@ export default function DashboardLayout({
     if (activeTab === "referral") return "Referral & rewards";
     return "Your subscription is active.";
   }, [activeTab, selectionMeta.selectedCount, urgentFlash]);
+
+  // Sekme değişince mailde seçili olanları temizle
+  useEffect(() => {
+    if (activeTab !== "mail" && selectionMeta.selectedCount > 0) {
+      selectionMeta.onClear();
+    }
+  }, [activeTab, selectionMeta]);
 
   return (
     <div className="flex w-full flex-col md:flex-row bg-white text-black min-h-[100svh]">
@@ -182,16 +183,16 @@ export default function DashboardLayout({
           onMenuClick={() => setSidebarOpen(true)}
           status={statusText}
           onNewMail={handleNewMail}
-          autoCloseAfter={6}
+          autoCloseAfter={10}  // yukarıdaysa yeni mailde 10sn aşağıda dursun
         />
 
-        {/* Selection bar */}
+        {/* Selection bar — sadece Mail tab’ında ve seçim varsa göster */}
         <div
           className={[
             "fixed z-50",
             "left-1/2 -translate-x-1/2",
-            "top-[60px]",
-            selectionMeta.selectedCount > 0
+            "top-[67px]",
+            activeTab === "mail" && selectionMeta.selectedCount > 0
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none",
             "transition-opacity duration-200",
@@ -210,10 +211,7 @@ export default function DashboardLayout({
           <main className="min-w-0 flex-1 overflow-y-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
             <div className="mx-auto w-full max-w-[92rem]">
               {activeTab === "mail" && (
-                <MailArea
-                  mails={mailItems}
-                  onSelectionMetaChange={(meta) => setSelectionMeta(meta)}
-                />
+                <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />
               )}
               {activeTab === "details" && <DetailsTab />}
               {activeTab === "referral" && <ReferralTab />}
@@ -221,19 +219,15 @@ export default function DashboardLayout({
             </div>
           </main>
 
-          {/* Sağ affiliate bar */}
+          {/* Right-side affiliate bar */}
           <div className="hidden lg:block shrink-0">
             <AffiliateBar />
           </div>
         </div>
       </div>
 
-      {/* ⬇️ Sol/sağ/orta konumlandırılabilen şeffaf FAB */}
-      <WalletFab
-        balance={walletBalance}
-        position="left"          // "left" | "right" | "center" — yatay konumu buradan değiştirirsin
-        onTopUp={handleTopUp}    // hızlı +£5/10/20
-      />
+      {/* Transparent FAB */}
+      <WalletFab balance={walletBalance} position="right" onTopUp={handleTopUp} />
     </div>
   );
 }

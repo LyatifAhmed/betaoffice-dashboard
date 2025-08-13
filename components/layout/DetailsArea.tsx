@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+/** Next API proxy helper (you already use this pattern) */
+const backend = (path: string) => `/api/backend${path}`;
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -18,33 +19,33 @@ const fetcher = async (url: string) => {
 
 function normalizeCompany(data: any) {
   const d = data || {};
+  const addrParts = [d.address_line1, d.address_line2, d.city, d.postcode ?? d.zip, d.country]
+    .filter(Boolean)
+    .join(", ");
+
   return {
     name: d.company_name ?? d.name ?? d.legal_name ?? "—",
     number: d.company_number ?? d.registration_number ?? d.reg_no ?? "—",
     incorporationDate: d.incorporation_date ?? d.incorp_date ?? d.created_at ?? null,
-    // ✅ parantez eklendi: ?? ile || karışımı
-    address:
-      d.registered_address ??
-      d.address ??
-      ((([d.address_line1, d.address_line2, d.city, d.postcode ?? d.zip, d.country]
-        .filter(Boolean)
-        .join(", ")) as string) || "—"),
-    director: d.director ?? d.director_name ?? d.primary_contact ?? d.owner ?? "—",
-    serviceActive: Boolean(d.service_active ?? d.active ?? true),
+    address: d.registered_address ?? d.address ?? (addrParts || "—"),
     walletBalance: Number(d.wallet_balance ?? d.balance ?? 0),
   };
 }
 
-async function postNoBody(url: string) {
-  const res = await fetch(url, { method: "POST" });
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res;
+/** Map Hoxton / local statuses to a friendly tri-state */
+function mapStatus(s: string | undefined): "NO_ID" | "ACTIVE" | "CANCELLED" | "UNKNOWN" {
+  const v = String(s || "").toUpperCase();
+  if (["NO_ID", "PENDING", "UNDER_REVIEW"].includes(v)) return "NO_ID";
+  if (["ACTIVE", "ACTIVE_SUBSCRIPTION"].includes(v)) return "ACTIVE";
+  if (["CANCELLED", "CANCELED"].includes(v)) return "CANCELLED";
+  return "UNKNOWN";
 }
-async function postJSON(url: string, body: any) {
+
+async function postJSON(url: string, body?: any) {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) throw new Error(`${res.status}`);
   return res;
@@ -55,18 +56,36 @@ export default function DetailsArea() {
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState<string>("25");
   const [busy, setBusy] = useState<"start" | "stop" | "topup" | "cert" | null>(null);
+  const [scheduledInfo, setScheduledInfo] = useState<string | null>(null); // transient “scheduled cancel” note
 
+  // external_id: cookie first, then localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") setExternalId(localStorage.getItem("external_id"));
+    if (typeof document !== "undefined") {
+      const m = document.cookie.match(/(?:^|; )external_id=([^;]+)/);
+      const fromCookie = m ? decodeURIComponent(m[1]) : null;
+      const fromLS = typeof window !== "undefined" ? localStorage.getItem("external_id") : null;
+      setExternalId(fromCookie || fromLS);
+    }
   }, []);
 
-  const detailsUrl = useMemo(() => {
+  // Company / wallet
+  const companyUrl = useMemo(() => {
     if (!externalId) return null;
-    return `${API}/company?external_id=${encodeURIComponent(externalId)}`;
+    return backend(`/company?external_id=${encodeURIComponent(externalId)}`);
   }, [externalId]);
+  const { data: companyRaw, isLoading: loadingCompany, error: companyErr, mutate: mutateCompany } =
+    useSWR(companyUrl, fetcher, { revalidateOnFocus: false });
+  const company = useMemo(() => normalizeCompany(companyRaw), [companyRaw]);
 
-  const { data, isLoading, error, mutate } = useSWR(detailsUrl, fetcher, { revalidateOnFocus: false });
-  const company = useMemo(() => normalizeCompany(data), [data]);
+  // Subscription status (canonical source)
+  const subUrl = useMemo(() => {
+    if (!externalId) return null;
+    return backend(`/subscription/${encodeURIComponent(externalId)}`);
+  }, [externalId]);
+  const { data: sub, isLoading: loadingSub, error: subErr, mutate: mutateSub } =
+    useSWR(subUrl, fetcher, { revalidateOnFocus: false });
+
+  const hoxtonStatus = mapStatus(sub?.hoxton_status ?? sub?.review_status ?? sub?.status);
 
   const fmtDate = (v: any) => {
     if (!v) return "—";
@@ -74,29 +93,35 @@ export default function DetailsArea() {
     return isNaN(dt.getTime()) ? String(v) : dt.toLocaleDateString();
   };
 
+  // Actions
   const handleStart = async () => {
     if (!externalId) return;
     try {
       setBusy("start");
-      await postNoBody(`${API}/service/start?external_id=${encodeURIComponent(externalId)}`);
-      await mutate();
+      await postJSON(backend(`/subscription/${encodeURIComponent(externalId)}/start`));
+      await Promise.all([mutateSub(), mutateCompany()]);
     } catch (e) {
       console.error(e);
-      alert("Start failed");
+      alert("Start failed.");
     } finally {
       setBusy(null);
     }
   };
 
-  const handleStop = async () => {
+  /** Cancel at period end (END_OF_TERM) */
+  const handleCancelAtPeriodEnd = async () => {
     if (!externalId) return;
     try {
       setBusy("stop");
-      await postNoBody(`${API}/service/stop?external_id=${encodeURIComponent(externalId)}`);
-      await mutate();
+      await postJSON(backend(`/subscription/${encodeURIComponent(externalId)}/stop`), {
+        end_date: "END_OF_TERM",
+        reason: "User requested via dashboard",
+      });
+      setScheduledInfo("Cancellation scheduled at the end of the current period.");
+      await mutateSub(); // status will likely remain ACTIVE until the end date
     } catch (e) {
       console.error(e);
-      alert("Stop failed");
+      alert("Scheduling cancellation failed.");
     } finally {
       setBusy(null);
     }
@@ -105,28 +130,28 @@ export default function DetailsArea() {
   const handleTopup = async () => {
     if (!externalId) return;
     const amount = Number(topupAmount);
-    if (!isFinite(amount) || amount <= 0) return alert("Please enter a valid amount");
+    if (!isFinite(amount) || amount <= 0) return alert("Please enter a valid amount.");
     try {
       setBusy("topup");
-      await postJSON(`${API}/wallet/topup`, { external_id: externalId, amount });
+      await postJSON(backend(`/wallet/topup`), { external_id: externalId, amount });
       setTopupOpen(false);
-      await mutate();
+      await mutateCompany();
     } catch (e) {
       console.error(e);
-      alert("Top-up failed");
+      alert("Top-up failed.");
     } finally {
       setBusy(null);
     }
   };
 
   const handleCertificate = async () => {
-  if (!externalId) return;
-  try {
-    setBusy("cert");
-    const res = await fetch(`${API}/company/cert-letter?external_id=${encodeURIComponent(externalId)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    if (blob.type.includes("pdf") && blob.size > 0) {
+    if (!externalId) return;
+    try {
+      setBusy("cert");
+      const res = await fetch(backend(`/company/cert-letter?external_id=${encodeURIComponent(externalId)}`));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      if (!blob.type.includes("pdf") || blob.size === 0) throw new Error("Invalid PDF file");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -135,49 +160,82 @@ export default function DetailsArea() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } else {
-      throw new Error("Invalid PDF file");
+    } catch (e) {
+      console.error(e);
+      alert("Could not download certificate PDF.");
+    } finally {
+      setBusy(null);
     }
-  } catch (e) {
-    console.error(e);
-    alert("Could not download certificate PDF");
-  } finally {
-    setBusy(null);
-  }
-};
+  };
 
+  const statusBadge = (() => {
+    const base =
+      "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium border";
+    if (hoxtonStatus === "ACTIVE")
+      return <span className={`${base} bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-200 dark:border-emerald-400/30`}>ACTIVE</span>;
+    if (hoxtonStatus === "NO_ID")
+      return <span className={`${base} bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-400/10 dark:text-amber-200 dark:border-amber-400/30`}>NO ID</span>;
+    if (hoxtonStatus === "CANCELLED")
+      return <span className={`${base} bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-400/10 dark:text-rose-200 dark:border-rose-400/30`}>CANCELLED</span>;
+    return <span className={`${base} bg-gray-100 text-gray-700 border-gray-200 dark:bg-white/10 dark:text-white/70 dark:border-white/15`}>—</span>;
+  })();
+
+  const statusHelp = (() => {
+    switch (hoxtonStatus) {
+      case "NO_ID":
+        return "Your ID verification is not complete yet. Please finish IDV to activate your mail service.";
+      case "ACTIVE":
+        return scheduledInfo ?? "Your mail service is active.";
+      case "CANCELLED":
+        return "Your mail service is cancelled. You can restart anytime.";
+      default:
+        return "Service status is currently unavailable.";
+    }
+  })();
 
   return (
     <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3 pt-16">
       <div className="w-full max-w-[92rem] space-y-6">
-        <div className="rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md shadow-xl p-6 space-y-5">
+        <div className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6 space-y-6
+                        border-gray-200
+                        dark:bg-[#0b1220] dark:text-white dark:border-white/15">
+          {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <h2 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">📄 Company Details</h2>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-semibold">Company & Subscription</h2>
+              <div className="mt-1 flex items-center gap-2">
+                {statusBadge}
+                <span className="text-sm text-gray-600 dark:text-white/70">{statusHelp}</span>
+              </div>
+            </div>
 
             <div className="flex flex-wrap gap-2">
-              {company.serviceActive ? (
+              {/* Buttons depend on Hoxton status */}
+              {hoxtonStatus === "ACTIVE" && (
                 <Button
-                  variant="secondary"
-                  onClick={handleStop}
+                  onClick={handleCancelAtPeriodEnd}
                   disabled={busy === "stop"}
-                  className="bg-white/15 hover:bg-white/25 text-white border border-white/20"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
-                  {busy === "stop" ? "Stopping…" : "Stop"}
+                  {busy === "stop" ? "Scheduling…" : "Cancel at period end"}
                 </Button>
-              ) : (
+              )}
+
+              {hoxtonStatus === "CANCELLED" && (
                 <Button
                   onClick={handleStart}
                   disabled={busy === "start"}
-                  className="bg-emerald-500/80 hover:bg-emerald-500 text-white"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   {busy === "start" ? "Starting…" : "Start"}
                 </Button>
               )}
 
+              {/* While NO_ID we don’t show start/stop; just allow wallet/cert */}
               <Button
                 onClick={() => setTopupOpen(true)}
                 disabled={busy === "topup"}
-                className="bg-indigo-500/80 hover:bg-indigo-500 text-white"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 Top up wallet
               </Button>
@@ -185,55 +243,59 @@ export default function DetailsArea() {
               <Button
                 onClick={handleCertificate}
                 disabled={busy === "cert"}
-                className="bg-fuchsia-500/80 hover:bg-fuchsia-500 text-white"
+                className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
               >
                 {busy === "cert" ? "Preparing PDF…" : "Certificate (PDF)"}
               </Button>
             </div>
           </div>
 
+          {/* Errors / Empty external_id */}
           {!externalId && (
-            <p className="text-sm text-amber-200/90">
-              external_id not found. Make sure
-              <code className="mx-1 px-1 rounded bg-black/30">external_id</code> is stored in localStorage during the login/connection flow.
-            </p>
-
+            <div className="text-sm rounded-md px-3 py-2 bg-amber-50 text-amber-800 border border-amber-200
+                            dark:bg-amber-400/10 dark:text-amber-200 dark:border-amber-400/30">
+              <span className="font-medium">external_id</span> not found. Make sure it is stored during login.
+            </div>
+          )}
+          {(companyErr || subErr) && (
+            <div className="text-sm rounded-md px-3 py-2 bg-rose-50 text-rose-700 border border-rose-200
+                            dark:bg-rose-500/10 dark:text-rose-200 dark:border-rose-400/30">
+              Failed to load details.
+            </div>
           )}
 
-          {isLoading && <p className="text-sm text-white/80">Loading company details…</p>}
-          {error && <p className="text-sm text-red-200">Failed to load: {(error as Error).message}</p>}
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Stat title="Wallet balance" value={`£${company.walletBalance.toFixed(2)}`} />
+            <Stat title="Company number" value={company.number} />
+          </div>
 
-          {!isLoading && !error && (
-            <>
-              <div className="text-sm text-white/80">
-                This section shows your company information pulled from the backend.
+          {/* Essentials */}
+          <div className="rounded-xl border p-4 bg-gray-50 text-gray-900
+                          border-gray-200
+                          dark:bg-white/5 dark:text-white dark:border-white/10">
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              <div>
+                <dt className="text-gray-500 dark:text-white/60">Company name</dt>
+                <dd className="font-medium">{company.name}</dd>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-[11px] uppercase tracking-wide text-white/60">Service status</div>
-                  <div className="text-base mt-1 font-semibold text-white">
-                    {company.serviceActive ? "Active" : "Stopped"}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-[11px] uppercase tracking-wide text-white/60">Wallet balance</div>
-                  <div className="text-base mt-1 font-semibold text-white">£{company.walletBalance.toFixed(2)}</div>
-                </div>
+              <div>
+                <dt className="text-gray-500 dark:text-white/60">Incorporation date</dt>
+                <dd className="font-medium">{fmtDate(company.incorporationDate)}</dd>
               </div>
-
-              <ul className="text-sm text-white/70 space-y-1 pl-4 list-disc">
-                <li>Company Name: <strong>{company.name}</strong></li>
-                <li>Incorporation Date: <strong>{fmtDate(company.incorporationDate)}</strong></li>
-                <li>Company Number: <strong>{company.number}</strong></li>
-                <li>Registered Address: <strong>{company.address}</strong></li>
-                <li>Director: <strong>{company.director}</strong></li>
-              </ul>
-            </>
-          )}
+              <div className="md:col-span-2">
+                <dt className="text-gray-500 dark:text-white/60">Registered address</dt>
+                <dd className="font-medium">{company.address}</dd>
+              </div>
+            </dl>
+            {(loadingCompany || loadingSub) && (
+              <div className="text-sm text-gray-600 dark:text-white/70 mt-3">Loading details…</div>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Top-up dialog */}
       <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
@@ -253,7 +315,7 @@ export default function DetailsArea() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              This will create a top-up for your wallet. You can use it for future mail actions.
+              Funds will be added to your wallet for future mail actions.
             </p>
           </div>
           <DialogFooter>
@@ -264,6 +326,19 @@ export default function DetailsArea() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function Stat({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-xl border p-4 bg-gray-50 text-gray-900
+                    border-gray-200
+                    dark:bg-white/5 dark:text-white dark:border-white/10">
+      <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-white/60">
+        {title}
+      </div>
+      <div className="text-base mt-1 font-semibold">{value}</div>
     </div>
   );
 }
