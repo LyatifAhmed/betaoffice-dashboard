@@ -1,18 +1,19 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { Inbox, FileText, Users, LogOut, HelpCircle } from "lucide-react";
+import { Inbox, FileText, Users, CreditCard, Link2, LogOut, HelpCircle } from "lucide-react";
 import clsx from "clsx";
 
 type Item = { label: string; tab: DashboardTab; icon: React.ElementType };
 
 const items: Item[] = [
-  { label: "Mail",    tab: "mail",    icon: Inbox },
-  { label: "Details", tab: "details", icon: FileText },
-  { label: "Referral",tab: "referral",icon: Users }, 
+  { label: "Mail",      tab: "mail",      icon: Inbox },
+  { label: "Details",   tab: "details",   icon: FileText },
+  { label: "Billing",   tab: "billing",   icon: CreditCard },  // ← NEW
+  { label: "Affiliate", tab: "affiliate", icon: Link2 },       // ← NEW
+  { label: "Referral",  tab: "referral",  icon: Users },
 ];
 
-export type DashboardTab = "mail" | "details" | "referral";
+export type DashboardTab = "mail" | "details" | "referral" | "billing" | "affiliate";
 
 export default function MainSidebar({
   activeTab,
@@ -28,12 +29,9 @@ export default function MainSidebar({
       className="
         w-64 sm:w-64 shrink-0
         bg-[#0e1a2b]/90 backdrop-blur-md border-r border-white/10 text-[#dbe7ff]
-        md:sticky md:top-0
-        h-[100svh] md:h-[100svh]  /* viewport yüksekliği kadar */
-        flex flex-col
+        md:sticky md:top-0 h-[100svh] flex flex-col
       "
     >
-      {/* Başlık: logo yerine BetaOffice metni */}
       <div className="flex justify-between items-center px-4 py-5">
         <span className="text-[18px] sm:text-[20px] font-semibold tracking-wide text-[#dbe7ff]">
           BetaOffice
@@ -49,7 +47,6 @@ export default function MainSidebar({
         )}
       </div>
 
-      {/* Menü */}
       <nav className="px-2 sm:px-3 py-2 space-y-1 flex-1 min-h-0">
         {items.map(({ label, tab, icon: Icon }) => {
           const active = activeTab === tab;
@@ -60,7 +57,6 @@ export default function MainSidebar({
               className={clsx(
                 "group relative flex w-full items-center gap-3 rounded-lg",
                 "px-3 py-2 sm:py-2.5 text-sm font-medium transition-all duration-200",
-                "touch-manipulation",
                 active
                   ? "bg-white/8 text-white shadow-inner ring-1 ring-inset ring-white/10"
                   : "text-[#c5d6ff]/80 hover:text-white hover:bg-white/5"
@@ -68,7 +64,7 @@ export default function MainSidebar({
             >
               <span
                 className={clsx(
-                  "absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-full transition-all duration-200",
+                  "absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-full transition-all",
                   "bg-gradient-to-b from-transparent to-transparent",
                   "group-hover:from-blue-500 group-hover:to-fuchsia-500",
                   active && "from-blue-500 to-fuchsia-500"
@@ -84,7 +80,6 @@ export default function MainSidebar({
         })}
       </nav>
 
-      {/* Alt aksiyonlar */}
       <div className="px-3 pt-3 pb-4 border-t border-white/10 space-y-2">
         <button className="flex w-full items-center gap-2 px-3 py-2 text-sm rounded-lg text-[#c5d6ff]/80 hover:text-white hover:bg-white/5 transition">
           <HelpCircle size={18} className="text-[#c5d6ff]/70 group-hover:text-white" />

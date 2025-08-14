@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import MailCard from "@/components/ui/MailCard";
+import { Calendar, Filter } from "lucide-react";
 
 /**
  * List:     /api/hoxton/mail?external_id=...&source=db   (local DB)
@@ -370,8 +371,8 @@ export default function MailArea({
   }, [anySelected, selected.size, isTrashView]);
 
   return (
-    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3 pt-16">
-      <div className="w-full max-w-[92rem] space-y-4">
+    <div className="w-full flex justify-center px-2 sm:px-4 lg:px-6 pt-14">
+      <div className="w-full max-w-[92rem] space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">
@@ -387,9 +388,10 @@ export default function MailArea({
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
+        {/* CHANGE: Kompakt filtre bar */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          {/* Sol: kategori butonları */}
+          <div className="flex flex-wrap gap-1.5">
             {(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).map((cat) => (
               <button
                 key={cat}
@@ -398,7 +400,7 @@ export default function MailArea({
                   onClear();
                 }}
                 className={[
-                  "px-4 py-1.5 rounded-full text-sm font-medium border transition-colors",
+                  "px-3 py-1.5 rounded-full text-[13px] font-medium border transition-colors",
                   category === cat
                     ? "bg-blue-600 text-white border-blue-600"
                     : "bg-white text-gray-700 hover:bg-blue-50 border-gray-200 dark:bg-white/10 dark:text-white dark:border-white/15 dark:hover:bg-white/20",
@@ -409,26 +411,62 @@ export default function MailArea({
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">
+          {/* Sağ: arama + açılır filtre */}
+          <div className="flex items-center gap-1.5">
             <input
               type="text"
-              placeholder="Search..."
-              className="px-4 py-2 w-full sm:w-44 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:border-white/20 dark:text-white"
+              placeholder="Search…"
+              className="px-3 py-2 w-[160px] sm:w-[200px] text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:border-white/20 dark:text-white"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300 w-full sm:w-auto dark:bg-transparent dark:border-white/20 dark:text-white"
-            />
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300 w-full sm:w-auto dark:bg-transparent dark:border-white/20 dark:text-white"
-            />
+
+            {/* Filters dropdown (details) */}
+            <details className="relative">
+              <summary className="list-none">
+                <button
+                  className="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 dark:bg-white/10 dark:border-white/20 dark:text-white"
+                  type="button"
+                >
+                  <Filter size={16} />
+                  Filters
+                </button>
+              </summary>
+              <div
+                className="absolute right-0 mt-2 w-[260px] rounded-xl border border-gray-200 bg-white p-3 shadow-lg z-20 dark:bg-[#0b1220] dark:border-white/15"
+              >
+                <div className="text-xs font-medium mb-2 flex items-center gap-1">
+                  <Calendar size={14} /> Date range
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="px-2 py-1.5 text-sm rounded-lg border border-gray-300 w-full dark:bg-transparent dark:border-white/20 dark:text-white"
+                  />
+                  <span className="text-xs text-gray-500">to</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="px-2 py-1.5 text-sm rounded-lg border border-gray-300 w-full dark:bg-transparent dark:border-white/20 dark:text-white"
+                  />
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setFromDate("");
+                      setToDate("");
+                    }}
+                    className="px-2.5 py-1.5 text-xs rounded-md border border-gray-200 bg-white hover:bg-gray-50 dark:bg-white/10 dark:border-white/20 dark:text-white"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </details>
+
             {isTrashView && (
               <button
                 onClick={clearTrash}
@@ -441,12 +479,16 @@ export default function MailArea({
           </div>
         </div>
 
-        {/* List */}
-        <div className="grid gap-3 max-h-[calc(100svh-260px)] overflow-y-auto pr-1 pb-2">
+        {/* List – daha yüksek görünür alan */}
+        <div className="grid gap-3 max-h-[calc(100svh-220px)] sm:max-h-[calc(100svh-240px)] overflow-y-auto pr-1 pb-2">
           {error ? (
-            <div className="text-rose-600 dark:text-rose-300 text-center py-10">Failed to load mail.</div>
+            <div className="text-rose-600 dark:text-rose-300 text-center py-10">
+              Failed to load mail.
+            </div>
           ) : isLoading && !data ? (
-            <div className="text-gray-500 dark:text-white/70 text-center py-10">Loading scanned mail...</div>
+            <div className="text-gray-500 dark:text-white/70 text-center py-10">
+              Loading scanned mail...
+            </div>
           ) : visibleItems.length > 0 ? (
             visibleItems.map((mail) => {
               const checked = selected.has(mail.id);
@@ -462,16 +504,14 @@ export default function MailArea({
                       className="peer sr-only"
                       aria-label={`Select ${mail.sender}`}
                     />
-                    <span className="h-5 w-5 rounded-md border border-gray-300 bg-white shadow-sm
-                                      peer-checked:bg-blue-600 peer-checked:border-blue-600
-                                      dark:bg-transparent dark:border-white/25"></span>
+                    <span className="h-5 w-5 rounded-md border border-gray-300 bg-white shadow-sm peer-checked:bg-blue-600 peer-checked:border-blue-600 dark:bg-transparent dark:border-white/25"></span>
                   </label>
 
                   {/* Card + quick actions */}
                   <div className="flex-1 min-w-0">
                     <MailCard mail={mail} />
 
-                    {/* Single quick-action row (no duplicate Forward button elsewhere) */}
+                    {/* Single quick-action row */}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {!inTrash ? (
                         <>

@@ -10,7 +10,7 @@ import MagicChatButton from "@/components/MagicChatButton";
 import { useEffect } from "react";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || ""; // "" => aynı origin
+  process.env.NEXT_PUBLIC_HOXTON_API_URL?.replace(/\/$/, "") || ""; // "" => aynı origin
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();

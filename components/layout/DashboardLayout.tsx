@@ -1,3 +1,4 @@
+// components/layout/DashboardLayout.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,6 +14,9 @@ import DetailsTab from "@/components/layout/DetailsArea";
 import ReferralTab from "@/components/layout/ReferralArea";
 import SelectionBar from "@/components/layout/SelectionBar";
 import WalletFab from "@/components/ui/WalletFab";
+import ChatFab from "@/components/ChatBox";
+import BillingArea from "@/components/layout/BillingArea";         // ← NEW
+import AffiliateTab from "@/components/layout/AffiliateTab";       // ← uses your existing file
 
 type SelectionMeta = {
   selectedCount: number;
@@ -46,7 +50,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   const [urgentFlash, setUrgentFlash] = useState(false);
   const urgentTimer = useRef<number | null>(null);
 
-  // ---- Wallet balance (for FAB) ----
+  // Wallet
   const [externalId, setExternalId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
@@ -70,9 +74,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           setWalletBalance(bal);
           return;
         }
-      } catch {
-        // try next URL
-      }
+      } catch {}
     }
   };
 
@@ -80,23 +82,15 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
     if (externalId) fetchBalance(externalId);
   }, [externalId]);
 
-  // Yeni mail geldiğinde MailArea’yı ve ilgili kaynakları revalidate et
   const handleNewMail = (evt?: { urgent?: boolean }) => {
     try {
-      mutate(
-        (key: string) => typeof key === "string" && key.startsWith("/api/hoxton/mail"),
-        undefined,
-        { revalidate: true }
-      );
-
+      mutate((key: string) => typeof key === "string" && key.startsWith("/api/hoxton/mail"), undefined, { revalidate: true });
       const ext = readExternalIdFromBrowser();
       if (ext) {
         mutate(`/api/hoxton/mail?external_id=${encodeURIComponent(ext)}&source=remote`, undefined, { revalidate: true });
         mutate(`/api/hoxton/mail?external_id=${encodeURIComponent(ext)}&source=db`, undefined, { revalidate: true });
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     if (evt?.urgent) {
       barRef.current?.show?.();
@@ -107,7 +101,6 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
     }
   };
 
-  // Global custom event dinle
   useEffect(() => {
     const onNewMailGlobal = (e: Event) => {
       const { detail } = e as CustomEvent<{ urgent?: boolean }>;
@@ -147,11 +140,12 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         : "Your mail center";
     }
     if (activeTab === "details") return "Account & details";
+    if (activeTab === "billing") return "Billing & invoices";       // ← NEW
+    if (activeTab === "affiliate") return "Affiliate partners";     // ← NEW
     if (activeTab === "referral") return "Referral & rewards";
     return "Your subscription is active.";
   }, [activeTab, selectionMeta.selectedCount, urgentFlash]);
 
-  // Sekme değişince mailde seçili olanları temizle
   useEffect(() => {
     if (activeTab !== "mail" && selectionMeta.selectedCount > 0) {
       selectionMeta.onClear();
@@ -159,7 +153,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   }, [activeTab, selectionMeta]);
 
   return (
-    <div className="flex w-full flex-col md:flex-row bg-white text-black min-h-[100svh]">
+    <div className="flex w-full flex-col md:flex-row bg-[#f7f9fc] text-black dark:bg-[#0b1220] dark:text-white min-h-[100svh]">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <MainSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -183,10 +177,10 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           onMenuClick={() => setSidebarOpen(true)}
           status={statusText}
           onNewMail={handleNewMail}
-          autoCloseAfter={10}  // yukarıdaysa yeni mailde 10sn aşağıda dursun
+          autoCloseAfter={10}
         />
 
-        {/* Selection bar — sadece Mail tab’ında ve seçim varsa göster */}
+        {/* Selection bar – yalnız Mail tab’ında */}
         <div
           className={[
             "fixed z-50",
@@ -207,13 +201,14 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           />
         </div>
 
+        {/* CONTENT */}
         <div className="flex-1 min-w-0 flex items-stretch overflow-hidden gap-3 sm:gap-4 md:gap-6 pb-[env(safe-area-inset-bottom)]">
-          <main className="min-w-0 flex-1 overflow-y-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
+          <main className="min-w-0 flex-1 overflow-y-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-3">
             <div className="mx-auto w-full max-w-[92rem]">
-              {activeTab === "mail" && (
-                <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />
-              )}
+              {activeTab === "mail" && <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />}
               {activeTab === "details" && <DetailsTab />}
+              {activeTab === "billing" && <BillingArea />}         {/* ← NEW */}
+              {activeTab === "affiliate" && <AffiliateTab />}      {/* ← NEW (your existing component) */}
               {activeTab === "referral" && <ReferralTab />}
               {children}
             </div>
@@ -226,8 +221,19 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         </div>
       </div>
 
-      {/* Transparent FAB */}
-      <WalletFab balance={walletBalance} position="right" onTopUp={handleTopUp} />
+      {/* Wallet & Chat */}
+      <div className="fixed right-3 bottom-3 z-[60] md:right-4 md:bottom-4">
+        <div className="relative flex flex-col items-end gap-3">
+          <div className="z-[60]">
+            <WalletFab balance={walletBalance} position="right" onTopUp={handleTopUp} />
+          </div>
+          {/* Chat: mobilde mail tabında gizli, diğerlerinde açık; masaüstünde her zaman gösterilebilir */}
+          <div className={activeTab === "mail" ? "hidden md:block" : "block"}>
+            <ChatFab onClose={() => { /* keep open or integrate your state */ }} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+

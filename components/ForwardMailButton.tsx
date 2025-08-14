@@ -1,11 +1,10 @@
-// ForwardMailButton.tsx
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ForwardMailButtonProps {
-  mailId: number;
+  mailId: number | string;
   balance: number;
   forwardCost: number;
   onForwardSuccess: () => void;
@@ -37,16 +36,12 @@ export default function ForwardMailButton({
       alert("❌ Not enough balance. Please top up your wallet first.");
       return;
     }
-
     if (isExpired) {
       alert("❌ The document link has expired. Please contact support.");
       return;
     }
-
     const confirmed = window.confirm(
-      `Are you sure you want to forward \"${documentTitle}\"? £${forwardCost.toFixed(
-        2
-      )} will be deducted from your balance.`
+      `Are you sure you want to forward “${documentTitle}”? £${forwardCost.toFixed(2)} will be deducted from your balance.`
     );
     if (!confirmed) return;
 
@@ -62,11 +57,10 @@ export default function ForwardMailButton({
           externalId,
         }),
       });
-
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (data?.success) {
         alert("✅ Mail forwarding requested successfully.");
-        onForwardSuccess();
+        onForwardSuccess?.();
       } else {
         alert("❌ Failed to forward mail. Please try again.");
       }
@@ -79,7 +73,18 @@ export default function ForwardMailButton({
   };
 
   return (
-    <Button onClick={handleForward} disabled={loading || balance < forwardCost}>
+    <Button
+      onClick={handleForward}
+      disabled={loading || balance < forwardCost || isExpired}
+      className="gap-2"
+      title={
+        isExpired
+          ? "This document link is expired"
+          : balance < forwardCost
+          ? "Insufficient balance"
+          : "Forward this mail"
+      }
+    >
       {loading ? "Processing..." : `Forward (£${forwardCost.toFixed(2)})`}
     </Button>
   );

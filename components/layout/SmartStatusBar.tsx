@@ -1,3 +1,4 @@
+// components/layout/SmartStatusBar.tsx
 "use client";
 
 import React, {
@@ -17,17 +18,17 @@ export type SmartStatusBarHandle = {
   hide: () => void;
   toggle: () => void;
   pulse: (ms?: number) => void;
-  // geriye uyumlu API:
+  // backward compatibility helpers:
   pushNotification?: (n: { title?: string; urgent?: boolean }) => void;
   clearNotifications?: () => void;
 };
 
 export type SmartStatusBarProps = {
-  /** Sadece mobilde görünür; hamburger menüyü açmak için */
+  /** Mobile hamburger menu trigger */
   onMenuClick?: () => void;
   status?: string;
   newMailCount?: number;
-  /** Yeni mail geldiğinde üst komponenti bilgilendirir */
+  /** Notify parent on new mail (WS event) */
   onNewMail?: (evt?: Partial<{
     sender: string;
     company: string;
@@ -35,9 +36,9 @@ export type SmartStatusBarProps = {
     received_at: string | null;
     urgent: boolean;
   }>) => void;
-  /** Bar yukarıdaysa yeni mailde kaç sn aşağıda dursun (0 = otomatik kapatma yok) */
+  /** If bar is hidden, keep it open this many seconds on new mail (0 = do not autoclose) */
   autoCloseAfter?: number;
-  /** (opsiyonel) var ama bu sürümde persist yapmıyoruz */
+  /** Optional storage key (not persisted in this version) */
   storageKey?: string;
 };
 
@@ -57,11 +58,11 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
       status = "Your subscription is active.",
       newMailCount,
       onNewMail,
-      autoCloseAfter = 10, // varsayılan 10sn
+      autoCloseAfter = 10,
     },
     ref
   ) {
-    // her açılışta aşağıda başlasın
+    // start open (visible)
     const [open, setOpen] = useState(true);
     const [localUnread, setLocalUnread] = useState(0);
     const [externalId, setExternalId] = useState<string | null>(null);
@@ -73,7 +74,7 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
     useEffect(() => {
       const id = typeof window !== "undefined" ? localStorage.getItem("external_id") : null;
       setExternalId(id);
-      setOpen(true); // başlangıçta bar aşağıda
+      setOpen(true);
     }, []);
 
     const triggerGlow = (ms = 1500) => {
@@ -82,7 +83,7 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
       glowTimer.current = window.setTimeout(() => setGlow(false), ms);
     };
 
-    // Imperative API (geriye uyumlu)
+    // Imperative API
     useImperativeHandle(ref, () => ({
       show: () => setOpen(true),
       hide: () => setOpen(false),
@@ -99,7 +100,7 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
       },
     }));
 
-    // keyboard toggle
+    // Keyboard toggle Ctrl/⌘ + J
     useEffect(() => {
       const onKey = (e: KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
@@ -126,7 +127,7 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
       else if (draggedDown) setOpen(true);
     };
 
-    // WebSocket (auto-reconnect)
+    // WebSocket auto-reconnect
     useEffect(() => {
       const base = wsBaseURL();
       if (!base) return;
@@ -151,30 +152,23 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
             if (kind === "new_mail") {
               const urgent =
                 !!data?.urgent ||
-                /urgent|penalty|final notice/i.test(
-                  `${data?.title ?? ""} ${data?.summary ?? ""}`
-                );
+                /urgent|penalty|final notice/i.test(`${data?.title ?? ""} ${data?.summary ?? ""}`);
 
               if (typeof newMailCount !== "number") setLocalUnread((n) => n + 1);
               setUrgentFlash(urgent);
 
-              // 🔔 üst bileşeni ve globali haberdar et
               onNewMail?.({ urgent });
-              window.dispatchEvent(
-                new CustomEvent("betaoffice:new-mail", { detail: { urgent } })
-              );
+              window.dispatchEvent(new CustomEvent("betaoffice:new-mail", { detail: { urgent } }));
 
-              // DB kaynağını revalidate et (MailArea source=db kullanıyor)
-              const k =
+              const key =
                 externalId
                   ? `/api/hoxton/mail?external_id=${encodeURIComponent(externalId)}&source=db`
                   : null;
-              if (k) mutate(k);
+              if (key) mutate(key);
 
-              // görsel efekt
               triggerGlow(1800);
 
-              // Bar yukarıdaysa (open=false) aşağı indir, autoCloseAfter saniye sonra geri çıkar
+              // If bar hidden, slide down then auto-close after X seconds
               if (!open) {
                 setOpen(true);
                 if (autoCloseAfter > 0) {
@@ -240,7 +234,6 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
               <div
                 className={[
                   "relative flex items-center gap-3 px-4 h-12 rounded-full",
-                  // Sevdiğin fuchsia-indigo paleti, bir tık daha şeffaf
                   "bg-[radial-gradient(120%_160%_at_50%_-20%,rgba(236,72,153,0.42),rgba(79,70,229,0.33)_35%,rgba(2,6,23,0.8)_62%,rgba(2,6,23,0.9)_100%)]",
                   "backdrop-blur-xl border border-white/12",
                   glow
@@ -249,10 +242,10 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
                   "text-white",
                 ].join(" ")}
               >
-                {/* handle */}
+                {/* drag handle */}
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 h-1.5 w-10 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 opacity-90" />
 
-                {/* Mobil menü düğmesi (sadece md altı) */}
+                {/* Mobile hamburger (only md-) */}
                 {onMenuClick && (
                   <button
                     onClick={onMenuClick}
@@ -289,17 +282,30 @@ const SmartStatusBar = forwardRef<SmartStatusBarHandle, SmartStatusBarProps>(
               </div>
             </motion.div>
           ) : (
-            <motion.button
-              key="tab"
-              onClick={() => setOpen(true)}
-              initial={{ y: -TAB_H, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="pointer-events-auto mx-auto block h-4 px-3 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 text-[11px] text-white/90 shadow-[0_6px_24px_rgba(217,70,239,0.25)] border border-white/10 backdrop-blur-md"
-              title="Show status"
-            >
-              Show status
-            </motion.button>
+            <>
+              {/* MINI HAMBURGER while closed (mobile only) */}
+              {onMenuClick && (
+                <button
+                  onClick={onMenuClick}
+                  className="pointer-events-auto fixed left-3 top-3 z-50 md:hidden h-9 w-9 rounded-lg bg-white/15 border border-white/20 text-white backdrop-blur-md shadow hover:bg-white/25 transition"
+                  aria-label="Open menu"
+                >
+                  ☰
+                </button>
+              )}
+
+              <motion.button
+                key="tab"
+                onClick={() => setOpen(true)}
+                initial={{ y: -TAB_H, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="pointer-events-auto mx-auto block h-4 px-3 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 text-[11px] text-white/90 shadow-[0_6px_24px_rgba(217,70,239,0.25)] border border-white/10 backdrop-blur-md"
+                title="Show status"
+              >
+                Show status
+              </motion.button>
+            </>
           )}
         </AnimatePresence>
       </div>
