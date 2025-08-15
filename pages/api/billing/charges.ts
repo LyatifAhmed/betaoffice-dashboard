@@ -1,31 +1,28 @@
 // pages/api/billing/charges.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { stripe } from "@/lib/stripe";
-import { loadCompanyByExternalId, pickStripeCustomer } from "@/lib/subscription-helpers";
+import { getExternalId, getDbSubscription, stripe } from "./_shared";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const { external_id, company } = await loadCompanyByExternalId(req);
-    if (!external_id || !company) return res.status(200).json([]);
+  if (req.method !== "GET") return res.status(405).end("Method Not Allowed");
 
-    const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 20));
-    const customerId = pickStripeCustomer(company);
-    if (!customerId) return res.status(200).json([]);
+  const external_id = getExternalId(req, res);
+  if (!external_id) return res.status(200).json([]);
 
-    const list = await stripe.charges.list({ customer: customerId, limit });
-    const rows = list.data.map(c => ({
-      id: c.id,
-      created: c.created ? new Date(c.created * 1000).toISOString() : null,
-      amount_pennies: c.amount || 0,
-      currency: (c.currency || "gbp").toUpperCase(),
-      status: c.status || "pending",
-      description: c.description || undefined,
-      receipt_url: c.receipt_url || undefined,
-    }));
+  const dbSub = await getDbSubscription(external_id);
+  if (!dbSub?.stripe_customer_id) return res.status(200).json([]);
 
-    res.status(200).json(rows);
-  } catch (e: any) {
-    console.error("charges.ts error:", e?.message || e);
-    res.status(500).json({ error: "Failed to load charges" });
-  }
+  const limit = Math.min(Number(req.query.limit ?? 20), 50);
+  const list = await stripe.charges.list({ customer: dbSub.stripe_customer_id, limit });
+
+  const results = list.data.map((c) => ({
+    id: c.id,
+    created: c.created ? new Date(c.created * 1000).toISOString() : null,
+    amount_pennies: c.amount ?? 0,
+    currency: (c.currency || "gbp").toUpperCase(),
+    status: (c.status ?? "pending") as "succeeded" | "pending" | "failed",
+    description: c.description ?? undefined,
+    receipt_url: c.receipt_url ?? undefined,
+  }));
+
+  res.status(200).json(results);
 }

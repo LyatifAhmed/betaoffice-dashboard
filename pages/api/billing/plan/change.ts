@@ -1,33 +1,44 @@
-// pages/api/billing/plan/change.ts
+// /pages/api/billing/plan/change.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { stripe } from "@/lib/stripe";
-import { loadCompanyByExternalId, pickStripeSubscription } from "@/lib/subscription-helpers";
+import { prisma } from "../_shared";
+import { getExternalId, getDbSubscription } from "../_shared";
+import { stripe } from "../_shared";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
+
+  const externalId = getExternalId(req, res);
+  if (!externalId) return;
+
+  const { price_id } = (req.body ?? {}) as { price_id?: string };
+  if (!price_id) {
+    return res.status(400).json({ error: "Missing price_id" });
+  }
+
   try {
-    const { price_id } = (req.body ?? {}) as { price_id?: string };
-    if (!price_id) return res.status(400).json({ error: "Missing price_id" });
+    const dbSub = await getDbSubscription(externalId);
+    if (!dbSub?.stripe_subscription_id) {
+      return res.status(404).json({ error: "Stripe subscription not found" });
+    }
 
-    const { external_id, company } = await loadCompanyByExternalId(req);
-    if (!external_id || !company) return res.status(404).json({ error: "Company not found" });
+    // Stripe: mevcut abonelikteki ilk item’ı yeni price ile güncelle
+    const stripeSub = await stripe.subscriptions.retrieve(dbSub.stripe_subscription_id);
+    const itemId = stripeSub.items.data[0]?.id;
+    if (!itemId) {
+      return res.status(500).json({ error: "No subscription item on Stripe" });
+    }
 
-    const subId = pickStripeSubscription(company);
-    if (!subId) return res.status(404).json({ error: "Subscription not found" });
+    await stripe.subscriptionItems.update(itemId, { price: price_id, proration_behavior: "create_prorations" });
 
-    const sub = await stripe.subscriptions.retrieve(subId);
-    const itemId = sub.items.data[0]?.id;
-    if (!itemId) return res.status(400).json({ error: "No subscription item" });
-
-    await stripe.subscriptions.update(subId, {
-      cancel_at_period_end: false, // plan değişimi hemen
-      items: [{ id: itemId, price: price_id }],
-      proration_behavior: "create_prorations",
+    // DB’de de price_id’ı saklayalım (tekil model adı!)
+    await prisma.subscription.update({
+      where: { external_id: externalId },
+      data: { stripe_price_id: price_id },
     });
 
-    return res.status(200).json({ ok: true });
-  } catch (e: any) {
-    console.error("plan/change.ts error:", e?.message || e);
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error("plan/change error:", e);
     res.status(500).json({ error: "Failed to change plan" });
   }
 }

@@ -1,34 +1,35 @@
 // pages/api/billing/payment-methods.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { stripe } from "@/lib/stripe";
-import { loadCompanyByExternalId, pickStripeCustomer } from "@/lib/subscription-helpers";
+import { getExternalId, getDbSubscription, stripe } from "./_shared";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const { external_id, company } = await loadCompanyByExternalId(req);
-    if (!external_id || !company) return res.status(200).json([]);
+  if (req.method !== "GET") return res.status(405).end("Method Not Allowed");
 
-    const customerId = pickStripeCustomer(company);
-    if (!customerId) return res.status(200).json([]);
+  const external_id = getExternalId(req, res);
+  if (!external_id) return res.status(200).json([]);
 
-    const pms = await stripe.paymentMethods.list({ customer: customerId, type: "card" });
+  const dbSub = await getDbSubscription(external_id);
+  if (!dbSub?.stripe_customer_id) return res.status(200).json([]);
 
-    // default PM:
-    const cust = await stripe.customers.retrieve(customerId);
-    const defaultPmId = (cust as any)?.invoice_settings?.default_payment_method || null;
+  const pms = await stripe.paymentMethods.list({
+    customer: dbSub.stripe_customer_id,
+    type: "card",
+  });
 
-    const rows = pms.data.map(pm => ({
-      id: pm.id,
-      brand: pm.card?.brand || "card",
-      last4: pm.card?.last4 || "0000",
-      exp_month: pm.card?.exp_month || 1,
-      exp_year: pm.card?.exp_year || 2099,
-      is_default: pm.id === defaultPmId,
-    }));
+  // default source / invoice settings’ten belirle
+  const cust = await stripe.customers.retrieve(dbSub.stripe_customer_id);
+  const defaultPmId =
+    (cust as any)?.invoice_settings?.default_payment_method ||
+    (typeof (cust as any).default_source === "string" ? (cust as any).default_source : null);
 
-    res.status(200).json(rows);
-  } catch (e: any) {
-    console.error("payment-methods.ts error:", e?.message || e);
-    res.status(500).json({ error: "Failed to load payment methods" });
-  }
+  const results = pms.data.map((pm) => ({
+    id: pm.id,
+    brand: pm.card?.brand ?? "card",
+    last4: pm.card?.last4 ?? "••••",
+    exp_month: pm.card?.exp_month ?? 0,
+    exp_year: pm.card?.exp_year ?? 0,
+    is_default: pm.id === defaultPmId,
+  }));
+
+  res.status(200).json({ results });
 }

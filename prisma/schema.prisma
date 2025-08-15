@@ -7,126 +7,203 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Wallet {
-  id              String   @id @default(cuid())
-  external_id     String   @unique
-  balance_pennies Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  subscription Subscription @relation(fields: [external_id], references: [external_id])
-}
-
-
-model Subscription {
-  external_id          String @id
-  stripe_customer_id    String? 
-  product_id           Int
-  customer_first_name  String
-  customer_middle_name String
-  customer_last_name   String
-  customer_email       String
-  review_status        String @default("PENDING")
-
-  shipping_line_1   String
-  shipping_line_2   String
-  shipping_line_3   String
-  shipping_city     String
-  shipping_postcode String
-  shipping_state    String
-  shipping_country  String
-
-  company_name         String
-  company_trading_name String
-  company_number       String
-  organisation_type    Int
-  telephone_number     String
-
-  stripe_subscription_id String?
-  start_date             DateTime        @default(now())
-  wallet                 Wallet?
-  members                CompanyMember[]
-  scannedMails           ScannedMail[]
-
-  @@index([customer_email])
-}
-
 model CompanyMember {
-  id              Int      @id @default(autoincrement())
-  subscription_id String
-  first_name      String
-  middle_name     String
-  last_name       String
-  phone_number    String?
-  email           String
-  date_of_birth   DateTime
+  id              Int       @id @default(autoincrement())
+  subscription_id String?   @db.VarChar
+  first_name      String?   @db.VarChar
+  middle_name     String?   @db.VarChar
+  last_name       String?   @db.VarChar
+  phone_number    String?   @db.VarChar
+  email           String?   @db.VarChar
+  date_of_birth   DateTime? @db.Timestamp(6)
 
-  subscription Subscription @relation(fields: [subscription_id], references: [external_id])
-
-  @@index([id])
+  @@index([subscription_id], map: "idx_company_members_subscription_id")
+  @@index([id], map: "ix_company_members_id")
   @@map("company_members")
 }
 
-model ScannedMail {
-  id                 Int      @id @default(autoincrement())
-  external_id        String
-  url                String
+model FailedPaymentAttempt {
+  id                Int       @id @default(autoincrement())
+  external_id       String    @db.VarChar
+  reason            String    @db.VarChar
+  payment_intent_id String?   @db.VarChar
+  created_at        DateTime? @db.Timestamp(6)
+
+  @@index([external_id], map: "ix_FailedPaymentAttempt_external_id")
+}
+
+model alembic_version {
+  version_num String @id(map: "alembic_version_pkc") @db.VarChar(32)
+}
+
+model kyc_tokens {
+  token         String    @id @db.VarChar
+  date_created  DateTime? @db.Timestamp(6)
+  email         String?   @db.VarChar
+  product_id    Int?
+  plan_name     String?   @db.VarChar
+  expires_at    DateTime? @db.Timestamp(6)
+  kyc_submitted Int?
+  session_id    String?   @db.VarChar
+
+  @@index([email], map: "ix_kyc_tokens_email")
+  @@index([session_id], map: "ix_kyc_tokens_session_id")
+  @@index([token], map: "ix_kyc_tokens_token")
+}
+
+model referralEarnings {
+  id             String    @id @db.VarChar
+  referrer_email String?   @db.VarChar
+  referee_email  String?   @db.VarChar
+  amount_pennies Int?
+  status         String?   @db.VarChar
+  createdAt      DateTime? @db.Timestamp(6)
+  paidAt         DateTime? @db.Timestamp(6)
+
+  @@index([id], map: "ix_referralEarnings_id")
+}
+
+model referral_clicks {
+  id             Int             @id @default(autoincrement())
+  ref_code_id    Int?
+  link_id        Int?
+  ts             DateTime        @default(now()) @db.Timestamp(6)
+  ip_hash        String?         @db.VarChar
+  ua             String?
+  referer        String?
+  utm_source     String?         @db.VarChar
+  is_bot         Boolean         @default(false)
+  dwell_ok       Boolean         @default(false)
+  paid           Boolean         @default(false)
+  paid_at        DateTime?       @db.Timestamp(6)
+  referral_links referral_links? @relation(fields: [link_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  referral_codes referral_codes? @relation(fields: [ref_code_id], references: [id], onUpdate: NoAction)
+
+  @@index([ip_hash, link_id], map: "ix_refclick_uniqueness")
+  @@index([ip_hash, ref_code_id], map: "ix_refclick_uniqueness_code")
+  @@index([ip_hash], map: "ix_referral_clicks_ip_hash")
+  @@index([link_id], map: "ix_referral_clicks_link_id")
+  @@index([ref_code_id], map: "ix_referral_clicks_ref_code_id")
+  @@index([ts], map: "ix_referral_clicks_ts")
+}
+
+model referral_codes {
+  id               Int               @id @default(autoincrement())
+  external_id      String            @unique(map: "ix_referral_codes_external_id") @db.VarChar
+  code             String            @unique(map: "ix_referral_codes_code") @db.VarChar
+  clicks           Int
+  signups          Int
+  earnings_pennies Int
+  created_at       DateTime?         @db.Timestamp(6)
+  updated_at       DateTime?         @db.Timestamp(6)
+  referral_clicks  referral_clicks[]
+}
+
+model referral_events {
+  id             String    @id @db.VarChar
+  external_id    String    @db.VarChar
+  type           String    @db.VarChar
+  amount_pennies Int?
+  referee_email  String?   @db.VarChar
+  status         String?   @db.VarChar
+  note           String?
+  created_at     DateTime? @db.Timestamp(6)
+
+  @@index([external_id], map: "ix_referral_events_external_id")
+  @@index([id], map: "ix_referral_events_id")
+}
+
+model referral_links {
+  id                       Int               @id @default(autoincrement())
+  owner_external_id        String            @db.VarChar
+  slug                     String            @unique(map: "ix_referral_links_slug") @db.VarChar
+  campaign                 String?           @db.VarChar
+  payout_pennies_per_click Int               @default(0)
+  is_cpc_enabled           Boolean           @default(true)
+  is_attr_enabled          Boolean           @default(true)
+  active                   Boolean           @default(true)
+  revoked_at               DateTime?         @db.Timestamp(6)
+  revoked_reason           String?
+  created_at               DateTime          @default(now()) @db.Timestamp(6)
+  referral_clicks          referral_clicks[]
+  subscriptions            subscriptions     @relation(fields: [owner_external_id], references: [external_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([owner_external_id], map: "ix_referral_links_owner_external_id")
+}
+
+model scanned_mails {
+  id                 Int       @id @default(autoincrement())
+  external_id        String?   @db.VarChar
+  url                String?
   url_envelope_front String?
   url_envelope_back  String?
-  file_name          String?
-  created_at         DateTime @default(now())
-  received_at        DateTime
-  company_name       String
-
-  sender_name        String
-  document_title     String
-  reference_number   String?
-  summary            String
-  industry           String
-
-  categories         String
-  sub_categories     String
+  file_name          String?   @db.VarChar
+  created_at         DateTime? @db.Timestamp(6)
+  received_at        DateTime? @db.Timestamp(6)
+  company_name       String?   @db.VarChar
+  sender_name        String?   @db.VarChar
+  document_title     String?   @db.VarChar
+  reference_number   String?   @db.VarChar
+  summary            String?   @db.VarChar
+  industry           String?   @db.VarChar
+  categories         String?   @db.VarChar
+  sub_categories     String?   @db.VarChar
   key_information    String?
+  is_forwarded       Boolean?
+  forwarded_at       DateTime? @db.Timestamp(6)
+  status             String?   @db.VarChar
+  deleted_at         DateTime? @db.Timestamp(6)
+  is_read            Boolean
+  read_at            DateTime? @db.Timestamp(6)
 
-  is_forwarded       Boolean   @default(false)
-  forwarded_at       DateTime?
-
-  read Boolean @default(false) @map("read")
-
-  subscription       Subscription @relation(fields: [external_id], references: [external_id])
-
-  @@index([id])
-  @@index([external_id])
+  @@index([external_id], map: "ix_scanned_mails_external_id")
+  @@index([external_id, is_read], map: "ix_scanned_mails_external_isread")
+  @@index([external_id, status], map: "ix_scanned_mails_external_status")
+  @@index([id], map: "ix_scanned_mails_id")
+  @@index([status], map: "ix_scanned_mails_status")
+  @@index([external_id, is_read, deleted_at, status], map: "ix_scanned_mails_unread_fast")
 }
 
+model subscriptions {
+  external_id            String           @id @db.VarChar
+  product_id             Int?
+  customer_first_name    String?          @db.VarChar
+  customer_middle_name   String?          @db.VarChar
+  customer_last_name     String?          @db.VarChar
+  customer_email         String?          @db.VarChar
+  stripe_customer_id     String?          @db.VarChar
+  review_status          String?          @db.VarChar
+  shipping_line_1        String?          @db.VarChar
+  shipping_line_2        String?          @db.VarChar
+  shipping_line_3        String?          @db.VarChar
+  shipping_city          String?          @db.VarChar
+  shipping_postcode      String?          @db.VarChar
+  shipping_state         String?          @db.VarChar
+  shipping_country       String?          @db.VarChar
+  company_name           String?          @db.VarChar
+  company_trading_name   String?          @db.VarChar
+  company_number         String?          @db.VarChar
+  organisation_type      Int?
+  telephone_number       String?          @db.VarChar
+  stripe_subscription_id String?          @db.VarChar
+  start_date             DateTime?        @db.Timestamp(6)
+  hoxton_status          String?          @db.VarChar
+  activated_at           DateTime?        @db.Timestamp(6)
+  first_paid_at          DateTime?        @db.Timestamp(6)
+  referral_code          String?          @db.VarChar
+  referral_reward_paid   Boolean          @default(false)
+  stripe_price_id        String?          @db.VarChar
+  referral_links         referral_links[]
 
-model FailedPaymentAttempt {
-  id                Int      @id @default(autoincrement())
-  external_id       String
-  reason            String
-  payment_intent_id String?
-  created_at        DateTime @default(now())
-
-  @@index([external_id])
+  @@index([hoxton_status], map: "ix_subscriptions_hoxton_status")
+  @@index([referral_code], map: "ix_subscriptions_referral_code")
+  @@index([stripe_price_id], map: "ix_subscriptions_stripe_price_id")
 }
 
-model ReferralEarning {
-  id             String    @id @default(cuid())
-  referrer_email String
-  referee_email  String
-  amount_pennies Int
-  status         String    @default("pending") // pending | paid
-  createdAt      DateTime  @default(now())
-  paidAt         DateTime?
-}
-
-model KycToken {
-  token         String   @id
-  date_created  DateTime @default(now())
-  email         String
-  product_id    Int
-  plan_name     String
-  expires_at    DateTime
-  kyc_submitted Int      @default(0)
-  session_id    String?
+model wallets {
+  id              String    @id @db.VarChar
+  external_id     String    @unique @db.VarChar
+  balance_pennies Int?
+  created_at      DateTime? @db.Timestamp(6)
+  updated_at      DateTime? @db.Timestamp(6)
 }
