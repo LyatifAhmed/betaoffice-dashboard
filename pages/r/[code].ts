@@ -9,7 +9,7 @@ const LANDING_URL =
 
 // Resolve backend base URL (Render)
 function backendBase() {
-  const b = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || "";
+  const b = process.env.NEXT_PUBLIC_HOXTON_API_URL  || process.env.BACKEND_URL || "";
   return String(b).replace(/\/+$/, "");
 }
 

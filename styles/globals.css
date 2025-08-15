@@ -183,3 +183,22 @@ html {
   .animate-shine  { animation: shine-pan 18s ease-in-out infinite; }
 }
 
+/* Soft pembe–fuşya degrade arka plan + yumuşak animasyon */
+.mail-area {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 182, 193, 0.35) 0%,
+    rgba(255, 105, 180, 0.35) 50%,
+    rgba(240, 128, 128, 0.30) 100%
+  );
+  background-size: 200% 200%;
+  animation: mailGradientShift 16s ease-in-out infinite;
+  /* içeriğin rahat nefes alması için hafif iç gölge */
+  box-shadow: inset 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes mailGradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

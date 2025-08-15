@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import MailCard from "@/components/ui/MailCard";
 import { Calendar, Filter } from "lucide-react";
-
+import React from "react";
 /**
  * List:     /api/hoxton/mail?external_id=...&source=db   (local DB)
  * Actions:  /api/backend/...                              (Next API proxy -> backend)

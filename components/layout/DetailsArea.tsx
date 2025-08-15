@@ -37,7 +37,6 @@ function pickAddressLike(d: any, base?: string) {
 }
 
 function pickForwardingAddress(d: any) {
-  // farklı backend adları için esnek alan seçimi
   const direct =
     d?.forwarding_address ??
     d?.mailing_address ??
@@ -60,10 +59,18 @@ function normalizeCompany(data: any) {
   const d = data || {};
   const name = d.company_name ?? d.name ?? d.legal_name ?? "—";
   const number = d.company_number ?? d.registration_number ?? d.reg_no ?? "—";
-  const incorporationDate = d.incorporation_date ?? d.incorp_date ?? d.created_at ?? null;
+  const incorporationDate = d.incorporation_date ?? d.incorp_date ?? d.start_date ?? d.created_at ?? null;
   const address = pickAddressLike(d, d.registered_address);
-  const forwardingAddress = pickForwardingAddress(d);
+
+  // forwarding yoksa registered’a düş
+  const rawForward = pickForwardingAddress(d);
+  const forwardingAddress = rawForward || address;
+
   const walletBalance = Number(d.wallet_balance ?? d.balance ?? 0);
+
+  // Hoxton/Review status
+  const reviewStatus =
+    (d.review_status ?? d.hoxton_status ?? d.status ?? "").toString().toLowerCase() || null;
 
   return {
     name,
@@ -72,6 +79,7 @@ function normalizeCompany(data: any) {
     address,
     forwardingAddress,
     walletBalance,
+    reviewStatus,
   };
 }
 
@@ -92,7 +100,7 @@ export default function DetailsArea() {
   const [topupAmount, setTopupAmount] = useState<string>("25");
   const [busy, setBusy] = useState<"topup" | "cert" | null>(null);
 
-  // virtual office address (kartvizit kartında gösterilecek sabit metin)
+  // virtual office card metni
   const VIRTUAL_OFFICE_ADDR = "86-90 Paul Street\nLondon EC2A 4NE, UK";
 
   // external_id: cookie -> localStorage
@@ -110,12 +118,14 @@ export default function DetailsArea() {
     if (!externalId) return null;
     return backend(`/company?external_id=${encodeURIComponent(externalId)}`);
   }, [externalId]);
+
   const {
     data: companyRaw,
     isLoading: loadingCompany,
     error: companyErr,
     mutate: mutateCompany,
   } = useSWR(companyUrl, fetcher, { revalidateOnFocus: false });
+
   const company = useMemo(() => normalizeCompany(companyRaw), [companyRaw]);
 
   const fmtDate = (v: any) => {
@@ -169,19 +179,19 @@ export default function DetailsArea() {
   };
 
   return (
-    <div className="w-full flex justify-center px-2 sm:px-6 lg:px-3 pt-16">
+    <div className="w-full flex justify-center px-2 sm:px-4 lg:px-6 pt-14">
       <div className="w-full max-w-[92rem] space-y-6">
         <div
-          className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6 space-y-6
+          className="rounded-2xl border bg-white text-gray-900 shadow-sm p-4 sm:p-6 space-y-6
                      border-gray-200 dark:bg-[#0b1220] dark:text-white dark:border-white/15"
         >
           {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-xl sm:text-2xl font-semibold">Company & Details</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold">Account & details</h2>
               <p className="text-sm text-gray-600 dark:text-white/70">
                 Manage wallet, view your addresses and download your certificate. Subscription
-                changes (cancel/restart) are available in the <span className="font-semibold">Billing</span> tab.
+                changes are available in the <span className="font-semibold">Billing</span> tab.
               </p>
             </div>
 
@@ -231,32 +241,32 @@ export default function DetailsArea() {
 
           {/* Top stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Stat title="Wallet balance" value={`£${company.walletBalance.toFixed(2)}`} />
+            <Stat title="Wallet balance" value={`£${(company.walletBalance || 0).toFixed(2)}`} />
             <Stat title="Company number" value={company.number} />
             <Stat title="Incorporation date" value={fmtDate(company.incorporationDate)} />
           </div>
 
-          {/* Addresses */}
-          <div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch"
-          >
-            {/* Registered + Forwarding (standard card) */}
+          {/* Addresses + Card */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
+            {/* Company + addresses */}
             <div
               className="rounded-xl border p-4 bg-gray-50 text-gray-900
-                         border-gray-200 dark:bg-white/5 dark:text-white dark:border-white/10
-                         lg:col-span-2"
+                         border-gray-200 dark:bg-white/5 dark:text-white dark:border-white/10"
             >
-              <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                <div className="md:col-span-2">
+              <dl className="grid grid-cols-1 gap-y-3 text-sm">
+                <div>
+                  <dt className="text-gray-500 dark:text-white/60 mb-1">Company name</dt>
+                  <dd className="font-semibold text-[15px] leading-5">{company.name}</dd>
+                </div>
+
+                <div className="pt-1">
                   <dt className="text-gray-500 dark:text-white/60">Registered address</dt>
                   <dd className="font-medium whitespace-pre-line">{company.address}</dd>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="pt-1">
                   <dt className="text-gray-500 dark:text-white/60">Forwarding address</dt>
-                  <dd className="font-medium whitespace-pre-line">
-                    {company.forwardingAddress ?? "—"}
-                  </dd>
+                  <dd className="font-medium whitespace-pre-line">{company.forwardingAddress}</dd>
                 </div>
               </dl>
               {loadingCompany && (
@@ -264,8 +274,14 @@ export default function DetailsArea() {
               )}
             </div>
 
-            {/* Virtual office – premium business card */}
-            <VirtualAddressCard address={VIRTUAL_OFFICE_ADDR} />
+            {/* Virtual office – clean card with status badge */}
+            <div className="justify-self-center lg:justify-self-end">
+              <VirtualAddressCard
+                address={VIRTUAL_OFFICE_ADDR}
+                status={company.reviewStatus}
+                title="BetaOffice — London"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -333,34 +349,72 @@ function Stat({ title, value }: { title: string; value: string }) {
   );
 }
 
-/** Parıltı yansıma efektli premium kartvizit görünümlü virtual office kartı */
-function VirtualAddressCard({ address }: { address: string }) {
+/** Şık, yalın adres kartı (butonsuz) + köşede status rozeti */
+function VirtualAddressCard({
+  address,
+  status,
+  title = "BetaOffice — London",
+}: {
+  address: string;
+  status: string | null;
+  title?: string;
+}) {
   return (
-    <div className="relative group overflow-hidden rounded-2xl border border-white/20 bg-[radial-gradient(120%_160%_at_50%_-20%,rgba(236,72,153,0.25),rgba(79,70,229,0.25)_35%,rgba(2,6,23,0.85)_62%,rgba(2,6,23,0.95)_100%)] shadow-[0_20px_60px_rgba(79,70,229,0.25)] backdrop-blur-xl text-white p-5">
-      {/* parıltı/yansıma */}
+    <div
+      className="relative overflow-hidden rounded-2xl border border-white/15
+                 bg-[radial-gradient(120%_160%_at_50%_-20%,rgba(236,72,153,0.28),rgba(79,70,229,0.28)_35%,rgba(2,6,23,0.88)_62%,rgba(2,6,23,0.95)_100%)]
+                 shadow-[0_16px_50px_rgba(79,70,229,0.25)] backdrop-blur-xl text-white
+                 px-5 py-4 max-w-[320px] md:max-w-[360px]"
+    >
+      {/* Parıltı çizgisi */}
       <div
-        className="absolute -left-1/3 top-0 h-full w-1/3 rotate-12 bg-white/15 blur-xl
-                   translate-x-0 transition-transform duration-700 ease-out
-                   group-hover:translate-x-[260%]"
+        className="pointer-events-none absolute -left-1/3 top-0 h-full w-1/3 rotate-12 bg-white/15 blur-xl
+                   translate-x-0 transition-transform duration-700 ease-out"
       />
-      {/* ince dış çizgi */}
-      <div className="absolute inset-0 rounded-2xl ring-1 ring-white/15 pointer-events-none" />
+      {/* İnce dış çizgi */}
+      <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
 
-      <div className="relative z-10 flex h-full flex-col">
-        <div className="text-[11px] uppercase tracking-widest text-fuchsia-200/90">
-          Virtual Office
+      {/* Üst satır: başlık + status */}
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-widest text-fuchsia-200/90">Virtual Office</div>
+          <div className="mt-0.5 text-base font-semibold leading-tight">{title}</div>
         </div>
-        <div className="mt-1 text-lg font-semibold">BetaOffice — London</div>
-
-        <pre className="mt-3 whitespace-pre-line text-sm text-white/90 font-sans leading-6">
-{address}
-        </pre>
-
-        <div className="mt-auto pt-4 flex items-center justify-between text-[11px] text-white/70">
-          <span>Premium business presence</span>
-          <span>EC2A • Shoreditch</span>
-        </div>
+        <ReviewStatusBadge status={status} />
       </div>
+
+      {/* Adres */}
+      <pre className="relative z-10 mt-3 whitespace-pre-line text-[13px] leading-6 text-white/90 font-sans">
+{address}
+      </pre>
     </div>
+  );
+}
+
+/** Hoxton review status → rozet renkleri */
+function ReviewStatusBadge({ status }: { status: string | null }) {
+  const s = (status || "").toLowerCase();
+
+  let label = "No ID";
+  let cls = "bg-white/10 text-white border-white/20";
+
+  if (s.includes("active") || s === "approved") {
+    label = "Active";
+    cls = "bg-emerald-500/20 text-emerald-200 border-emerald-400/30";
+  } else if (s.includes("cancel") || s.includes("canceled") || s === "cancelled") {
+    label = "Cancelled";
+    cls = "bg-rose-500/20 text-rose-200 border-rose-400/30";
+  } else if (s.includes("pending") || s.includes("submitted") || s.includes("review")) {
+    label = "In review";
+    cls = "bg-amber-500/20 text-amber-200 border-amber-400/30";
+  }
+
+  return (
+    <span
+      className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold ${cls}`}
+      title={`Status: ${label}`}
+    >
+      {label}
+    </span>
   );
 }

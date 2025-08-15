@@ -14,9 +14,14 @@ import DetailsTab from "@/components/layout/DetailsArea";
 import ReferralTab from "@/components/layout/ReferralArea";
 import SelectionBar from "@/components/layout/SelectionBar";
 import WalletFab from "@/components/ui/WalletFab";
-import ChatFab from "@/components/ChatBox";
-import BillingArea from "@/components/layout/BillingArea";         // ← NEW
-import AffiliateTab from "@/components/layout/AffiliateTab";       // ← uses your existing file
+
+import BillingArea from "@/components/layout/BillingArea";
+import AffiliateTab from "@/components/layout/AffiliateTab";
+
+// ✅ Chat
+import ChatBox from "@/components/ChatBox";            // store kontrollü, props gerektirmez
+import MagicChatButton from "@/components/MagicChatButton";
+import { useSyncChatContext } from "@/utils/chat-context";
 
 type SelectionMeta = {
   selectedCount: number;
@@ -38,6 +43,16 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   const [activeTab, setActiveTab] = useState<DashboardTab>("mail");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const barRef = useRef<SmartStatusBarHandle>(null);
+
+  // ✅ Chat bağlamını sekmeye göre eşitle
+  useSyncChatContext(
+    activeTab === "mail"      ? "inbox"     :
+    activeTab === "details"   ? "settings"  :
+    activeTab === "billing"   ? "billing"   :
+    activeTab === "affiliate" ? "affiliate" :
+    activeTab === "referral"  ? "referral"  :
+    "inbox"
+  );
 
   const [selectionMeta, setSelectionMeta] = useState<SelectionMeta>({
     selectedCount: 0,
@@ -84,7 +99,9 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
 
   const handleNewMail = (evt?: { urgent?: boolean }) => {
     try {
-      mutate((key: string) => typeof key === "string" && key.startsWith("/api/hoxton/mail"), undefined, { revalidate: true });
+      mutate((key: string) => typeof key === "string" && key.startsWith("/api/hoxton/mail"), undefined, {
+        revalidate: true,
+      });
       const ext = readExternalIdFromBrowser();
       if (ext) {
         mutate(`/api/hoxton/mail?external_id=${encodeURIComponent(ext)}&source=remote`, undefined, { revalidate: true });
@@ -140,8 +157,8 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         : "Your mail center";
     }
     if (activeTab === "details") return "Account & details";
-    if (activeTab === "billing") return "Billing & invoices";       // ← NEW
-    if (activeTab === "affiliate") return "Affiliate partners";     // ← NEW
+    if (activeTab === "billing") return "Billing & invoices";
+    if (activeTab === "affiliate") return "Affiliate partners";
     if (activeTab === "referral") return "Referral & rewards";
     return "Your subscription is active.";
   }, [activeTab, selectionMeta.selectedCount, urgentFlash]);
@@ -153,7 +170,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   }, [activeTab, selectionMeta]);
 
   return (
-    <div className="flex w-full flex-col md:flex-row bg-[#f7f9fc] text-black dark:bg-[#0b1220] dark:text-white min-h-[100svh]">
+    <div className="flex w-full flex-col md:flex-row bg-[#f7f9fce8] text-black dark:bg-[#0b1220] dark:text-white min-h-[100svh]">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <MainSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -205,10 +222,12 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         <div className="flex-1 min-w-0 flex items-stretch overflow-hidden gap-3 sm:gap-4 md:gap-6 pb-[env(safe-area-inset-bottom)]">
           <main className="min-w-0 flex-1 overflow-y-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-3">
             <div className="mx-auto w-full max-w-[92rem]">
-              {activeTab === "mail" && <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />}
+              {activeTab === "mail" && (
+                <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />
+              )}
               {activeTab === "details" && <DetailsTab />}
-              {activeTab === "billing" && <BillingArea />}         {/* ← NEW */}
-              {activeTab === "affiliate" && <AffiliateTab />}      {/* ← NEW (your existing component) */}
+              {activeTab === "billing" && <BillingArea />}
+              {activeTab === "affiliate" && <AffiliateTab />}
               {activeTab === "referral" && <ReferralTab />}
               {children}
             </div>
@@ -227,13 +246,16 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           <div className="z-[60]">
             <WalletFab balance={walletBalance} position="right" onTopUp={handleTopUp} />
           </div>
-          {/* Chat: mobilde mail tabında gizli, diğerlerinde açık; masaüstünde her zaman gösterilebilir */}
+
+          {/* Chat toggle butonu: mail sekmesinde mobilde gizle, diğerlerinde göster */}
           <div className={activeTab === "mail" ? "hidden md:block" : "block"}>
-            <ChatFab onClose={() => { /* keep open or integrate your state */ }} />
+            <MagicChatButton />
           </div>
         </div>
       </div>
+
+      {/* Chat kutusu: her sayfada mount olur; aç/kapa store’dan yönetilir */}
+      <ChatBox />
     </div>
   );
 }
-

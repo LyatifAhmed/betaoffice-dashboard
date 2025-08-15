@@ -17,7 +17,7 @@ export default function SelectionBar({
   isTrashView = false,
 }: Props) {
   const visible = selectedCount > 0;
-  const primaryLabel = isTrashView ? "Restore" : "Move to Trash";
+  const primaryLabel = isTrashView ? "Restore" : "Delete";
 
   return (
     <div

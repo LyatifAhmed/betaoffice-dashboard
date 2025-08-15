@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== "POST") return res.status(405).end("Method Not Allowed");
 
   try {
-    const backend = getBackendUrl(); // .env.local -> HOXTON_API_URL
+    const backend = getBackendUrl(); // .env.local -> NEXT_PUBLIC_HOXTON_API_URL
     if (!backend) {
       return res.status(500).json({ error: "backend_url_missing" });
     }

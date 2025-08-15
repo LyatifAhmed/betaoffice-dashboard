@@ -1,16 +1,12 @@
 // lib/server-backend.ts
 export function getBackendUrl() {
-  const u = process.env.HOXTON_API_URL;
-  if (!u) throw new Error("HOXTON_API_URL is not set");
-  return u.replace(/\/$/, "");
+  const raw = process.env.NEXT_PUBLIC_HOXTON_API_URL || "http://localhost:8000";
+  return raw.replace(/\/$/, "");
 }
-
 export function withBasicAuth(init: RequestInit = {}) {
-  const user = process.env.BASIC_AUTH_USER ?? "";
-  const pass = process.env.BASIC_AUTH_PASS ?? "";
-  const auth = "Basic " + Buffer.from(`${user}:${pass}`).toString("base64");
-
-  const headers = new Headers(init.headers as any);
-  if (!headers.has("Authorization")) headers.set("Authorization", auth);
-  return { ...init, headers };
+  const u = process.env.BASIC_AUTH_USER || "";
+  const p = process.env.BASIC_AUTH_PASS || "";
+  const h = new Headers(init.headers || {});
+  if (u || p) h.set("Authorization", "Basic " + Buffer.from(`${u}:${p}`).toString("base64"));
+  return { ...init, headers: h };
 }
