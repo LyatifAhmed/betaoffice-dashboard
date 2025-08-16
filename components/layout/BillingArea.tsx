@@ -18,6 +18,8 @@ import {
   ArrowRightLeft,
   Info,
   BadgePercent,
+  Home,
+  Save,
 } from "lucide-react";
 
 /* ------------------------------ Types ------------------------------ */
@@ -63,17 +65,39 @@ type PlanInfo = {
   interval: "month" | "year";
   features: string[];
   badge?: string;
-  vat_note?: string;             // UI copy only
+  vat_note?: string;
   price_id_env: string;          // env var name
 };
 
-/* ------------------------------ Constants (match Home) ------------------------------ */
+type Subscription = {
+  price_id?: string;
+  plan_id?: PlanId;
+  status: "ACTIVE" | "CANCELLED" | "PENDING" | "PAST_DUE";
+  current_period_end?: string;     // ISO
+  cancel_at_period_end?: boolean;
+};
+
+/** Billing Address shape (Stripe Customer billing_details / invoice_settings) */
+type BillingAddress = {
+  name?: string;
+  company?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;       // ISO-2 e.g. "GB"
+  email?: string;
+  phone?: string;
+};
+
+/* ------------------------------ Constants ------------------------------ */
 
 const PLANS: PlanInfo[] = [
   {
     id: "monthly",
     name: "Monthly",
-    price_pennies: 2000,                    // £20
+    price_pennies: 2000,
     interval: "month",
     features: [
       "Prestigious London address",
@@ -87,7 +111,7 @@ const PLANS: PlanInfo[] = [
   {
     id: "annual",
     name: "Annual",
-    price_pennies: 20000,                   // £200
+    price_pennies: 20000,
     interval: "year",
     features: [
       "All monthly features",
@@ -100,6 +124,15 @@ const PLANS: PlanInfo[] = [
     price_id_env: "NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID",
   },
 ];
+
+const COUNTRIES = [
+  { code: "GB", label: "United Kingdom" },
+  { code: "US", label: "United States" },
+  { code: "DE", label: "Germany" },
+  { code: "NL", label: "Netherlands" },
+  { code: "FR", label: "France" },
+  { code: "TR", label: "Türkiye" },
+] as const;
 
 /* ------------------------------ Utils ------------------------------ */
 
@@ -127,17 +160,6 @@ const chargeBadge = (status: Charge["status"]) => {
   return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-200";
 };
 
-/* ------------------------------ Subscription shape (server) ------------------------------ */
-
-type Subscription = {
-  // backend artık plan yerine price_id ile çalışabilir
-  price_id?: string;               // Stripe price id
-  plan_id?: PlanId;                // geriye dönük uyum için
-  status: "ACTIVE" | "CANCELLED" | "PENDING" | "PAST_DUE";
-  current_period_end?: string;     // ISO
-  cancel_at_period_end?: boolean;
-};
-
 /* ------------------------------ Component ------------------------------ */
 
 export default function BillingArea() {
@@ -162,10 +184,19 @@ export default function BillingArea() {
   const [sub, setSub] = useState<Subscription | null>(null);
   const [busyAction, setBusyAction] = useState<"change" | "cancel" | "resume" | null>(null);
 
-  // charges (payment history)
+  // charges
   const [chgLoading, setChgLoading] = useState(true);
   const [chgErr, setChgErr] = useState<string>("");
   const [charges, setCharges] = useState<Charge[]>([]);
+
+  // billing address
+  const [addrLoading, setAddrLoading] = useState(true);
+  const [addrErr, setAddrErr] = useState<string>("");
+  const [addrSaving, setAddrSaving] = useState(false);
+  const [addr, setAddr] = useState<BillingAddress>({
+    country: "GB",
+  });
+  const [addrDirty, setAddrDirty] = useState(false);
 
   const totalDue = useMemo(() => {
     const gbp = invoices.filter(i => i.status === "due" && i.currency === "GBP")
@@ -179,16 +210,11 @@ export default function BillingArea() {
     process.env[envName as keyof typeof process.env] ??
     (process as any).env?.[envName];
 
-  // aktif planı env price id üzerinden çöz
+  // aktif plan (env price id eşleşmesi)
   const currentPlan: PlanInfo | null = useMemo(() => {
-    // sub.price_id mevcutsa env eşleşmesi yap
     if (sub?.price_id) {
-      return (
-        PLANS.find(p => envPriceId(p.price_id_env) === sub.price_id) ??
-        null
-      );
+      return PLANS.find(p => envPriceId(p.price_id_env) === sub.price_id) ?? null;
     }
-    // geriye dönük: plan_id varsa kullan
     if (sub?.plan_id) {
       return PLANS.find(p => p.id === sub.plan_id) ?? null;
     }
@@ -198,8 +224,7 @@ export default function BillingArea() {
   /* ------------------------------ Fetchers ------------------------------ */
 
   const loadInvoices = async () => {
-    setLoading(true);
-    setErr("");
+    setLoading(true); setErr("");
     try {
       const r = await fetch("/api/billing/invoices", { cache: "no-store" });
       if (!r.ok) throw new Error(String(r.status));
@@ -207,16 +232,12 @@ export default function BillingArea() {
       const rows: Invoice[] = Array.isArray(data?.results) ? data.results : data;
       setInvoices(rows ?? []);
     } catch {
-      setErr("Failed to load invoices.");
-      setInvoices([]);
-    } finally {
-      setLoading(false);
-    }
+      setErr("Failed to load invoices."); setInvoices([]);
+    } finally { setLoading(false); }
   };
 
   const loadMethods = async () => {
-    setPmLoading(true);
-    setPmErr("");
+    setPmLoading(true); setPmErr("");
     try {
       const r = await fetch("/api/billing/payment-methods", { cache: "no-store" });
       if (!r.ok) throw new Error(String(r.status));
@@ -224,43 +245,46 @@ export default function BillingArea() {
       const rows: PaymentMethod[] = Array.isArray(data?.results) ? data.results : data;
       setMethods(rows ?? []);
     } catch {
-      setPmErr("Failed to load payment methods.");
-      setMethods([]);
-    } finally {
-      setPmLoading(false);
-    }
+      setPmErr("Failed to load payment methods."); setMethods([]);
+    } finally { setPmLoading(false); }
   };
 
   const loadSubscription = async () => {
-    setSubLoading(true);
-    setSubErr("");
+    setSubLoading(true); setSubErr("");
     try {
       const r = await fetch("/api/billing/subscription", { cache: "no-store" });
       if (!r.ok) throw new Error(String(r.status));
       const data: Subscription = await r.json();
       setSub(data ?? null);
     } catch {
-      setSubErr("Failed to load subscription info.");
-      setSub(null);
-    } finally {
-      setSubLoading(false);
-    }
+      setSubErr("Failed to load subscription info."); setSub(null);
+    } finally { setSubLoading(false); }
   };
 
   const loadCharges = async () => {
-    setChgLoading(true);
-    setChgErr("");
+    setChgLoading(true); setChgErr("");
     try {
       const r = await fetch("/api/billing/charges?limit=20", { cache: "no-store" });
       if (!r.ok) throw new Error(String(r.status));
       const data: Charge[] = await r.json();
       setCharges(Array.isArray(data) ? data : []);
     } catch {
-      setChgErr("Failed to load payment history.");
-      setCharges([]);
-    } finally {
-      setChgLoading(false);
-    }
+      setChgErr("Failed to load payment history."); setCharges([]);
+    } finally { setChgLoading(false); }
+  };
+
+  const loadAddress = async () => {
+    setAddrLoading(true); setAddrErr("");
+    try {
+      const r = await fetch("/api/billing/address", { cache: "no-store" });
+      if (!r.ok) throw new Error(String(r.status));
+      const data = await r.json();
+      const a: BillingAddress = data?.address ?? data ?? {};
+      setAddr({ country: "GB", ...a });
+      setAddrDirty(false);
+    } catch {
+      setAddrErr("Failed to load billing address.");
+    } finally { setAddrLoading(false); }
   };
 
   useEffect(() => {
@@ -268,12 +292,13 @@ export default function BillingArea() {
     loadMethods();
     loadSubscription();
     loadCharges();
+    loadAddress();
   }, []);
 
   /* ------------------------------ Actions ------------------------------ */
 
   const addCard = async () => {
-    // ⚠️ Örnek; prod’da Stripe Elements vb. ile tokenize et.
+    // ⚠️ DEMO: Gerçekte Stripe Elements ile tokenize et.
     if (!card.number || !card.exp || !card.cvc) return alert("Please fill all card fields.");
     setAdding(true);
     try {
@@ -315,13 +340,9 @@ export default function BillingArea() {
     }
   };
 
-  // Ana sayfa akışına uygun: price_id ile plan değiştir
   const changePlan = async (target: PlanInfo) => {
     const priceId = envPriceId(target.price_id_env);
-    if (!priceId) {
-      alert(`Missing env: ${target.price_id_env}`);
-      return;
-    }
+    if (!priceId) return alert(`Missing env: ${target.price_id_env}`);
     const label = `${target.name} (${money(target.price_pennies, "GBP")}/${target.interval})`;
     if (!confirm(`Switch your subscription to ${label}? Proration may apply.`)) return;
 
@@ -334,7 +355,7 @@ export default function BillingArea() {
       });
       if (!r.ok) throw new Error(String(r.status));
       await loadSubscription();
-      await loadInvoices(); // olası pro-rata fatura için
+      await loadInvoices();
     } catch {
       alert("Failed to change plan.");
     } finally {
@@ -369,6 +390,29 @@ export default function BillingArea() {
     }
   };
 
+  const saveAddress = async () => {
+    // min validation
+    if (!addr?.line1 || !addr?.city || !addr?.postal_code || !addr?.country) {
+      return alert("Please fill required address fields.");
+    }
+    setAddrSaving(true);
+    try {
+      const r = await fetch("/api/billing/address", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: addr }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      setAddrDirty(false);
+      // İsteğe bağlı: fatura önizlemesi güncellensin diye yeniden çek
+      await loadInvoices();
+    } catch {
+      alert("Failed to save billing address.");
+    } finally {
+      setAddrSaving(false);
+    }
+  };
+
   /* ------------------------------ Render ------------------------------ */
 
   return (
@@ -384,11 +428,11 @@ export default function BillingArea() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { loadInvoices(); loadMethods(); loadSubscription(); loadCharges(); }}
+                onClick={() => { loadInvoices(); loadMethods(); loadSubscription(); loadCharges(); loadAddress(); }}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300
                            bg-white hover:bg-gray-50 dark:bg-white/10 dark:border-white/20"
               >
-                <RefreshCw className={`w-4 h-4 ${loading || pmLoading || subLoading || chgLoading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`w-4 h-4 ${loading || pmLoading || subLoading || chgLoading || addrLoading ? "animate-spin" : ""}`} />
                 Refresh
               </button>
               <button
@@ -416,9 +460,9 @@ export default function BillingArea() {
           </div>
         </div>
 
-        {/* GRID: Subscription + Methods + Invoices */}
+        {/* GRID */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Subscription card */}
+          {/* Subscription */}
           <div className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6
                           border-gray-200 dark:bg-[#0b1220] dark:text-white dark:border-white/15">
             <div className="flex items-center justify-between">
@@ -461,7 +505,6 @@ export default function BillingArea() {
                   )}
                 </div>
 
-                {/* Plan chooser (Monthly vs Annual) */}
                 <div className="mt-4 space-y-3">
                   <div className="text-sm font-medium flex items-center gap-2">
                     <ArrowRightLeft className="w-4 h-4 text-fuchsia-500" />
@@ -475,7 +518,6 @@ export default function BillingArea() {
                           <BadgePercent className="w-3 h-3" /> {p.badge}
                         </span>
                       ) : null;
-
                       return (
                         <button
                           key={p.id}
@@ -505,7 +547,6 @@ export default function BillingArea() {
                   </div>
                 </div>
 
-                {/* Cancel / Resume */}
                 <div className="mt-4 flex flex-wrap gap-2">
                   {!sub.cancel_at_period_end && sub.status === "ACTIVE" ? (
                     <button
@@ -545,71 +586,175 @@ export default function BillingArea() {
             )}
           </div>
 
-          {/* Payment Methods */}
-          <div className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6
-                          border-gray-200 dark:bg-[#0b1220] dark:text-white dark:border-white/15">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Payment methods</h3>
+          {/* Payment Methods + Billing Address (same column stack on xl) */}
+          <div className="space-y-6">
+            {/* Payment Methods */}
+            <div className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6
+                            border-gray-200 dark:bg-[#0b1220] dark:text-white dark:border-white/15">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Payment methods</h3>
+              </div>
+
+              {pmErr && (
+                <div className="mt-3 text-sm rounded-md px-3 py-2 bg-rose-50 text-rose-700 border border-rose-200
+                                dark:bg-rose-500/10 dark:text-rose-200 dark:border-rose-400/30">
+                  {pmErr}
+                </div>
+              )}
+
+              {pmLoading ? (
+                <div className="mt-4 space-y-3">
+                  {[1,2].map(k => (
+                    <div key={k} className="h-16 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : methods.length === 0 ? (
+                <div className="mt-4 text-sm text-gray-600 dark:text-white/70">
+                  No payment methods. Click <b>Add card</b> to attach one.
+                </div>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {methods.map(m => (
+                    <li key={m.id} className="rounded-xl border border-gray-200 dark:border-white/10 p-4 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium capitalize">
+                          {m.brand || "card"} •••• {m.last4}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-white/60">
+                          Expires {String(m.exp_month).padStart(2,"0")}/{String(m.exp_year).slice(-2)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {m.is_default ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border
+                                           bg-emerald-50 text-emerald-700 border-emerald-200
+                                           dark:bg-emerald-500/10 dark:text-emerald-200">
+                            <Star className="w-3.5 h-3.5" /> Default
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setDefault(m.id)}
+                            className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50
+                                       dark:bg-white/10 dark:border-white/20"
+                          >
+                            Make default
+                          </button>
+                        )}
+                        <button
+                          onClick={() => removeMethod(m.id)}
+                          className="px-2 py-1 text-xs rounded-md border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100
+                                     dark:bg-rose-500/10 dark:border-rose-400/30 dark:text-rose-200"
+                          title="Remove card"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            {pmErr && (
-              <div className="mt-3 text-sm rounded-md px-3 py-2 bg-rose-50 text-rose-700 border border-rose-200
-                              dark:bg-rose-500/10 dark:text-rose-200 dark:border-rose-400/30">
-                {pmErr}
+            {/* Billing Address */}
+            <div className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6
+                            border-gray-200 dark:bg-[#0b1220] dark:text-white dark:border-white/15">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Home className="w-5 h-5 text-indigo-500" />
+                  <h3 className="text-lg font-semibold">Billing address</h3>
+                </div>
+                <button
+                  onClick={saveAddress}
+                  disabled={!addrDirty || addrSaving}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border
+                             border-indigo-300 bg-indigo-600 text-white hover:bg-indigo-700
+                             disabled:opacity-60"
+                  title="Save address"
+                >
+                  <Save className="w-4 h-4" />
+                  {addrSaving ? "Saving…" : "Save"}
+                </button>
               </div>
-            )}
 
-            {pmLoading ? (
-              <div className="mt-4 space-y-3">
-                {[1,2].map(k => (
-                  <div key={k} className="h-16 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 animate-pulse" />
-                ))}
-              </div>
-            ) : methods.length === 0 ? (
-              <div className="mt-4 text-sm text-gray-600 dark:text-white/70">
-                No payment methods. Click <b>Add card</b> to attach one.
-              </div>
-            ) : (
-              <ul className="mt-4 space-y-3">
-                {methods.map(m => (
-                  <li key={m.id} className="rounded-xl border border-gray-200 dark:border-white/10 p-4 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium capitalize">
-                        {m.brand || "card"} •••• {m.last4}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-white/60">
-                        Expires {String(m.exp_month).padStart(2,"0")}/{String(m.exp_year).slice(-2)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {m.is_default ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border
-                                         bg-emerald-50 text-emerald-700 border-emerald-200
-                                         dark:bg-emerald-500/10 dark:text-emerald-200">
-                          <Star className="w-3.5 h-3.5" /> Default
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => setDefault(m.id)}
-                          className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-50
-                                     dark:bg-white/10 dark:border-white/20"
-                        >
-                          Make default
-                        </button>
-                      )}
-                      <button
-                        onClick={() => removeMethod(m.id)}
-                        className="px-2 py-1 text-xs rounded-md border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100
-                                   dark:bg-rose-500/10 dark:border-rose-400/30 dark:text-rose-200"
-                        title="Remove card"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+              {addrErr && (
+                <div className="mt-3 text-sm rounded-md px-3 py-2 bg-rose-50 text-rose-700 border border-rose-200
+                                dark:bg-rose-500/10 dark:text-rose-200 dark:border-rose-400/30">
+                  {addrErr}
+                </div>
+              )}
+
+              {addrLoading ? (
+                <div className="mt-4 h-40 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 animate-pulse" />
+              ) : (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Full name"
+                    value={addr.name ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, name: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Company (optional)"
+                    value={addr.company ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, company: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="sm:col-span-2 px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Address line 1"
+                    value={addr.line1 ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, line1: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="sm:col-span-2 px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Address line 2 (optional)"
+                    value={addr.line2 ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, line2: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="City"
+                    value={addr.city ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, city: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="State / County"
+                    value={addr.state ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, state: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Postcode"
+                    value={addr.postal_code ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, postal_code: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <select
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    value={addr.country ?? "GB"}
+                    onChange={(e) => { setAddr(a => ({ ...a, country: e.target.value })); setAddrDirty(true); }}
+                  >
+                    {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                  </select>
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Email (for invoices)"
+                    type="email"
+                    value={addr.email ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, email: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <input
+                    className="px-3 py-2 rounded-lg bg-white/80 dark:bg-white/10 border border-gray-200 dark:border-white/10"
+                    placeholder="Phone (optional)"
+                    value={addr.phone ?? ""}
+                    onChange={(e) => { setAddr(a => ({ ...a, phone: e.target.value })); setAddrDirty(true); }}
+                  />
+                  <p className="sm:col-span-2 text-xs text-gray-500 dark:text-white/60">
+                    This address appears on your invoices. Updating it will sync to our payment processor.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Invoices (span 1 on xl:2) */}
@@ -704,7 +849,7 @@ export default function BillingArea() {
           </div>
         </div>
 
-        {/* PAYMENT HISTORY (charges) */}
+        {/* PAYMENT HISTORY */}
         <div className="rounded-2xl border bg-white text-gray-900 shadow-sm p-6
                         border-gray-200 dark:bg-[#0b1220] dark:text-white dark:border-white/15">
           <div className="flex items-center justify-between">
