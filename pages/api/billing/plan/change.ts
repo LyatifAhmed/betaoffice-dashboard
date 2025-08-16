@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await stripe.subscriptionItems.update(itemId, { price: price_id, proration_behavior: "create_prorations" });
 
     // DB’de de price_id’ı saklayalım (tekil model adı!)
-    await prisma.subscription.update({
+    await prisma.subscriptions.update({
       where: { external_id: externalId },
       data: { stripe_price_id: price_id },
     });
