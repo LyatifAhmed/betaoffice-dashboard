@@ -14,7 +14,7 @@ export type ApiSubscription = {
 export const prisma = new PrismaClient();
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-07-30.basil",
+  //apiVersion: "2025-07-30.basil",
 });
 
 export function getExternalId(req: NextApiRequest, res: NextApiResponse): string | null {

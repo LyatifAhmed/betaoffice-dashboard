@@ -1,6 +1,5 @@
 // /pages/api/billing/subscription.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import type Stripe from "stripe";
 import {
   getExternalId,
   getDbSubscription,
@@ -21,26 +20,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return;
     }
 
-    // 2) Stripe subscription (yoksa null)
-    const stripeSub = (await getStripeSubscription(
-      dbSub.stripe_subscription_id
-    )) as Stripe.Subscription | null;
+    // 2) Stripe subscription (varsa)
+    const stripeSub = await getStripeSubscription(dbSub.stripe_subscription_id);
 
-    // 3) Güvenli alan okuma
-    const currentPeriodEndIso: string | null =
-      stripeSub && typeof stripeSub.current_period_end === "number"
-        ? new Date(stripeSub.current_period_end * 1000).toISOString()
+    // 3) Güvenli alan okuma (any-cast ile, tip çakışmalarını by-pass eder)
+    const s: any = stripeSub || {};
+    const periodEndIso: string | null =
+      typeof s.current_period_end === "number"
+        ? new Date(s.current_period_end * 1000).toISOString()
         : null;
 
+    const firstItemPriceId: string | null =
+      s?.items?.data?.[0]?.price?.id ?? null;
+
+    // 4) Normalize edilmiş çıktı
     const out: ApiSubscription = {
-      status: mapStripeStatus(stripeSub?.status),
-      current_period_end: currentPeriodEndIso,
-      cancel_at_period_end: Boolean(stripeSub?.cancel_at_period_end),
-      price_id:
-        (stripeSub?.items?.data?.[0]?.price?.id as string | undefined) ??
-        dbSub.stripe_price_id ??
-        null,
-      // geriye dönük alan (artık price_id kullanılıyor)
+      status: mapStripeStatus(s?.status ?? null),
+      current_period_end: periodEndIso,
+      cancel_at_period_end: !!s?.cancel_at_period_end,
+      // price_id öncelik: Stripe item → DB fallback
+      price_id: firstItemPriceId ?? dbSub.stripe_price_id ?? null,
+      // geriye dönük — artık price_id kullanıyoruz
       plan_id: null,
     };
 
