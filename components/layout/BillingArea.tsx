@@ -75,6 +75,10 @@ type Subscription = {
   status: "ACTIVE" | "CANCELLED" | "PENDING" | "PAST_DUE";
   current_period_end?: string;     // ISO
   cancel_at_period_end?: boolean;
+
+  // 🔵 NEW: API’den gelebilecek fallback alanları
+  price_interval?: "month" | "year" | null;
+  price_unit_amount?: number | null; // pennies
 };
 
 /** Billing Address shape (Stripe Customer billing_details / invoice_settings) */
@@ -193,13 +197,12 @@ export default function BillingArea() {
   const [addrLoading, setAddrLoading] = useState(true);
   const [addrErr, setAddrErr] = useState<string>("");
   const [addrSaving, setAddrSaving] = useState(false);
-  const [addr, setAddr] = useState<BillingAddress>({
-    country: "GB",
-  });
+  const [addr, setAddr] = useState<BillingAddress>({ country: "GB" });
   const [addrDirty, setAddrDirty] = useState(false);
 
   const totalDue = useMemo(() => {
-    const gbp = invoices.filter(i => i.status === "due" && i.currency === "GBP")
+    const gbp = invoices
+      .filter(i => i.status === "due" && i.currency === "GBP")
       .reduce((s, i) => s + i.amount_pennies, 0);
     return gbp;
   }, [invoices]);
@@ -210,14 +213,25 @@ export default function BillingArea() {
     process.env[envName as keyof typeof process.env] ??
     (process as any).env?.[envName];
 
-  // aktif plan (env price id eşleşmesi)
+  // 🔵 currentPlan: env eşleşmesi → legacy → interval fallback
   const currentPlan: PlanInfo | null = useMemo(() => {
-    if (sub?.price_id) {
-      return PLANS.find(p => envPriceId(p.price_id_env) === sub.price_id) ?? null;
+    if (!sub) return null;
+
+    if (sub.price_id) {
+      const byEnv = PLANS.find(p => envPriceId(p.price_id_env) === sub.price_id);
+      if (byEnv) return byEnv;
     }
-    if (sub?.plan_id) {
-      return PLANS.find(p => p.id === sub.plan_id) ?? null;
+
+    if (sub.plan_id) {
+      const byLegacy = PLANS.find(p => p.id === sub.plan_id);
+      if (byLegacy) return byLegacy;
     }
+
+    if (sub.price_interval) {
+      const byInterval = PLANS.find(p => p.interval === sub.price_interval);
+      if (byInterval) return byInterval;
+    }
+
     return null;
   }, [sub]);
 
@@ -404,8 +418,7 @@ export default function BillingArea() {
       });
       if (!r.ok) throw new Error(String(r.status));
       setAddrDirty(false);
-      // İsteğe bağlı: fatura önizlemesi güncellensin diye yeniden çek
-      await loadInvoices();
+      await loadInvoices(); // olası faturalar güncellensin
     } catch {
       alert("Failed to save billing address.");
     } finally {
@@ -487,11 +500,15 @@ export default function BillingArea() {
                                 border-gray-200 dark:bg-white/5 dark:text-white dark:border-white/10">
                   <div className="text-sm">Current plan</div>
                   <div className="mt-1 text-lg font-semibold">
-                    {currentPlan?.name ?? (sub.plan_id ? sub.plan_id.toUpperCase() : "—")}
+                    {currentPlan?.name
+                      ?? (sub.price_interval ? (sub.price_interval === "month" ? "Monthly" : "Annual") : (sub.plan_id ? sub.plan_id.toUpperCase() : "—"))}
                   </div>
                   <div className="text-sm text-gray-600 dark:text-white/70">
-                    {currentPlan ? `${money(currentPlan.price_pennies, "GBP")}/${currentPlan.interval}` : "—"}
-                    {currentPlan?.vat_note ? ` • ${currentPlan.vat_note}` : ""}
+                    {currentPlan
+                      ? `${money(currentPlan.price_pennies, "GBP")}/${currentPlan.interval}${currentPlan?.vat_note ? ` • ${currentPlan.vat_note}` : ""}`
+                      : (typeof sub?.price_unit_amount === "number" && sub?.price_interval
+                          ? `${money(sub.price_unit_amount, "GBP")}/${sub.price_interval}`
+                          : "—")}
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-sm">
                     <CalendarClock className="w-4 h-4 text-indigo-500" />

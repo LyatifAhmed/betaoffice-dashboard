@@ -1,8 +1,8 @@
+// components/layout/DashboardLayout.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { mutate } from "swr";
 
 import MainSidebar, { DashboardTab } from "@/components/layout/Sidebar";
 import SmartStatusBar, { SmartStatusBarHandle } from "@/components/layout/SmartStatusBar";
@@ -42,9 +42,6 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   });
 
   const [urgentFlash, setUrgentFlash] = useState(false);
-  const urgentTimer = useRef<number | null>(null);
-
-  // Wallet & externalId setup (kısaltılmış)
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
   const statusText = useMemo(() => {
@@ -79,7 +76,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         />
       </MobileSidebarOverlay>
 
-      <div className="flex-1 flex min-w-0 flex-col overflow-hidden">
+      <div className="flex-1 flex min-w-0 flex-col overflow-hidden relative">
         <SmartStatusBar
           ref={barRef}
           onMenuClick={() => setSidebarOpen(true)}
@@ -87,11 +84,38 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           autoCloseAfter={10}
         />
 
+        {/* Selection bar — SmartStatusBar’ın hemen altında, ortalı ve fixed */}
+        {selectionMeta.selectedCount > 0 && (
+          <div
+            className="
+              fixed z-[65]
+              left-1/2 -translate-x-1/2
+              top-[calc(env(safe-area-inset-top)+56px)] sm:top-[calc(env(safe-area-inset-top)+64px)]
+              w-auto
+            "
+          >
+            <SelectionBar
+              selectedCount={selectionMeta.selectedCount}
+              onDeleteMarked={selectionMeta.onDeleteMarked}
+              onSelectAll={selectionMeta.onSelectAll}
+              onClear={selectionMeta.onClear}
+              isTrashView={selectionMeta.isTrashView}
+            />
+          </div>
+        )}
+
+        {/* Wallet sağ üst köşe */}
+        <div className="absolute top-3 right-3 z-[70]">
+          <WalletFab balance={walletBalance} position="right" onTopUp={() => {}} />
+        </div>
+
         {/* Content */}
         <div className="flex-1 min-w-0 flex items-stretch overflow-hidden gap-3 sm:gap-4 md:gap-6 pb-[env(safe-area-inset-bottom)]">
           <main className="min-w-0 flex-1 overflow-y-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-3">
             <div className="mx-auto w-full max-w-[92rem]">
-              {activeTab === "mail" && <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />}
+              {activeTab === "mail" && (
+                <MailArea onSelectionMetaChange={(meta) => setSelectionMeta(meta)} />
+              )}
               {activeTab === "details" && <DetailsTab />}
               {activeTab === "billing" && <BillingArea />}
               {activeTab === "affiliate" && <AffiliateTab />}
@@ -106,12 +130,9 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         </div>
       </div>
 
-      {/* Wallet & Chat */}
+      {/* Chat sağ alt köşe */}
       <div className="fixed right-3 bottom-3 z-[60] md:right-4 md:bottom-4">
-        <div className="relative flex flex-col items-end gap-3">
-          <WalletFab balance={walletBalance} position="right" onTopUp={() => {}} />
-          <MagicChatButton />
-        </div>
+        <MagicChatButton />
       </div>
 
       <ChatBox />
