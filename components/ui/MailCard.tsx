@@ -4,6 +4,13 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ReaderIcon } from "@radix-ui/react-icons";
 import { Sparkles, Loader2, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export type Mail = {
   id: string;
@@ -21,7 +28,7 @@ export default function MailCard({
   mail,
   size = "compact",
   onForward,
-  hideForward = false
+  hideForward = false,
 }: {
   mail: Mail;
   size?: "compact" | "normal";
@@ -32,16 +39,22 @@ export default function MailCard({
   const [phase, setPhase] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [fwdBusy, setFwdBusy] = useState(false);
+
+  // Envelope dialog state
+  const [envOpen, setEnvOpen] = useState(false);
+  const [envLoading, setEnvLoading] = useState(false);
+  const [envErr, setEnvErr] = useState<string | null>(null);
+  const [frontUrl, setFrontUrl] = useState<string | null>(null);
+  const [backUrl, setBackUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
   const hideTimer = useRef<number | null>(null);
 
   useEffect(() => {
-  return () => {
-    if (hideTimer.current) {
-      window.clearTimeout(hideTimer.current);
-    }
-  };
-}, []);
-
+    return () => {
+      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    };
+  }, []);
 
   const daysLeft = useMemo(() => {
     if (!mail.expiresAt) return null;
@@ -75,7 +88,7 @@ export default function MailCard({
     try {
       const res = await fetch("/api/summarize", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mailId: key }),
       });
       const data = await res.json().catch(() => ({}));
@@ -94,7 +107,9 @@ export default function MailCard({
       const res = await fetch(`/api/mail/open/${encodeURIComponent(mail.id)}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       if (data?.url) window.open(data.url, "_blank", "noopener,noreferrer");
-    } catch {}
+    } catch {
+      // no-op
+    }
   };
 
   const handleForward = async () => {
@@ -114,6 +129,32 @@ export default function MailCard({
     }
   };
 
+  // Envelope loader (front/back + pdf link)
+  const openEnvelope = async () => {
+    setEnvOpen(true);
+    setEnvLoading(true);
+    setEnvErr(null);
+    setFrontUrl(null);
+    setBackUrl(null);
+    setPdfUrl(null);
+    try {
+      // 1) zarf görselleri
+      const envRes = await fetch(`/api/mail/envelope/${encodeURIComponent(mail.id)}`, { cache: "no-store" });
+      const envData = await envRes.json().catch(() => ({}));
+      setFrontUrl(envData?.url_envelope_front || envData?.front || null);
+      setBackUrl(envData?.url_envelope_back || envData?.back || null);
+
+      // 2) pdf linki (24h presigned)
+      const pdfRes = await fetch(`/api/mail/open/${encodeURIComponent(mail.id)}`, { cache: "no-store" });
+      const pdfData = await pdfRes.json().catch(() => ({}));
+      setPdfUrl(pdfData?.url || null);
+    } catch (e: any) {
+      setEnvErr("Couldn’t load envelope assets.");
+    } finally {
+      setEnvLoading(false);
+    }
+  };
+
   const chipStyles: Record<NonNullable<Mail["category"]>, string> = {
     bank: "bg-emerald-200 text-emerald-900",
     government: "bg-amber-200 text-amber-900",
@@ -125,13 +166,13 @@ export default function MailCard({
   const titleCls = size === "compact" ? "text-[12.5px] sm:text-sm" : "text-xs sm:text-sm";
   const dateCls = size === "compact" ? "text-[10.5px] sm:text-xs" : "text-[11px] sm:text-xs";
 
-  // fark: okunmamış mail kalın border
+  // okunmamış → kalın çerçeve, okunmuş → standart
   const readCls = mail.isRead
     ? "border border-white/30 dark:border-white/15"
     : "border-2 border-violet-400/60";
 
   return (
-    <div className={`relative group`}>
+    <div className="relative group">
       <div
         className={`w-full max-w-full bg-white/70 dark:bg-white/10 backdrop-blur-md
                     rounded-xl ${pad} transition-all duration-300 overflow-hidden
@@ -155,7 +196,7 @@ export default function MailCard({
           </div>
 
           <div className="relative flex flex-wrap sm:flex-nowrap items-center justify-start sm:justify-end gap-2 overflow-x-auto max-w-full">
-            {/* Open */}
+            {/* Open PDF */}
             <button
               onClick={handleOpenPDF}
               className="flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-full
@@ -165,6 +206,18 @@ export default function MailCard({
             >
               <ReaderIcon className="w-3 h-3" /> <span className="hidden xs:inline">Open</span>
               <span className="xs:hidden">Open</span>
+            </button>
+
+            {/* Envelope preview (dialog açar) */}
+            <button
+              onClick={openEnvelope}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-full
+                         bg-slate-200 text-slate-900 hover:bg-slate-300 transition
+                         dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+              aria-label="Open envelope"
+            >
+              ✉️ <span className="hidden xs:inline">Envelope</span>
+              <span className="xs:hidden">Env</span>
             </button>
 
             {/* Forward */}
@@ -250,6 +303,84 @@ export default function MailCard({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Envelope Dialog */}
+      <Dialog open={envOpen} onOpenChange={setEnvOpen}>
+        <DialogContent className="sm:max-w-[620px]">
+          <DialogHeader>
+            <DialogTitle>Envelope preview</DialogTitle>
+          </DialogHeader>
+
+          {envLoading ? (
+            <div className="text-sm text-gray-600 dark:text-white/70">Loading…</div>
+          ) : envErr ? (
+            <div className="text-sm text-rose-600">{envErr}</div>
+          ) : (
+            <div className="space-y-4">
+              {/* PDF link (opsiyonel) */}
+              {pdfUrl && (
+                <div>
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-md
+                               bg-blue-100 text-blue-800 hover:bg-blue-200 transition
+                               dark:bg-blue-500/20 dark:text-blue-200 dark:hover:bg-blue-500/30"
+                  >
+                    📄 Open PDF
+                  </a>
+                </div>
+              )}
+
+              {!frontUrl && !backUrl ? (
+                <div className="text-sm text-gray-600 dark:text-white/70">
+                  No envelope images were provided for this item.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {frontUrl && (
+                    <div className="rounded-lg border overflow-hidden">
+                      <div className="px-2 py-1 text-xs font-medium bg-gray-50 dark:bg-white/5">
+                        Front
+                      </div>
+                      <img
+                        src={frontUrl}
+                        alt="Envelope front"
+                        className="w-full h-auto"
+                        loading="eager"
+                      />
+                    </div>
+                  )}
+                  {backUrl && (
+                    <div className="rounded-lg border overflow-hidden">
+                      <div className="px-2 py-1 text-xs font-medium bg-gray-50 dark:bg-white/5">
+                        Back
+                      </div>
+                      <img
+                        src={backUrl}
+                        alt="Envelope back"
+                        className="w-full h-auto"
+                        loading="eager"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <button
+              onClick={() => setEnvOpen(false)}
+              className="px-3 py-1.5 text-sm rounded-md border border-gray-200 bg-white 
+                         hover:bg-gray-50 dark:bg-white/10 dark:border-white/15 dark:text-white"
+            >
+              Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

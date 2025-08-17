@@ -446,12 +446,12 @@ export default function MailArea({
                 isRead: mail.isRead,
               };
               return (
-                <div key={mail.id} className="flex items-start gap-2">
+                <div key={mail.id} className="flex items-start gap-2.5">
                   <Checkbox
                     checked={checked}
                     onChange={() => onToggle(mail.id)}
                     ariaLabel={`Select ${mail.sender}`}
-                    className="mt-2"
+                    className="mt-[9px] ml-0.5 shrink-0"
                   />
 
                   {/* Unread → vurgulu ring */}
