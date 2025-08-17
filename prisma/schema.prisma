@@ -193,17 +193,30 @@ model subscriptions {
   referral_code          String?          @db.VarChar
   referral_reward_paid   Boolean          @default(false)
   stripe_price_id        String?          @db.VarChar
+
   referral_links         referral_links[]
+
+  // doğru relation: FK zaten wallets tablosunda
+  wallet                 wallets?
 
   @@index([hoxton_status], map: "ix_subscriptions_hoxton_status")
   @@index([referral_code], map: "ix_subscriptions_referral_code")
   @@index([stripe_price_id], map: "ix_subscriptions_stripe_price_id")
+
+  @@map("subscriptions")
 }
 
 model wallets {
-  id              String    @id @db.VarChar
-  external_id     String    @unique @db.VarChar
-  balance_pennies Int?
-  created_at      DateTime? @db.Timestamp(6)
-  updated_at      DateTime? @db.Timestamp(6)
+  id              String          @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  external_id     String          @unique @db.VarChar
+  balance_pennies Int             @default(0)
+  created_at      DateTime        @default(now()) @db.Timestamp(6)
+  updated_at      DateTime        @updatedAt @db.Timestamp(6)
+
+  // FK: wallets.external_id -> subscriptions.external_id
+  subscription    subscriptions   @relation(fields: [external_id], references: [external_id], onDelete: Cascade)
+
+  @@map("wallets")
 }
+
+
