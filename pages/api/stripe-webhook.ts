@@ -77,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!external_id) break;
 
         // Status ACTIVE yap
-        await prisma.subscription.updateMany({
+        await prisma.subscriptions.updateMany({
           where: { external_id },
           data: { review_status: "ACTIVE" },
         });
