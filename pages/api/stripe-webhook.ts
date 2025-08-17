@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
           );
 
-          await prisma.subscription.updateMany({
+          await prisma.subscriptions.updateMany({
             where: { external_id },
             data: { review_status: "CANCELLED" },
           });
@@ -144,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log(`🧾 Saving Stripe IDs for ${external_id}: customer=${customerId}, subscription=${subscriptionId}`);
 
           try {
-            await prisma.subscription.update({
+            await prisma.subscriptions.update({
               where: { external_id },
               data: {
                 stripe_customer_id: customerId || undefined,
