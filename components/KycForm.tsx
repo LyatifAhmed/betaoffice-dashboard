@@ -17,6 +17,7 @@ interface Props {
   couponId: string | null;
   discountedPrice: number;
   stripePriceId: string;
+  referralCode?: string;
 }
 
 interface Owner {

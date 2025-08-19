@@ -119,44 +119,65 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const external_id = session?.metadata?.external_id as string | undefined;
-        const isTopup = session?.metadata?.topup === "true";
-        const amount = session?.amount_total ?? 0;
+  const session = event.data.object as Stripe.Checkout.Session;
+  const external_id = session?.metadata?.external_id as string | undefined;
+  if (!external_id) break;
 
-        if (!external_id) break;
+  const isTopup = session?.metadata?.topup === "true";
+  if (isTopup) {
+    // ... mevcut top-up kodun ...
+    break;
+  }
 
-        if (isTopup) {
-          // Cüzdanı güncelle (pennies). Prisma şeman id default’u yoksa id veriyoruz.
-          await prisma.wallets.upsert({
-            where: { external_id },
-            update: { balance_pennies: { increment: amount } },
-            create: {
-              id: randomUUID(), // @default(uuid()) yoksa gereklidir; varsa da sorun olmaz
-              external_id,
-              balance_pennies: amount,
-              created_at: new Date(),
-              updated_at: new Date(),
-            },
-          });
-          console.log(`💰 Top-up: £${(amount / 100).toFixed(2)} → ${external_id}`);
-        } else {
-          // Stripe ID’leri kaydet
-          const customerId = typeof session.customer === "string" ? session.customer : undefined;
-          const subscriptionId =
-            typeof session.subscription === "string" ? session.subscription : undefined;
+  // Stripe ID’leri kaydet
+  const customerId = typeof session.customer === "string" ? session.customer : undefined;
+  const subscriptionId = typeof session.subscription === "string" ? session.subscription : undefined;
 
-          await prisma.subscriptions.update({
-            where: { external_id },
-            data: {
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
-            },
-          });
-          console.log(`✅ Saved Stripe IDs for ${external_id}`);
-        }
-        break;
-      }
+  await prisma.subscriptions.update({
+    where: { external_id },
+    data: {
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
+      // ✅ YENİ: referral code
+      referral_code: session.metadata?.referrer_code ?? null,
+    },
+  });
+
+  // email fallback (type-safe)
+  let customerEmail: string | null = session.customer_details?.email ?? null;
+  if (!customerEmail && customerId) {
+    const c = await stripe.customers.retrieve(customerId);
+    if (!("deleted" in c)) customerEmail = c.email ?? null;
+  }
+
+  // Backend: Hoxton create + KYC token e-mail
+  try {
+    const company = session.metadata?.company ? JSON.parse(session.metadata.company) : null;
+    const shipping = session.metadata?.shipping ? JSON.parse(session.metadata.shipping) : null;
+    const members = session.metadata?.members ? JSON.parse(session.metadata.members) : [];
+
+    await fetch(`${backendUrl}/subscription/hoxton-create`, withBasicAuth({
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        stripe_session_id: session.id,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        customer_email: customerEmail,
+        company,
+        shipping_address: shipping,
+        members,
+        // ✅ (opsiyonel) backend’e de iletmek istersen:
+        referral_code: session.metadata?.referrer_code ?? null,
+      }),
+    }));
+  } catch (e) {
+    console.error("hoxton-create call failed:", e);
+  }
+
+  break;
+}
+
 
       default:
         // Diğer eventleri logla (gerekirse)

@@ -8,17 +8,20 @@ datasource db {
 }
 
 model CompanyMember {
-  id              Int       @id @default(autoincrement())
-  subscription_id String?   @db.VarChar
-  first_name      String?   @db.VarChar
-  middle_name     String?   @db.VarChar
-  last_name       String?   @db.VarChar
-  phone_number    String?   @db.VarChar
-  email           String?   @db.VarChar
-  date_of_birth   DateTime? @db.Timestamp(6)
+  id                  Int       @id @default(autoincrement())
+  subscription_id     String?   @db.VarChar
+  first_name          String?   @db.VarChar
+  middle_name         String?   @db.VarChar
+  last_name           String?   @db.VarChar
+  phone_number        String?   @db.VarChar
+  email               String?   @db.VarChar
+  date_of_birth       DateTime? @db.Timestamp(6)
+  role                String    @default("READ") @db.VarChar
+  email_notifications Boolean   @default(true)
 
   @@index([subscription_id], map: "idx_company_members_subscription_id")
   @@index([id], map: "ix_company_members_id")
+  @@index([subscription_id, role], map: "ix_company_members_subscription_role")
   @@map("company_members")
 }
 
@@ -165,58 +168,125 @@ model scanned_mails {
 }
 
 model subscriptions {
-  external_id            String           @id @db.VarChar
+  external_id            String                  @id @db.VarChar
   product_id             Int?
-  customer_first_name    String?          @db.VarChar
-  customer_middle_name   String?          @db.VarChar
-  customer_last_name     String?          @db.VarChar
-  customer_email         String?          @db.VarChar
-  stripe_customer_id     String?          @db.VarChar
-  review_status          String?          @db.VarChar
-  shipping_line_1        String?          @db.VarChar
-  shipping_line_2        String?          @db.VarChar
-  shipping_line_3        String?          @db.VarChar
-  shipping_city          String?          @db.VarChar
-  shipping_postcode      String?          @db.VarChar
-  shipping_state         String?          @db.VarChar
-  shipping_country       String?          @db.VarChar
-  company_name           String?          @db.VarChar
-  company_trading_name   String?          @db.VarChar
-  company_number         String?          @db.VarChar
+  customer_first_name    String?                 @db.VarChar
+  customer_middle_name   String?                 @db.VarChar
+  customer_last_name     String?                 @db.VarChar
+  customer_email         String?                 @db.VarChar
+  stripe_customer_id     String?                 @db.VarChar
+  review_status          String?                 @db.VarChar
+  shipping_line_1        String?                 @db.VarChar
+  shipping_line_2        String?                 @db.VarChar
+  shipping_line_3        String?                 @db.VarChar
+  shipping_city          String?                 @db.VarChar
+  shipping_postcode      String?                 @db.VarChar
+  shipping_state         String?                 @db.VarChar
+  shipping_country       String?                 @db.VarChar
+  company_name           String?                 @db.VarChar
+  company_trading_name   String?                 @db.VarChar
+  company_number         String?                 @db.VarChar
   organisation_type      Int?
-  telephone_number       String?          @db.VarChar
-  stripe_subscription_id String?          @db.VarChar
-  start_date             DateTime?        @db.Timestamp(6)
-  hoxton_status          String?          @db.VarChar
-  activated_at           DateTime?        @db.Timestamp(6)
-  first_paid_at          DateTime?        @db.Timestamp(6)
-  referral_code          String?          @db.VarChar
-  referral_reward_paid   Boolean          @default(false)
-  stripe_price_id        String?          @db.VarChar
-
+  telephone_number       String?                 @db.VarChar
+  stripe_subscription_id String?                 @db.VarChar
+  start_date             DateTime?               @db.Timestamp(6)
+  hoxton_status          String?                 @db.VarChar
+  activated_at           DateTime?               @db.Timestamp(6)
+  first_paid_at          DateTime?               @db.Timestamp(6)
+  referral_code          String?                 @db.VarChar
+  referral_reward_paid   Boolean                 @default(false)
+  stripe_price_id        String?                 @db.VarChar
+  audit_logs             audit_logs[]
+  pending_email_changes  pending_email_changes[]
   referral_links         referral_links[]
-
-  // doğru relation: FK zaten wallets tablosunda
+  team_invites           team_invites[]
+  wallet_ledger          wallet_ledger[]
   wallet                 wallets?
+  withdrawal_requests    withdrawal_requests[]
 
   @@index([hoxton_status], map: "ix_subscriptions_hoxton_status")
   @@index([referral_code], map: "ix_subscriptions_referral_code")
   @@index([stripe_price_id], map: "ix_subscriptions_stripe_price_id")
-
   @@map("subscriptions")
 }
 
 model wallets {
-  id              String          @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  external_id     String          @unique @db.VarChar
-  balance_pennies Int             @default(0)
-  created_at      DateTime        @default(now()) @db.Timestamp(6)
-  updated_at      DateTime        @updatedAt @db.Timestamp(6)
-
-  // FK: wallets.external_id -> subscriptions.external_id
-  subscription    subscriptions   @relation(fields: [external_id], references: [external_id], onDelete: Cascade)
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  external_id     String        @unique @db.VarChar
+  balance_pennies Int           @default(0)
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @updatedAt @db.Timestamp(6)
+  subscription    subscriptions @relation(fields: [external_id], references: [external_id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("wallets")
 }
 
+model audit_logs {
+  id            String        @id @db.VarChar
+  ts            DateTime      @db.Timestamp(6)
+  external_id   String        @db.VarChar
+  actor_email   String?       @db.VarChar
+  event         String        @db.VarChar
+  meta          Json?         @db.Json
+  subscriptions subscriptions @relation(fields: [external_id], references: [external_id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([event], map: "ix_audit_logs_event")
+  @@index([external_id], map: "ix_audit_logs_external_id")
+}
+
+model pending_email_changes {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  external_id   String
+  new_email     String
+  token_hash    String        @unique(map: "idx_pending_email_changes_token")
+  expires_at    DateTime      @db.Timestamptz(6)
+  confirmed_at  DateTime?     @db.Timestamptz(6)
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  subscriptions subscriptions @relation(fields: [external_id], references: [external_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([external_id], map: "idx_pending_email_changes_external")
+}
+
+model team_invites {
+  id            Int           @id @default(autoincrement())
+  external_id   String        @db.VarChar
+  email         String        @db.VarChar
+  role          String        @db.VarChar
+  token         String        @unique(map: "ix_team_invites_token") @db.VarChar
+  expires_at    DateTime      @db.Timestamp(6)
+  accepted_at   DateTime?     @db.Timestamp(6)
+  created_at    DateTime      @db.Timestamp(6)
+  created_by    String?       @db.VarChar
+  subscriptions subscriptions @relation(fields: [external_id], references: [external_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([external_id, email], map: "ix_team_invites_unique_open")
+  @@index([external_id], map: "ix_team_invites_external_id")
+}
+
+model wallet_ledger {
+  id             String        @id @db.VarChar
+  external_id    String        @db.VarChar
+  direction      String        @db.VarChar
+  type           String        @db.VarChar
+  amount_pennies Int
+  actor_email    String?       @db.VarChar
+  note           String?
+  created_at     DateTime      @default(now()) @db.Timestamp(6)
+  subscriptions  subscriptions @relation(fields: [external_id], references: [external_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([external_id], map: "ix_wallet_ledger_external_id")
+}
+
+model withdrawal_requests {
+  id             String        @id @db.VarChar
+  external_id    String        @db.VarChar
+  email          String        @db.VarChar
+  amount_pennies Int
+  status         String        @default("pending") @db.VarChar
+  created_at     DateTime      @default(now()) @db.Timestamp(6)
+  processed_at   DateTime?     @db.Timestamp(6)
+  note           String?
+  subscriptions  subscriptions @relation(fields: [external_id], references: [external_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([external_id], map: "ix_withdrawal_requests_external_id")
+}

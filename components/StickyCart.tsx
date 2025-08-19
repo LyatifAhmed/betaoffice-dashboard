@@ -1,280 +1,214 @@
+// components/StickyCart.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import {
-  ShoppingCart,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
+  ShoppingCart, ShieldCheck, Bot, BadgePercent, Sparkles,
 } from "lucide-react";
-import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useAnimation,
-} from "framer-motion";
 
-interface Props {
-  onChange?: (
-    plan: "monthly" | "annual",
-    hoxtonProductId: number,
-    stripePriceId: string
-  ) => void;
-  onCoupon?: (
-    couponCode: string,
-    discount: number,
-    couponId: string | null
-  ) => void;
+type PlanKey = "monthly" | "annual";
+interface StickyCartProps {
+  onChange?: (plan: PlanKey, hoxtonProductId: number, stripePriceId: string) => void;
+  onCoupon?: (code: string, discount: number, id: string | null) => void;
 }
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-  return isMobile;
-}
-
-const planMap = {
-  "price_1RBKvBACVQjWBIYus7IRSyEt": {
-    label: "Monthly (£20 + VAT)",
-    hoxtonProductId: 2736,
-    price: 20,
-  },
-  "price_1RBKvlACVQjWBIYuVs4Of01v": {
-    label: "Annual (£200 + VAT)",
-    hoxtonProductId: 2737,
-    price: 200,
-  },
+const VAT_RATE = 0.2;
+const PRICES: Record<PlanKey, { stripeId: string; hoxtonProductId: number; base: number; period: "/month" | "/year" }> = {
+  monthly: { stripeId: "price_1RBKvBACVQjWBIYus7IRSyEt", hoxtonProductId: 2736, base: 20,  period: "/month" },
+  annual:  { stripeId: "price_1RBKvlACVQjWBIYuVs4Of01v", hoxtonProductId: 2737, base: 200, period: "/year"  },
 };
 
-type StripePriceKey = keyof typeof planMap;
+export default function StickyCart({ onChange, onCoupon }: StickyCartProps) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<PlanKey>("monthly");
 
-export default function StickyCart({ onChange, onCoupon }: Props) {
-  const isMobile = useIsMobile();
-  const [stripePriceId, setStripePriceId] = useState<StripePriceKey>(
-    "price_1RBKvBACVQjWBIYus7IRSyEt"
-  );
   const [couponCode, setCouponCode] = useState("");
-  const [discountAmount, setDiscountAmount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
+  const [discount, setDiscount] = useState(0);
   const [couponId, setCouponId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [mouseX, setMouseX] = useState(0);
-
-  const x = useMotionValue(0);
-  const controls = useAnimation();
-  const screenWidthRef = useRef<number | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      screenWidthRef.current = window.innerWidth;
-    }
+    try {
+      const s = localStorage.getItem("selected_plan_key") as PlanKey | null;
+      if (s === "monthly" || s === "annual") setSelected(s);
+    } catch {}
   }, []);
 
-  const currentPlan = planMap[stripePriceId];
-
   useEffect(() => {
-    const stored = localStorage.getItem("selected_plan");
-    if (stored && stored in planMap) {
-      const key = stored as StripePriceKey;
-      setStripePriceId(key);
-      onChange?.(
-        key === "price_1RBKvBACVQjWBIYus7IRSyEt" ? "monthly" : "annual",
-        planMap[key].hoxtonProductId,
-        key
-      );
-    }
-  }, [onChange]);
+    const p = PRICES[selected];
+    onChange?.(selected, p.hoxtonProductId, p.stripeId);
+    try { localStorage.setItem("selected_plan_key", selected); } catch {}
+    // plan değişince kuponu sıfırla
+    setDiscount(0); setCouponApplied(false); setCouponId(null);
+  }, [selected, onChange]);
 
-  const handleApplyCoupon = async () => {
-    const trimmedCode = couponCode.trim().toUpperCase();
-    if (!trimmedCode) return;
+  const base = PRICES[selected].base;
+  const effectiveBase = Math.max(0, base - Math.max(0, discount));
+  const vat = +(effectiveBase * VAT_RATE).toFixed(2);
+  const total = +(effectiveBase + vat).toFixed(2);
 
+  // saving badges (Hoxton hissi)
+  const eqMonthly = 200 / 12; // 16.67
+  const savePerMonthIncVat = +((20 - eqMonthly) * (1 + VAT_RATE)).toFixed(2); // ~4.00
+  const savePerYearIncVat = +(savePerMonthIncVat * 12).toFixed(2); // ~48.00
+
+  const applyCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+    setBusy(true);
     try {
-      const res = await axios.post("/api/validate-coupon", {
-        couponCode: trimmedCode,
+      const resp = await fetch("/api/validate-coupon", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ couponCode: code, plan: selected }),
       });
-      if (res.data.valid) {
-        setDiscountAmount(res.data.discountAmount || 0);
-        setCouponId(res.data.couponId || null);
+      const data = await resp.json();
+
+      if (resp.ok && data.valid) {
+        const amountOff = Math.max(0, Number(data.amountOff ?? 0));
+        const applied = Math.min(amountOff, base);
+        setDiscount(applied);
         setCouponApplied(true);
-        onCoupon?.(
-          trimmedCode,
-          res.data.discountAmount || 0,
-          res.data.couponId || null
-        );
-        toast.success(`🎉 Coupon "${trimmedCode}" applied successfully!`);
+        setCouponId(data.couponId || null);
+        onCoupon?.(code, applied, data.couponId || null);
+        toast.success("Coupon applied");
       } else {
-        setDiscountAmount(0);
+        setDiscount(0);
         setCouponApplied(false);
         setCouponId(null);
-        toast.error("Invalid or expired coupon code.");
+        toast.error(data?.message || "Invalid or expired coupon");
       }
     } catch {
-      toast.error("❌ Error validating coupon. Try again later.");
+      toast.error("Network error. Please try again.");
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handlePlanChange = (plan: "monthly" | "annual") => {
-    const newId =
-      plan === "monthly"
-        ? "price_1RBKvBACVQjWBIYus7IRSyEt"
-        : "price_1RBKvlACVQjWBIYuVs4Of01v";
-    localStorage.setItem("selected_plan", newId);
-    setStripePriceId(newId);
-    onChange?.(plan, planMap[newId].hoxtonProductId, newId);
+  const handleContinue = () => {
+    setOpen(false);
+    document.querySelector("#kyc-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
-  const snapToNearest = async () => {
-    if (!screenWidthRef.current) return;
-    const safeMargin = 300; // 16px boşluk ekranın kenarlarından
-    const snapPoints = [
-      -screenWidthRef.current / 2 + safeMargin,
-      0,
-      screenWidthRef.current / 2 - safeMargin,
-    ];
-    const current = x.get();
-    const closest = snapPoints.reduce((prev, curr) =>
-      Math.abs(curr - current) < Math.abs(prev - current) ? curr : prev
-    );
-    await controls.start({
-      x: closest,
-      transition: { type: "spring", stiffness: 300, damping: 30 },
-    });
-  };
-
 
   return (
-    <div className="fixed top-0 left-1/2 transform -translate-x-1/2 w-[75%] max-w-lg z-50">
-      <motion.div
-        drag="x"
-        dragConstraints={{
-          left: -(screenWidthRef.current || 0) / 2 + 80,
-          right: (screenWidthRef.current || 0) / 2 - 80,
-        }}
-        style={{ x }}
-        animate={controls}
-        dragElastic={0.2}
-        dragMomentum={false}
-        onDragEnd={snapToNearest}
-        onMouseMove={(e) => {
-          const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-          setMouseX(e.clientX - rect.left);
-        }}
-        className={`relative rounded-2xl border border-gray-200 bg-white/30 backdrop-blur-md shadow-lg transition-all duration-500 ease-in-out pointer-events-auto hover:ring-2 hover:ring-blue-500/60 hover:shadow-xl hover:shadow-blue-500/30 ${
-          expanded ? "p-4" : "h-14 px-4"
-        }`}
-        onMouseEnter={() => !isMobile && setExpanded(true)}
-        onMouseLeave={() => !isMobile && setExpanded(false)}
+    <div className="fixed right-6 z-50" style={{ top: "100px" }}>
+
+      {/* floating button */}
+      <button
+        onClick={() => setOpen((s) => !s)}
+        className="relative w-14 h-14 flex items-center justify-center rounded-full 
+                   bg-indigo-600 text-white shadow-lg hover:scale-105 transition"
+        aria-label="Open cart"
       >
-        <motion.div
-          className="absolute top-0 left-0 h-full w-1 pointer-events-none z-[-1]"
-          style={{
-            left: mouseX,
-            background: "linear-gradient(to bottom, #3b82f6, transparent)",
-            width: "100px",
-            opacity: 0.25,
-            filter: "blur(40px)",
-          }}
-        />
+        <ShoppingCart size={22} />
+        {couponApplied && (
+          <span className="absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">
+            −£{discount.toFixed(0)}
+          </span>
+        )}
+      </button>
 
-        <div
-          className="flex justify-between items-center h-full cursor-pointer"
-          onClick={() => isMobile && setExpanded((prev) => !prev)}
-        >
-          <div className="flex items-center space-x-2">
-            <ShoppingCart className="w-5 h-5 text-blue-600" />
-            <span className="text-sm font-medium text-gray-800">
-              {currentPlan.label}
-              {couponApplied && (
-                <span className="text-green-600 ml-2">
-                  -£{discountAmount.toFixed(2)}
-                </span>
-              )}
-            </span>
+      {open && (
+        <div className="absolute right-0 mt-3 w-[340px] rounded-2xl border border-gray-200/50 
+                        bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl p-5">
+          {/* header */}
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              London Registered Office
+            </h3>
           </div>
-          {expanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-500" />
+
+          {/* hoxton-like save ribbon */}
+          {selected === "monthly" ? (
+            <p className="mb-3 text-sm text-pink-700 bg-pink-50 rounded-lg px-3 py-2 border border-pink-200">
+              <strong>Switch to annual</strong> and save <strong>£{savePerMonthIncVat.toFixed(2)}</strong> every month!
+            </p>
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-500" />
+            <p className="mb-3 text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 border border-emerald-200">
+              <strong>Saved £{savePerYearIncVat.toFixed(2)}</strong> with annual billing · Equivalent to <strong>£16.67/mo</strong>
+            </p>
           )}
-        </div>
 
-        <AnimatePresence>
-          {expanded && (
-            <motion.div
-              key="cart-content"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden mt-4 space-y-4 text-sm text-gray-700"
+          {/* plan tabs */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setSelected("monthly")}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium ${
+                selected === "monthly" ? "bg-indigo-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+              }`}
             >
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handlePlanChange("monthly")}
-                  className={`text-sm px-3 py-1 rounded-md border ${
-                    stripePriceId === "price_1RBKvBACVQjWBIYus7IRSyEt"
-                      ? "bg-blue-600 text-white"
-                      : "border-blue-600 text-blue-600"
-                  }`}
-                >
-                  Monthly
-                </button>
-                <button
-                  onClick={() => handlePlanChange("annual")}
-                  className={`text-sm px-3 py-1 rounded-md border ${
-                    stripePriceId === "price_1RBKvlACVQjWBIYuVs4Of01v"
-                      ? "bg-green-600 text-white"
-                      : "border-green-600 text-green-600"
-                  }`}
-                >
-                  Annual
-                </button>
-              </div>
+              £20 + VAT /mo
+            </button>
+            <button
+              onClick={() => setSelected("annual")}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium ${
+                selected === "annual" ? "bg-indigo-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+              }`}
+            >
+              £200 + VAT /yr
+            </button>
+          </div>
 
-              {couponApplied && (
-                <p className="text-green-600">
-                  Discounted Price: £{(
-                    currentPlan.price - discountAmount
-                  ).toFixed(2)}
-                </p>
-              )}
+          {/* price box */}
+          <div className="space-y-1 mb-4">
+            <Row label="Base" value={`£${base.toFixed(2)} ${PRICES[selected].period}`} />
+            {couponApplied && discount > 0 && <Row label="Discount" value={`– £${discount.toFixed(2)}`} />}
+            <Row label="VAT (20%)" value={`£${vat.toFixed(2)}`} />
+            <div className="flex justify-between font-semibold text-gray-900 dark:text-white pt-1 border-t border-gray-200 dark:border-gray-700">
+              <span>Total today</span>
+              <span>£{total.toFixed(2)} {PRICES[selected].period}</span>
+            </div>
+          </div>
 
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {["AI Mail Sorting", "Full Privacy (Director Address)", "Fast Setup", "Transparent Pricing – No Hidden Fees"].map((feature, idx) => (
-                  <li key={idx} className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* features */}
+          <ul className="space-y-2 text-sm text-gray-800 dark:text-gray-200 mb-4">
+            <li className="flex items-center gap-2"><Bot className="w-4 h-4 text-emerald-600" /> AI-sorted mail included</li>
+            <li className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-600" /> Director privacy included</li>
+            <li className="flex items-center gap-2"><BadgePercent className="w-4 h-4 text-emerald-600" /> Transparent pricing — no hidden fees</li>
+          </ul>
 
-              <div className="flex mt-4 space-x-2">
-                <input
-                  type="text"
-                  placeholder="Coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="border p-2 rounded-md flex-1"
-                />
-                <button
-                  onClick={handleApplyCoupon}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 rounded-md"
-                >
-                  Apply
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          {/* coupon */}
+          <div className="mb-4">
+            <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Coupon code</label>
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Enter code"
+                className="flex-1 rounded-lg bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100 px-3 py-2 outline-none border border-gray-300 dark:border-gray-700"
+              />
+              <button
+                onClick={applyCoupon}
+                disabled={busy}
+                className="rounded-lg px-4 py-2 bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-60"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={handleContinue}
+            className="w-full rounded-xl py-3 text-center font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition"
+          >
+            Continue to KYC
+          </button>
+
+          <p className="mt-2 text-[12px] text-gray-600 dark:text-gray-400 text-center">
+            No charge until ID verification is completed.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-sm text-gray-700 dark:text-gray-200">
+      <span>{label}</span><span>{value}</span>
     </div>
   );
 }
