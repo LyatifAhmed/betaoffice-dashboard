@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -24,7 +25,6 @@ export default function VerifyEmailChangePage() {
         const base =
           process.env.NEXT_PUBLIC_HOXTON_API_URL?.replace(/\/+$/, "") ||
           "http://localhost:8000";
-
         const res = await fetch(`${base}/account-details/auth-email/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -32,16 +32,11 @@ export default function VerifyEmailChangePage() {
         });
 
         if (!res.ok) {
-          let errMsg = `HTTP ${res.status}`;
+          let text = "";
           try {
-            const j = await res.json();
-            errMsg = j?.detail || errMsg;
-          } catch {
-            try {
-              errMsg = await res.text();
-            } catch {}
-          }
-          throw new Error(errMsg);
+            text = await res.text();
+          } catch {}
+          throw new Error(text || `HTTP ${res.status}`);
         }
 
         const data = await res.json().catch(() => ({}));
@@ -51,35 +46,22 @@ export default function VerifyEmailChangePage() {
         } else {
           throw new Error("Could not confirm email change.");
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
         setStatus("error");
-        setMsg(
-          err?.message ||
-            "❌ Could not confirm email change. The link may be invalid or expired."
-        );
+        setMsg("❌ Could not confirm email change. The link may be invalid or expired.");
       }
     };
 
     run();
   }, []);
 
-  // redirect otomatik success olunca
-  useEffect(() => {
-    if (status === "success") {
-      const timer = setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [status]);
-
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div
         className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-sm
-                      border-gray-200 text-gray-900
-                      dark:bg-[#0b1220] dark:text-white dark:border-white/15"
+                   border-gray-200 text-gray-900
+                   dark:bg-[#0b1220] dark:text-white dark:border-white/15"
       >
         {status === "idle" || status === "loading" ? (
           <div className="text-center space-y-2">
@@ -96,15 +78,12 @@ export default function VerifyEmailChangePage() {
               Success
             </div>
             <p className="text-sm opacity-90">{msg}</p>
-            <p className="text-xs opacity-70">
-              Redirecting to dashboard in 3 seconds…
-            </p>
-            <a
+            <Link
               href="/dashboard"
               className="inline-block rounded-md bg-indigo-600 px-5 py-2 text-white hover:bg-indigo-700"
             >
-              Go to Dashboard now
-            </a>
+              Go to Dashboard
+            </Link>
           </div>
         ) : null}
 
@@ -114,15 +93,16 @@ export default function VerifyEmailChangePage() {
               Error
             </div>
             <p className="text-sm opacity-90">{msg}</p>
-            <a
+            <Link
               href="/account"
               className="inline-block rounded-md bg-gray-200 px-5 py-2 text-gray-900 hover:bg-gray-300 dark:bg-white/10 dark:text-white"
             >
               Back to Account
-            </a>
+            </Link>
           </div>
         ) : null}
       </div>
     </div>
   );
 }
+
